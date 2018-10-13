@@ -1,0 +1,6 @@
+The volume data contained in this folder was taken from the
+Chapel Hill Volume Rendering Test Data Set, Volume I, University of North Carolina,
+
+available at:
+
+http://www.siggraph.org/education/materials/vol-viz/volume_visualization_data_sets.htm

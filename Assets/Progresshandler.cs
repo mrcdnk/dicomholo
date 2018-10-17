@@ -10,29 +10,36 @@ public class Progresshandler : MonoBehaviour {
     public Image foreground;
     public Text status;
 
-    public int value
-    {
-        get
-        {
-            if (foreground != null)
-            {
-                return (int)(foreground.fillAmount * max);
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        set
-        {
-            if (foreground != null)
-            {
-                foreground.fillAmount = value / max;
-                updateText(value);
-            }
-        }
-    }
+    private string task = "";
 
+    private float value = 0;
+
+    public float getProgress()
+    {
+        if (foreground != null)
+        {
+            return foreground.fillAmount * max;
+        }
+        else
+        {
+            return 0;
+        }
+}
+
+    public float increment(float add)
+    {
+        value += add;
+
+        if (foreground != null)
+        {
+            foreground.fillAmount = value / max;
+            updateText(value);
+
+            return foreground.fillAmount;
+        }
+
+        return 0;
+    }
 
     // Use this for initialization
     void Start () {
@@ -44,15 +51,22 @@ public class Progresshandler : MonoBehaviour {
 		
 	}
 
-    public void init(int max)
+    public void init(float max, string task)
     {
         this.max = max;
         foreground.fillAmount = 0f;
         updateText(value);
     }
 
-    private void updateText(int value)
+    private void updateText(float value)
     {
-        status.text = value + " / " + (int)max;
+        if (value / max < 1.0)
+        {
+            status.text = task + " " + value + " / " + (int) max;
+        }
+        else
+        {
+            status.text = "Done.";
+        }
     }
 }

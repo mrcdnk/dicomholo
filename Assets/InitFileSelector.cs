@@ -11,7 +11,6 @@ public class InitFileSelector : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         dropdown.ClearOptions();
-        Debug.Log(System.AppDomain.CurrentDomain.BaseDirectory);
 
         var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
 
@@ -24,7 +23,6 @@ public class InitFileSelector : MonoBehaviour {
         }
      
         dropdown.AddOptions(names);
-
 
     }
 	

@@ -11,7 +11,7 @@ namespace DICOMParser
     {
         private bool little_endian;
 
-        public DiFileStream(string fname) : base(fname, FileMode.Open, FileAccess.Read, FileShare.None)
+        public DiFileStream(string fname) : base(fname, FileMode.Open, FileAccess.Read, FileShare.Read)
         {
             little_endian = true;
         }

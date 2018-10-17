@@ -97,6 +97,8 @@ namespace DICOMParser
                     }
                 }
             }
+
+            file.Close();
         }
 
         /**
@@ -105,7 +107,7 @@ namespace DICOMParser
         *
         * @return a human readable string representation
         */
-        public string toString()
+        public override string ToString()
         {
             string str = "";
 
@@ -242,7 +244,18 @@ namespace DICOMParser
 
         public override int GetHashCode()
         {
-            return image_number;
+            unchecked
+            {
+                var hashCode = width;
+                hashCode = (hashCode * 397) ^ height;
+                hashCode = (hashCode * 397) ^ bits_stored;
+                hashCode = (hashCode * 397) ^ bits_allocated;
+                hashCode = (hashCode * 397) ^ exp.GetHashCode();
+                hashCode = (hashCode * 397) ^ (data_elements != null ? data_elements.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ image_number;
+                hashCode = (hashCode * 397) ^ (file_name != null ? file_name.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

@@ -416,7 +416,7 @@ namespace DICOMParser
             data_element_map.Add(0x00181110, new TagMetaData(DS, "Distance Source to Detector"));
             data_element_map.Add(0x00181111, new TagMetaData(DS, "Distance Source to Patient"));
             data_element_map.Add(0x00181120, new TagMetaData(DS, "Gantry/Detector Tilt"));
-            data_element_map.Add(0x00181030, new TagMetaData(DS, "Table Height"));
+            data_element_map.Add(0x00181130, new TagMetaData(DS, "Table Height"));
             data_element_map.Add(0x00181131, new TagMetaData(DS, "Table Traverse"));
             data_element_map.Add(0x00181140, new TagMetaData(CS, "Rotation Direction"));
             data_element_map.Add(0x00181141, new TagMetaData(DS, "Angular Position"));
@@ -445,8 +445,8 @@ namespace DICOMParser
             data_element_map.Add(0x00181242, new TagMetaData(IS, "Actual Frame Duration"));
             data_element_map.Add(0x00181243, new TagMetaData(IS, "Count Rate"));
             data_element_map.Add(0x00181250, new TagMetaData(SH, "Receiving Coil"));
-            data_element_map.Add(0x00181151, new TagMetaData(SH, "Transmitting Coil"));
-            data_element_map.Add(0x00181160, new TagMetaData(SH, "Screen Type"));
+            data_element_map.Add(0x00181251, new TagMetaData(SH, "Transmitting Coil"));
+            data_element_map.Add(0x00181260, new TagMetaData(SH, "Screen Type"));
             data_element_map.Add(0x00181261, new TagMetaData(LO, "Phosphor Type"));
             data_element_map.Add(0x00181300, new TagMetaData(IS, "Scan Velocity"));
             data_element_map.Add(0x00181301, new TagMetaData(CS, "Whole Body Technique"));

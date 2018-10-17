@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using System.IO;
 using DICOMParser;
+using System;
+using System.IO;
+using System.Text.RegularExpressions;
+using UnityEngine.Windows;
 
 namespace DICOMData
 {
@@ -13,6 +16,8 @@ namespace DICOMData
 
         public Dropdown selection;
         public Progresshandler progresshandler;
+
+        public Text debug;
 
         private int[][][] data;
 
@@ -37,24 +42,50 @@ namespace DICOMData
 
         public void init()
         {
+            
             width = 0;
             height = 0;
 
             dicomFiles = new List<DiFile>();
-            var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
+            //var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
 
-            foreach (var fold in folders)
+            /*foreach (var fold in folders)
             {
                 if (fold.Contains(selection.captionText.text))
                 {
                     folderPath = fold;
                 }
                 break;
+            }*/
+           
+            //string[] filePaths = Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, selection.captionText.text));
+
+            //filePaths = Array.FindAll(filePaths, HasNoExtension);
+
+            int pos = 0; //startfile
+
+            List<string> fileNames = new List<string>();
+
+            while (UnityEngine.Windows.File.Exists(Path.Combine(Path.Combine(Application.streamingAssetsPath, selection.captionText.text), "CTHd" +pos.ToString("D3"))))
+            {
+                fileNames.Add(Path.Combine(Path.Combine(Application.streamingAssetsPath, selection.captionText.text), "CTHd" + pos.ToString("D3")));
+                pos++;
             }
+            progresshandler.init(fileNames.Count, "Parsing Files");
 
-            string[] filePaths = Directory.GetFiles(folderPath);
+            foreach (var path in fileNames)
+            {
+                DiFile diFile = new DiFile(true);
+                diFile.initFromFile(path);
+                dicomFiles.Add(diFile);
+                progresshandler.increment(1);
+                debug.text += "\n" + path + " : " + progresshandler.getProgress();
+            }
+        }
 
-            progresshandler.init(filePaths.Length);
+        private static bool HasNoExtension(string f)
+        {
+            return !Regex.Match(f, @"[.]*\.[.]*").Success;
         }
     }
 }

@@ -66,7 +66,7 @@ public class Progresshandler : MonoBehaviour {
         }
         else
         {
-            status.text = "Done.";
+            status.text = "Done";
         }
     }
 }

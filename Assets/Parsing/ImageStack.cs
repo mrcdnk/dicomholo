@@ -148,6 +148,73 @@ namespace DICOMData
             return !Regex.Match(f, @"[.]*\.[.]*").Success;
         }
 
+        public int[,,] GetData()
+        {
+            return data;
+        }
+
+        public void fillPixelsTransversal(int id, uint[] texData)
+        {
+            fillPixelsTransversal(id, texData, integer=>integer);
+        }
+
+        public void fillPixelsTransversal(int id, uint[] texData, Func<uint, uint> pShader)
+        {
+            DiFile file = dicomFiles[id];
+
+            for (int y = 0; y < height; ++y)
+            {
+                for (int x = 0; x < width; ++x)
+                {
+                    int index = y * width + x;
+
+                    texData[index] = pShader(GetRGBValue(this.data[id, x, y], file));
+                }
+            }
+        }
+
+        public void fillPixelsFrontal(int id, uint[] data)
+        {
+            fillPixelsFrontal(id, data, integer=>integer);
+        }
+
+        public void fillPixelsFrontal(int id, uint[] data, Func<uint, uint> pShader)
+        {
+            for (int i = 0; i < dicomFiles.Count; ++i)
+            {
+
+                DiFile file = dicomFiles[i];
+              
+                for (int x = 0; x < width; ++x)
+                {
+                    int index = i * height + x;
+
+                    data[index] = pShader(GetRGBValue(this.data[i, x, id], file));
+                }
+            }
+        }
+
+        public void fillPixelsSagittal(int id, uint[] data)
+        {
+            fillPixelsSagittal(id, data, integer=>integer);
+        }
+
+        public void fillPixelsSagittal(int id, uint[] data, Func<uint, uint> pShader)
+        {
+            for (int i = 0; i < dicomFiles.Count; ++i)
+            {
+
+                DiFile file = dicomFiles[i];
+
+                for (int y = 0; y < height; ++y)
+                {
+                    int index = i * width + y;
+
+                    data[index] = pShader(GetRGBValue(this.data[i, id, y], file));
+                }
+            }
+        }
+
         private int getPixelIntensity(int pixelIntensity, DiFile file)
         {
             DiDataElement interceptElement = file.getElement(0x0028, 0x1052);
@@ -171,7 +238,7 @@ namespace DICOMData
             return (int)intensity;
         }
 
-        public uint getRGBValue(int pixelIntensity, DiFile file)
+        private uint GetRGBValue(int pixelIntensity, DiFile file)
         {
             int bitsStored = file.getBitsStored();
 
@@ -224,6 +291,21 @@ namespace DICOMData
             }
 
             return 0xff000000 | (uint)Math.Round(intensity) << 16 | (uint)Math.Round(intensity) << 8 | (uint)Math.Round(intensity);
+        }
+    }
+
+    public class PixelShader
+    {
+        private PixelShader()
+        {
+
+        }
+
+        public static uint DYN_ALPHA(uint argb)
+        {
+            uint r = (argb & 0x00FF0000) >> 16;
+            uint dynAlpha = (uint)(210 * ((Math.Max(r - 10, 0)) / 255d));
+            return (0x00FFFFFF & argb) | (dynAlpha << 24);
         }
     }
 }

@@ -46,7 +46,6 @@ namespace DICOMParser
         private static Dictionary<uint, TagMetaData> data_element_map = new Dictionary<uint, TagMetaData>();
         private static Dictionary<string, string> media_storage_map = new Dictionary<string, string>();
 
-        private static readonly object mutex = new object();
         public static DiDictonary Instance = new DiDictonary();
 
 

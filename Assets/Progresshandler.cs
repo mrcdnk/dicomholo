@@ -30,6 +30,19 @@ public class Progresshandler : MonoBehaviour {
     {
         value += add;
 
+        
+        return update();
+    }
+
+    public float update(float value)
+    {
+        this.value = value;
+
+        return update();
+    }
+
+    private float update()
+    {
         if (foreground != null)
         {
             foreground.fillAmount = value / max;
@@ -54,6 +67,8 @@ public class Progresshandler : MonoBehaviour {
     public void init(float max, string task)
     {
         this.max = max;
+        this.value = 0;
+        this.task = task;
         foreground.fillAmount = 0f;
         updateText(value);
     }

@@ -187,7 +187,7 @@ namespace DICOMParser
          *
          * @return the byte value array containing the element data
          */
-        public byte[] getValues()
+        public byte[] GetValues()
         {
             return values;
         }

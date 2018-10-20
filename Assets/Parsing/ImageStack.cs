@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using DICOMParser;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using UnityEngine.Windows;
 
@@ -106,11 +107,68 @@ namespace DICOMData
             height = dicomFiles[0].getImageHeight();
 
             data = new int[dicomFiles.Count, width, height];
+
+            progresshandler.init(dicomFiles.Count, "Preprocessing Data");
+            yield return null;
+
+            DiFile currenDiFile;
+            byte[] storedBytes = new byte[4];
+
+            for (int layer = 0; layer < dicomFiles.Count; layer++)
+            {
+                currenDiFile = dicomFiles[layer];
+                DiDataElement pixelData = currenDiFile.removeElement(0x7FE0, 0x0010);
+                DiDataElement highBitElement = currenDiFile.getElement(0x0028, 0x0102);
+                int mask = ~((~0) << highBitElement.getValueAsInt() + 1);
+                int allocated = currenDiFile.getBitsAllocated() / 8;
+
+                using (MemoryStream pixels = new MemoryStream(pixelData.GetValues()))
+                {
+                    int currentPix;
+
+                    for (int y = 0; y < height; ++y)
+                    {
+                        for (int x = 0; x < width; ++x)
+                        {
+                            //get current Int value
+                            pixels.Read(storedBytes, 0, allocated);
+                            currentPix = getPixelIntensity(BitConverter.ToInt32(storedBytes, 0), currenDiFile);
+                            data[layer, x, y] = currentPix & mask;
+                        }
+                    }
+                }
+
+                progresshandler.increment(1);
+                yield return null;
+            }
         }
 
         private static bool HasNoExtension(string f)
         {
             return !Regex.Match(f, @"[.]*\.[.]*").Success;
+        }
+
+        private int getPixelIntensity(int pixelIntensity, DiFile file)
+        {
+            DiDataElement interceptElement = file.getElement(0x0028, 0x1052);
+            DiDataElement slopeElement = file.getElement(0x0028, 0x1053);
+
+            double intercept = 0;
+            double slope = 1;
+
+            if (interceptElement != null)
+            {
+                intercept = interceptElement.getValueAsDouble();
+            }
+
+            if (slopeElement != null)
+            {
+                slope = slopeElement.getValueAsDouble();
+            }
+
+            double intensity = (pixelIntensity * slope) + intercept;
+
+            return (int)intensity;
         }
 
         public uint getRGBValue(int pixelIntensity, DiFile file)

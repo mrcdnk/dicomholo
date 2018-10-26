@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using DICOMParser;
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using UnityEngine.Windows;
@@ -17,10 +18,16 @@ namespace DICOMData
 
         public Dropdown selection;
         public Progresshandler progresshandler;
+        public RawImage previewImage;
 
         public Text debug;
 
         private int[,,] data;
+
+        private Texture2D[] transversalTexture2Ds;
+        private Texture2D[] frontalTexture2Ds;
+        private Texture2D[] sagittalTexture2Ds;
+
 
         private Dictionary<int, DiFile> dicomFiles;
 
@@ -132,8 +139,12 @@ namespace DICOMData
                         {
                             //get current Int value
                             pixels.Read(storedBytes, 0, allocated);
-                            currentPix = getPixelIntensity(BitConverter.ToInt32(storedBytes, 0), currenDiFile);
-                            data[layer, x, y] = currentPix & mask;
+                         
+                            int value = BitConverter.ToInt32(storedBytes, 0);
+
+                            currentPix = getPixelIntensity(value & mask, currenDiFile);
+                           
+                            data[layer, x, y] = currentPix ;
                         }
                     }
                 }
@@ -141,6 +152,57 @@ namespace DICOMData
                 progresshandler.increment(1);
                 yield return null;
             }
+
+            progresshandler.init(dicomFiles.Count + width + height, "Creating Textures");
+            transversalTexture2Ds = new Texture2D[dicomFiles.Count];
+            frontalTexture2Ds = new Texture2D[height];
+            sagittalTexture2Ds = new Texture2D[width];
+
+            yield return null;
+
+            Texture2D currentTex;
+            Color32[] pixelColor32s;
+
+            for (int layer = 0; layer < dicomFiles.Count; layer++)
+            {
+                currentTex = new Texture2D(width, height, TextureFormat.ARGB32, true);
+                pixelColor32s = currentTex.GetPixels32();
+                fillPixelsTransversal(layer, pixelColor32s);
+                currentTex.SetPixels32(pixelColor32s);
+                currentTex.Apply();
+                transversalTexture2Ds[layer] = currentTex;
+                progresshandler.increment(1);
+                if (layer == 50)
+                {
+                    previewImage.texture = currentTex;
+                }
+                yield return null;
+            }
+
+            for (int y = 0; y < height; y++)
+            {
+                currentTex = new Texture2D(width, dicomFiles.Count, TextureFormat.ARGB32, true);
+                pixelColor32s = currentTex.GetPixels32();
+                fillPixelsFrontal(y, pixelColor32s);
+                currentTex.SetPixels32(pixelColor32s);
+                currentTex.Apply();
+                frontalTexture2Ds[y] = currentTex;
+                progresshandler.increment(1);
+                yield return null;
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                currentTex = new Texture2D(height, dicomFiles.Count, TextureFormat.ARGB32, true);
+                pixelColor32s = currentTex.GetPixels32();
+                fillPixelsSagittal(x, pixelColor32s);
+                currentTex.SetPixels32(pixelColor32s);
+                currentTex.Apply();
+                sagittalTexture2Ds[x] = currentTex;
+                progresshandler.increment(1);
+                yield return null;
+            }
+
         }
 
         private static bool HasNoExtension(string f)
@@ -153,12 +215,47 @@ namespace DICOMData
             return data;
         }
 
-        public void fillPixelsTransversal(int id, uint[] texData)
+        public Texture2D GetTexture2D(SliceType type, int id)
+        {
+            switch (type)
+            {
+                case SliceType.TRANSVERSAL: return transversalTexture2Ds[id];
+                case SliceType.FRONTAL: return frontalTexture2Ds[id];
+                case SliceType.SAGITTAL: return sagittalTexture2Ds[id];
+            }
+
+            return null;
+        }
+
+        public bool HasData(SliceType type)
+        {
+            switch (type)
+            {
+                case SliceType.TRANSVERSAL: return transversalTexture2Ds != null;
+                case SliceType.FRONTAL: return frontalTexture2Ds != null;
+                case SliceType.SAGITTAL: return sagittalTexture2Ds != null;
+            }
+
+            return false;
+        }
+
+        public int GetMaxValue(SliceType type)
+        {
+            switch (type)
+            {
+                case SliceType.TRANSVERSAL: return dicomFiles.Count;
+                case SliceType.FRONTAL: return height;
+                case SliceType.SAGITTAL: return width;
+                default: return 0;
+            }
+        }
+
+        public void fillPixelsTransversal(int id, Color32[] texData)
         {
             fillPixelsTransversal(id, texData, integer=>integer);
         }
 
-        public void fillPixelsTransversal(int id, uint[] texData, Func<uint, uint> pShader)
+        public void fillPixelsTransversal(int id, Color32[] texData, Func<Color32, Color32> pShader)
         {
             DiFile file = dicomFiles[id];
 
@@ -173,12 +270,12 @@ namespace DICOMData
             }
         }
 
-        public void fillPixelsFrontal(int id, uint[] data)
+        public void fillPixelsFrontal(int id, Color32[] texData)
         {
-            fillPixelsFrontal(id, data, integer=>integer);
+            fillPixelsFrontal(id, texData, integer=>integer);
         }
 
-        public void fillPixelsFrontal(int id, uint[] data, Func<uint, uint> pShader)
+        public void fillPixelsFrontal(int id, Color32[] texData, Func<Color32, Color32> pShader)
         {
             for (int i = 0; i < dicomFiles.Count; ++i)
             {
@@ -189,17 +286,17 @@ namespace DICOMData
                 {
                     int index = i * height + x;
 
-                    data[index] = pShader(GetRGBValue(this.data[i, x, id], file));
+                    texData[index] = pShader(GetRGBValue(this.data[i, x, id], file));
                 }
             }
         }
 
-        public void fillPixelsSagittal(int id, uint[] data)
+        public void fillPixelsSagittal(int id, Color32[] texData)
         {
-            fillPixelsSagittal(id, data, integer=>integer);
+            fillPixelsSagittal(id, texData, integer=>integer);
         }
 
-        public void fillPixelsSagittal(int id, uint[] data, Func<uint, uint> pShader)
+        public void fillPixelsSagittal(int id, Color32[] texData, Func<Color32, Color32> pShader)
         {
             for (int i = 0; i < dicomFiles.Count; ++i)
             {
@@ -210,7 +307,7 @@ namespace DICOMData
                 {
                     int index = i * width + y;
 
-                    data[index] = pShader(GetRGBValue(this.data[i, id, y], file));
+                    texData[index] = pShader(GetRGBValue(this.data[i, id, y], file));
                 }
             }
         }
@@ -238,7 +335,7 @@ namespace DICOMData
             return (int)intensity;
         }
 
-        private uint GetRGBValue(int pixelIntensity, DiFile file)
+        private Color32 GetRGBValue(int pixelIntensity, DiFile file)
         {
             int bitsStored = file.getBitsStored();
 
@@ -262,10 +359,10 @@ namespace DICOMData
             double intensity = pixelIntensity;
 
 
-            if (windowCenterElement != null && windowWidthElement != null || windowCenter != -1 && windowWidth != -1)
+            if ((windowCenterElement != null && windowWidthElement != null) || (windowCenter != -1 && windowWidth != -1))
             {
-                double windowC = (Double) windowCenter != -1 ? (Double) windowCenter : windowCenterElement.getValueAsDouble();
-                double windowW = (Double) windowWidth != -1 ? (Double) windowWidth : windowWidthElement.getValueAsDouble();
+                double windowC =  windowCenter != -1 ? (double) windowCenter : windowCenterElement.getValueAsDouble();
+                double windowW =  windowWidth != -1 ? (double) windowWidth : windowWidthElement.getValueAsDouble();
 
                 if (intensity < windowC - (windowW / 2))
                 {
@@ -278,20 +375,28 @@ namespace DICOMData
                 else
                 {
                     //0 for rgb min value and 255 for rgb max value
-                    intensity = (((intensity - (windowC - 0.5f)) / (windowW - 1)) + 0.5f) * 255;
+                    intensity = (((intensity - (windowC - 0.5f)) / (windowW - 1)) + 0.5f) * 255f;
                 }
             }
             else
             {
                 double oldMax = Math.Pow(2, bitsStored) * slope + intercept;
-                double oRange = (oldMax - intercept);
+                double oRange = oldMax - intercept;
                 double rgbRange = 255;
-
+             
                 intensity = (((intensity - intercept) * rgbRange) / oRange) + 0;
+                
             }
 
-            return 0xff000000 | (uint)Math.Round(intensity) << 16 | (uint)Math.Round(intensity) << 8 | (uint)Math.Round(intensity);
+           
+
+            return new Color32((byte)Math.Round(intensity), (byte)Math.Round(intensity), (byte)Math.Round(intensity), 255);
         }
+    }
+
+    public enum SliceType
+    {
+        TRANSVERSAL, SAGITTAL, FRONTAL 
     }
 
     public class PixelShader
@@ -301,11 +406,11 @@ namespace DICOMData
 
         }
 
-        public static uint DYN_ALPHA(uint argb)
+        public static Color32 DYN_ALPHA(Color32 argb)
         {
-            uint r = (argb & 0x00FF0000) >> 16;
-            uint dynAlpha = (uint)(210 * ((Math.Max(r - 10, 0)) / 255d));
-            return (0x00FFFFFF & argb) | (dynAlpha << 24);
+            uint dynAlpha = (uint)(210 * ((Math.Max((uint)argb.r - 10, 0)) / 255d));
+            argb.a = Convert.ToByte(dynAlpha) ;
+            return argb;
         }
     }
 }

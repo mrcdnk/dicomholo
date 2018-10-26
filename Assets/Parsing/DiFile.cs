@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using ExtensionsMethods;
 
 namespace DICOMParser
 {
@@ -171,12 +172,12 @@ namespace DICOMParser
          */
         public DiDataElement getElement(uint id)
         {
-            return data_elements[id];
+            return data_elements.GetValue(id);
         }
 
         public DiDataElement getElement(uint groupId, uint elementId)
         {
-            return data_elements[DiDictonary.toTag(groupId, elementId)];
+            return data_elements.GetValue(DiDictonary.toTag(groupId, elementId));
         }
 
         public DiDataElement removeElement(uint groupId, uint elementId)
@@ -258,4 +259,5 @@ namespace DICOMParser
             }
         }
     }
+
 }

@@ -19,6 +19,7 @@ namespace DICOMData
         public Dropdown selection;
         public Progresshandler progresshandler;
         public RawImage previewImage;
+        public Viewmanager viewmanager;
 
         public Text debug;
 
@@ -202,6 +203,8 @@ namespace DICOMData
                 progresshandler.increment(1);
                 yield return null;
             }
+
+            viewmanager.ready(this);
 
         }
 

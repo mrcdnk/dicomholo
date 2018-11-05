@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using DICOMData;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class OrthoSlices : MonoBehaviour
 {
     private ImageStack imageStack;
 
-    private Texture3D texture3D;
+    private RawImage transImage;
+    private RawImage frontImage;
+    private RawImage sagImage;
 
 	// Use this for initialization
 	void Start () {
@@ -22,12 +25,5 @@ public class OrthoSlices : MonoBehaviour
     public void initialize(ImageStack stack)
     {
         this.imageStack = stack;
-
-        int[,,] data = imageStack.GetData();
-
-        Color[] colorArray = new Color[data.GetLength(0) * data.GetLength(1) * data.GetLength(2)];
-        texture3D = new Texture3D(data.GetLength(0), data.GetLength(1), data.GetLength(2), TextureFormat.RGBA32, true);       
-        texture3D.SetPixels(colorArray);
-        texture3D.Apply();
     }
 }

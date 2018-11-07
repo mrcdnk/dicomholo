@@ -10,6 +10,8 @@ public class Viewmanager : MonoBehaviour
     public List<Button> disabledButtons;
     private ImageStack stack;
 
+    public OrthoSlices ortho;
+
 	// Use this for initialization
 	void Start () {
 		
@@ -23,10 +25,12 @@ public class Viewmanager : MonoBehaviour
     public void ready(ImageStack stack)
     {
         this.stack = stack;
-        foreach (Button button in disabledButtons)
+        /*foreach (Button button in disabledButtons)
         {
             button.interactable = true;
-        }
+        }*/
+
+        ortho.initialize(stack);
     }
 
     public void createSimple2D()

@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using DICOMData;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,9 +9,12 @@ public class OrthoSlices : MonoBehaviour
 {
     private ImageStack imageStack;
 
-    private RawImage transImage;
-    private RawImage frontImage;
-    private RawImage sagImage;
+    public GameObject transImage;
+    private float transStep;
+    private GameObject frontImage;
+    private GameObject sagImage;
+
+    public Slider transSlider;
 
 	// Use this for initialization
 	void Start () {
@@ -25,5 +29,22 @@ public class OrthoSlices : MonoBehaviour
     public void initialize(ImageStack stack)
     {
         this.imageStack = stack;
+        transStep = 1f/(stack.GetMaxValue(SliceType.TRANSVERSAL)-1);
+        Debug.Log(stack.GetMaxValue(SliceType.TRANSVERSAL));
+        transSlider.maxValue = stack.GetMaxValue(SliceType.TRANSVERSAL - 1);
+    }
+
+    public void onTransSliderChanged()
+    {
+        Vector3 local = transImage.GetComponent<Transform>().localPosition;
+
+        local.y = transSlider.value * transStep;
+
+        transImage.GetComponent<Transform>().localPosition = local;
+        Sprite current = transImage.GetComponent<Sprite>();
+        SpriteRenderer currentRenderer = transImage.GetComponent<SpriteRenderer>();
+
+        currentRenderer.material.mainTexture = imageStack.GetTexture2D(SliceType.TRANSVERSAL, (int)transSlider.value);
+        currentRenderer.material.shader = Shader.Find("Sprites/Transparent Unlit");
     }
 }

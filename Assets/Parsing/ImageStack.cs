@@ -5,10 +5,7 @@ using UnityEngine.UI;
 using DICOMParser;
 using System;
 using System.IO;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
 using System.Text.RegularExpressions;
-using UnityEngine.Windows;
 
 namespace DICOMData
 {
@@ -20,6 +17,9 @@ namespace DICOMData
         public Progresshandler progresshandler;
         public RawImage previewImage;
         public Viewmanager viewmanager;
+        public Button LoadButton;
+
+        public GameObject renderTarget;
 
         public Text debug;
 
@@ -28,6 +28,8 @@ namespace DICOMData
         private Texture2D[] transversalTexture2Ds;
         private Texture2D[] frontalTexture2Ds;
         private Texture2D[] sagittalTexture2Ds;
+
+        private Texture3D volume;
 
 
         private Dictionary<int, DiFile> dicomFiles;
@@ -55,6 +57,7 @@ namespace DICOMData
         {
             if (initialize)
             {
+                LoadButton.interactable = false;
                 StartCoroutine("init");
                 initialize = false;
             }
@@ -154,8 +157,30 @@ namespace DICOMData
                 yield return null;
             }
 
-            progresshandler.init(dicomFiles.Count + width + height, "Creating Textures");
-            transversalTexture2Ds = new Texture2D[dicomFiles.Count];
+            progresshandler.init(dicomFiles.Count, "Creating Textures");
+
+            volume = new Texture3D(width, height, dicomFiles.Count, TextureFormat.ARGB32, true);
+
+            var cols = new Color[width * height * dicomFiles.Count];
+            int idx = 0;
+            for (int z = 0; z < dicomFiles.Count; ++z)
+            {
+                for (int y = 0; y < height; ++y)
+                {
+                    for (int x = 0; x < width; ++x, ++idx)
+                    {
+                        cols[idx] = PixelShader.DYN_ALPHA(GetRGBValue(data[z, x, y], dicomFiles[z]));
+                    }
+                }
+                progresshandler.increment(1);
+                yield return null;
+            }
+            volume.SetPixels(cols);
+            volume.Apply();
+            renderTarget.GetComponent<Renderer>().material = Resources.Load<Material>("Volume");
+            renderTarget.GetComponent<Renderer>().material.SetTexture("_Volume", volume);
+
+            /*transversalTexture2Ds = new Texture2D[dicomFiles.Count];
             frontalTexture2Ds = new Texture2D[height];
             sagittalTexture2Ds = new Texture2D[width];
 
@@ -205,6 +230,7 @@ namespace DICOMData
             }
 
             viewmanager.ready(this);
+            */
 
         }
 
@@ -411,8 +437,8 @@ namespace DICOMData
 
         public static Color32 DYN_ALPHA(Color32 argb)
         {
-            uint dynAlpha = (uint)(210 * ((Math.Max((uint)argb.r - 10, 0)) / 255d));
-            argb.a = Convert.ToByte(dynAlpha) ;
+            double dynAlpha = 210 * (Math.Max(argb.r - 10, 0)) / 255d;
+            argb.a = (byte) dynAlpha;
             return argb;
         }
     }

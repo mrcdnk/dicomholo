@@ -19,6 +19,8 @@ namespace DICOMData
         public Viewmanager viewmanager;
         public Button LoadButton;
 
+        public RayMarching rayMarching;
+
         public GameObject renderTarget;
 
         public Text debug;
@@ -157,7 +159,7 @@ namespace DICOMData
                 yield return null;
             }
 
-            progresshandler.init(dicomFiles.Count, "Creating Textures");
+            progresshandler.init(dicomFiles.Count, "Creating Volume");
 
             volume = new Texture3D(width, height, dicomFiles.Count, TextureFormat.ARGB32, true);
 
@@ -177,8 +179,9 @@ namespace DICOMData
             }
             volume.SetPixels(cols);
             volume.Apply();
-            renderTarget.GetComponent<Renderer>().material = Resources.Load<Material>("Volume");
-            renderTarget.GetComponent<Renderer>().material.SetTexture("_Volume", volume);
+            rayMarching.initVolume(volume);
+            //renderTarget.GetComponent<Renderer>().material = Resources.Load<Material>("Volume");
+            //renderTarget.GetComponent<Renderer>().material.SetTexture("_Volume", volume);
 
             /*transversalTexture2Ds = new Texture2D[dicomFiles.Count];
             frontalTexture2Ds = new Texture2D[height];

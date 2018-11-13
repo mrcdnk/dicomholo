@@ -6,6 +6,9 @@ using DICOMParser;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using dicomholo.Jobs;
+using Unity.Collections;
+using Unity.Jobs;
 
 namespace DICOMData
 {
@@ -25,7 +28,7 @@ namespace DICOMData
 
         public Text debug;
 
-        private int[,,] data;
+        private NativeArray<int> data;
 
         private Texture2D[] transversalTexture2Ds;
         private Texture2D[] frontalTexture2Ds;
@@ -119,7 +122,7 @@ namespace DICOMData
             width = dicomFiles[0].getImageWidth();
             height = dicomFiles[0].getImageHeight();
 
-            data = new int[dicomFiles.Count, width, height];
+            data = new NativeArray<int>(dicomFiles.Count * width * height, Allocator.Persistent);
 
             progresshandler.init(dicomFiles.Count, "Preprocessing Data");
             yield return null;
@@ -150,7 +153,7 @@ namespace DICOMData
 
                             currentPix = getPixelIntensity(value & mask, currenDiFile);
                            
-                            data[layer, x, y] = currentPix ;
+                            data[layer * width * height + x * height + y] = currentPix ;
                         }
                     }
                 }
@@ -158,6 +161,22 @@ namespace DICOMData
                 progresshandler.increment(1);
                 yield return null;
             }
+            //yield return null;*/
+
+            /*PreprocessJob job = new PreprocessJob()
+            {
+                data = data,
+                files = dicomFiles,
+                height = height,
+                width = width
+            };
+
+            JobHandle handle = job.Schedule(dicomFiles.Count, 8);
+
+            while (!handle.IsCompleted)
+            {
+                yield return null;
+            }*/
 
             progresshandler.init(dicomFiles.Count, "Creating Volume");
 
@@ -165,18 +184,24 @@ namespace DICOMData
 
             var cols = new Color[width * height * dicomFiles.Count];
             int idx = 0;
+            int idxPartZ = 0;
+            int idxPart = 0;
             for (int z = 0; z < dicomFiles.Count; ++z)
             {
+                idxPartZ = z * width * height;
                 for (int y = 0; y < height; ++y)
                 {
+                    idxPart = idxPartZ + y;
                     for (int x = 0; x < width; ++x, ++idx)
                     {
-                        cols[idx] = PixelShader.DYN_ALPHA(GetRGBValue(data[z, x, y], dicomFiles[z]));
+                        cols[idx] = PixelShader.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z]));
                     }
                 }
                 progresshandler.increment(1);
                 yield return null;
             }
+            //yield return null;
+
             volume.SetPixels(cols);
             volume.Apply();
             rayMarching.initVolume(volume);
@@ -242,7 +267,7 @@ namespace DICOMData
             return !Regex.Match(f, @"[.]*\.[.]*").Success;
         }
 
-        public int[,,] GetData()
+        public NativeArray<int> GetData()
         {
             return data;
         }
@@ -289,15 +314,18 @@ namespace DICOMData
 
         public void fillPixelsTransversal(int id, Color32[] texData, Func<Color32, Color32> pShader)
         {
+            int idxPartId = id * width * height;
+            int idxPart;
             DiFile file = dicomFiles[id];
 
             for (int y = 0; y < height; ++y)
             {
+                idxPart = idxPartId + y;
                 for (int x = 0; x < width; ++x)
                 {
                     int index = y * width + x;
 
-                    texData[index] = pShader(GetRGBValue(this.data[id, x, y], file));
+                    texData[index] = pShader(GetRGBValue(this.data[idxPart + x * height], file));
                 }
             }
         }
@@ -309,16 +337,19 @@ namespace DICOMData
 
         public void fillPixelsFrontal(int id, Color32[] texData, Func<Color32, Color32> pShader)
         {
+
+            int idxPart = 0;
+
             for (int i = 0; i < dicomFiles.Count; ++i)
             {
-
+                idxPart = i * width * height + id;
                 DiFile file = dicomFiles[i];
               
                 for (int x = 0; x < width; ++x)
                 {
                     int index = i * height + x;
 
-                    texData[index] = pShader(GetRGBValue(this.data[i, x, id], file));
+                    texData[index] = pShader(GetRGBValue(this.data[idxPart + x * height], file));
                 }
             }
         }
@@ -330,16 +361,18 @@ namespace DICOMData
 
         public void fillPixelsSagittal(int id, Color32[] texData, Func<Color32, Color32> pShader)
         {
+            int idxPart = 0;
+
             for (int i = 0; i < dicomFiles.Count; ++i)
             {
-
+                idxPart = i * width * height + id * height;
                 DiFile file = dicomFiles[i];
 
                 for (int y = 0; y < height; ++y)
                 {
                     int index = i * width + y;
 
-                    texData[index] = pShader(GetRGBValue(this.data[i, id, y], file));
+                    texData[index] = pShader(GetRGBValue(this.data[idxPart + y], file));
                 }
             }
         }

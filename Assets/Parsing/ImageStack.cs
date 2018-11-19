@@ -6,12 +6,43 @@ using DICOMParser;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using dicomholo.Jobs;
+using System.Threading;
 using Unity.Collections;
 using Unity.Jobs;
+using UnityEditor;
 
 namespace DICOMData
 {
+
+    public class ThreadState
+    {
+        private static object wMutex = new object();
+        private static object pMutex = new object();
+        public int progress;
+        public int working;
+
+        public void reset()
+        {
+            progress = 0;
+            working = 0;
+        }
+
+        public void incrementProgress()
+        {
+            lock (pMutex)
+            {
+                progress++;
+            }
+        }
+
+        public void done()
+        {
+            lock (wMutex)
+            {
+                working--;
+            }
+        }
+    }
 
     public class ImageStack : MonoBehaviour
     {
@@ -30,12 +61,17 @@ namespace DICOMData
 
         private NativeArray<int> data;
 
+        private ThreadState state = new ThreadState
+        {
+            working = 0,
+            progress = 0
+        };
+
         private Texture2D[] transversalTexture2Ds;
         private Texture2D[] frontalTexture2Ds;
         private Texture2D[] sagittalTexture2Ds;
 
         private Texture3D volume;
-
 
         private Dictionary<int, DiFile> dicomFiles;
 
@@ -66,6 +102,13 @@ namespace DICOMData
                 StartCoroutine("init");
                 initialize = false;
             }
+
+            progresshandler.update(state.progress);
+        }
+
+        private void OnDestroy()
+        {
+            data.Dispose();
         }
 
         public void Init()
@@ -127,56 +170,14 @@ namespace DICOMData
             progresshandler.init(dicomFiles.Count, "Preprocessing Data");
             yield return null;
 
-            DiFile currenDiFile;
-            byte[] storedBytes = new byte[4];
+            startPreProcessing(state, dicomFiles, data);
 
-            for (int layer = 0; layer < dicomFiles.Count; layer++)
+            while (state.working > 0)
             {
-                currenDiFile = dicomFiles[layer];
-                DiDataElement pixelData = currenDiFile.removeElement(0x7FE0, 0x0010);
-                DiDataElement highBitElement = currenDiFile.getElement(0x0028, 0x0102);
-                int mask = ~((~0) << highBitElement.getValueAsInt() + 1);
-                int allocated = currenDiFile.getBitsAllocated() / 8;
-
-                using (MemoryStream pixels = new MemoryStream(pixelData.GetValues()))
-                {
-                    int currentPix;
-
-                    for (int y = 0; y < height; ++y)
-                    {
-                        for (int x = 0; x < width; ++x)
-                        {
-                            //get current Int value
-                            pixels.Read(storedBytes, 0, allocated);
-                         
-                            int value = BitConverter.ToInt32(storedBytes, 0);
-
-                            currentPix = getPixelIntensity(value & mask, currenDiFile);
-                           
-                            data[layer * width * height + x * height + y] = currentPix ;
-                        }
-                    }
-                }
-
-                progresshandler.increment(1);
                 yield return null;
             }
-            //yield return null;*/
 
-            /*PreprocessJob job = new PreprocessJob()
-            {
-                data = data,
-                files = dicomFiles,
-                height = height,
-                width = width
-            };
-
-            JobHandle handle = job.Schedule(dicomFiles.Count, 8);
-
-            while (!handle.IsCompleted)
-            {
-                yield return null;
-            }*/
+            state.reset();
 
             progresshandler.init(dicomFiles.Count, "Creating Volume");
 
@@ -197,7 +198,7 @@ namespace DICOMData
                         cols[idx] = PixelShader.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z]));
                     }
                 }
-                progresshandler.increment(1);
+                state.progress++;
                 yield return null;
             }
             //yield return null;
@@ -377,7 +378,7 @@ namespace DICOMData
             }
         }
 
-        private int getPixelIntensity(int pixelIntensity, DiFile file)
+        private static int getPixelIntensity(int pixelIntensity, DiFile file)
         {
             DiDataElement interceptElement = file.getElement(0x0028, 0x1052);
             DiDataElement slopeElement = file.getElement(0x0028, 0x1053);
@@ -456,6 +457,53 @@ namespace DICOMData
            
 
             return new Color32((byte)Math.Round(intensity), (byte)Math.Round(intensity), (byte)Math.Round(intensity), 255);
+        }
+
+        private void startPreProcessing(ThreadState state, Dictionary<int, DiFile> files, NativeArray<int> target)
+        {
+            state.working = 1;
+
+            var t = new Thread(() => PreProcess(state, files, target, height, width, 0, files.Count));
+            t.Start();
+        }
+
+        private static void PreProcess(ThreadState state, Dictionary<int, DiFile> files, NativeArray<int> target, int height, int width, int start, int end)
+        {
+
+            DiFile currenDiFile;
+            byte[] storedBytes = new byte[4];
+
+            for (int layer = start; layer < end; layer++)
+            {
+                currenDiFile = files[layer];
+                DiDataElement pixelData = currenDiFile.getElement(0x7FE0, 0x0010);
+                DiDataElement highBitElement = currenDiFile.getElement(0x0028, 0x0102);
+                int mask = ~((~0) << highBitElement.getValueAsInt() + 1);
+                int allocated = currenDiFile.getBitsAllocated() / 8;
+
+                using (MemoryStream pixels = new MemoryStream(pixelData.GetValues()))
+                {
+                    int currentPix;
+
+                    for (int y = 0; y < height; ++y)
+                    {
+                        for (int x = 0; x < width; ++x)
+                        {
+                            //get current Int value
+                            pixels.Read(storedBytes, 0, allocated);
+
+                            int value = BitConverter.ToInt32(storedBytes, 0);
+
+                            currentPix = getPixelIntensity(value & mask, currenDiFile);
+
+                            target[layer * width * height + x * height + y] = currentPix;
+                        }
+                    }
+                }
+
+                state.progress++;
+            }
+            state.done();
         }
     }
 

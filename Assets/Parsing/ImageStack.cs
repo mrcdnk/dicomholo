@@ -35,6 +35,14 @@ namespace DICOMData
             }
         }
 
+        public void register()
+        {
+            lock (wMutex)
+            {
+                working++;
+            }
+        }
+
         public void done()
         {
             lock (wMutex)
@@ -59,9 +67,9 @@ namespace DICOMData
 
         public Text debug;
 
-        private NativeArray<int> data;
+        private int[] data;
 
-        private ThreadState state = new ThreadState
+        private ThreadState threadState = new ThreadState
         {
             working = 0,
             progress = 0
@@ -73,7 +81,7 @@ namespace DICOMData
 
         private Texture3D volume;
 
-        private Dictionary<int, DiFile> dicomFiles;
+        private DiFile[] dicomFiles;
 
         private string folderPath;
 
@@ -86,6 +94,7 @@ namespace DICOMData
         private bool expl = true;
 
         private bool initialize = false;
+        private bool useThreadState = false;
 
         // Use this for initialization
         void Start()
@@ -103,12 +112,10 @@ namespace DICOMData
                 initialize = false;
             }
 
-            progresshandler.update(state.progress);
-        }
-
-        private void OnDestroy()
-        {
-            data.Dispose();
+            if (useThreadState)
+            {
+                progresshandler.update(threadState.progress);
+            }
         }
 
         public void Init()
@@ -119,7 +126,6 @@ namespace DICOMData
         private IEnumerator init()
         {
 
-            dicomFiles = new Dictionary<int, DiFile>();
             //var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
 
             /*foreach (var fold in folders)
@@ -148,6 +154,8 @@ namespace DICOMData
                 pos++;
             }
 
+            dicomFiles = new DiFile[fileNames.Count];
+
             yield return null;
             expl = new DiDataElement(fileNames[0]).quickscanExp();
 
@@ -157,7 +165,7 @@ namespace DICOMData
             {
                 DiFile diFile = new DiFile(expl);
                 diFile.initFromFile(path);
-                dicomFiles.Add(diFile.getImageNumber(), diFile);
+                dicomFiles[diFile.getImageNumber()] = diFile;
                 progresshandler.increment(1);
                 yield return null;
             }
@@ -165,29 +173,32 @@ namespace DICOMData
             width = dicomFiles[0].getImageWidth();
             height = dicomFiles[0].getImageHeight();
 
-            data = new NativeArray<int>(dicomFiles.Count * width * height, Allocator.Persistent);
+            data = new int[dicomFiles.Length * width * height];
 
-            progresshandler.init(dicomFiles.Count, "Preprocessing Data");
+            progresshandler.init(dicomFiles.Length, "Preprocessing Data");
             yield return null;
 
-            startPreProcessing(state, dicomFiles, data);
+            useThreadState = true;
+            startPreProcessing(threadState, dicomFiles, data, 4);
 
-            while (state.working > 0)
+            yield return null;
+
+            while (threadState.working > 0)
             {
                 yield return null;
             }
 
-            state.reset();
+            threadState.reset();
 
-            progresshandler.init(dicomFiles.Count, "Creating Volume");
+            progresshandler.init(dicomFiles.Length, "Creating Volume");
 
-            volume = new Texture3D(width, height, dicomFiles.Count, TextureFormat.ARGB32, true);
+            volume = new Texture3D(width, height, dicomFiles.Length, TextureFormat.ARGB32, true);
 
-            var cols = new Color[width * height * dicomFiles.Count];
+            var cols = new Color[width * height * dicomFiles.Length];
             int idx = 0;
             int idxPartZ = 0;
             int idxPart = 0;
-            for (int z = 0; z < dicomFiles.Count; ++z)
+            for (int z = 0; z < dicomFiles.Length; ++z)
             {
                 idxPartZ = z * width * height;
                 for (int y = 0; y < height; ++y)
@@ -198,7 +209,7 @@ namespace DICOMData
                         cols[idx] = PixelShader.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z]));
                     }
                 }
-                state.progress++;
+                threadState.progress++;
                 yield return null;
             }
             //yield return null;
@@ -260,7 +271,7 @@ namespace DICOMData
 
             viewmanager.ready(this);
             */
-
+            useThreadState = false;
         }
 
         private static bool HasNoExtension(string f)
@@ -268,7 +279,7 @@ namespace DICOMData
             return !Regex.Match(f, @"[.]*\.[.]*").Success;
         }
 
-        public NativeArray<int> GetData()
+        public int[] GetData()
         {
             return data;
         }
@@ -301,7 +312,7 @@ namespace DICOMData
         {
             switch (type)
             {
-                case SliceType.TRANSVERSAL: return dicomFiles.Count;
+                case SliceType.TRANSVERSAL: return dicomFiles.Length;
                 case SliceType.FRONTAL: return height;
                 case SliceType.SAGITTAL: return width;
                 default: return 0;
@@ -341,7 +352,7 @@ namespace DICOMData
 
             int idxPart = 0;
 
-            for (int i = 0; i < dicomFiles.Count; ++i)
+            for (int i = 0; i < dicomFiles.Length; ++i)
             {
                 idxPart = i * width * height + id;
                 DiFile file = dicomFiles[i];
@@ -364,7 +375,7 @@ namespace DICOMData
         {
             int idxPart = 0;
 
-            for (int i = 0; i < dicomFiles.Count; ++i)
+            for (int i = 0; i < dicomFiles.Length; ++i)
             {
                 idxPart = i * width * height + id * height;
                 DiFile file = dicomFiles[i];
@@ -459,27 +470,42 @@ namespace DICOMData
             return new Color32((byte)Math.Round(intensity), (byte)Math.Round(intensity), (byte)Math.Round(intensity), 255);
         }
 
-        private void startPreProcessing(ThreadState state, Dictionary<int, DiFile> files, NativeArray<int> target)
+        private void startPreProcessing(ThreadState state, DiFile[] files, int[] target, int threadCount)
         {
-            state.working = 1;
+            int spacing = files.Length / threadCount;
 
-            var t = new Thread(() => PreProcess(state, files, target, height, width, 0, files.Count));
-            t.Start();
+            for (int i = 0; i < threadCount; ++i)
+            {
+                state.register();
+                int startIndex = i * spacing;
+                int endIndex = startIndex+spacing;
+
+                if (i + 1 == threadCount)
+                {
+                    endIndex = files.Length;
+                }
+
+                var t = new Thread(() => PreProcess(state, files, target, width, height, startIndex, endIndex));
+                t.Start();
+            }
         }
 
-        private static void PreProcess(ThreadState state, Dictionary<int, DiFile> files, NativeArray<int> target, int height, int width, int start, int end)
+        private static void PreProcess(ThreadState state, DiFile[] files, int[] target, int width, int height, int start, int end)
         {
-
             DiFile currenDiFile;
             byte[] storedBytes = new byte[4];
+            Debug.Log("working " + start + ":" + end);
+
 
             for (int layer = start; layer < end; layer++)
             {
                 currenDiFile = files[layer];
-                DiDataElement pixelData = currenDiFile.getElement(0x7FE0, 0x0010);
+                DiDataElement pixelData = currenDiFile.removeElement(0x7FE0, 0x0010);
                 DiDataElement highBitElement = currenDiFile.getElement(0x0028, 0x0102);
                 int mask = ~((~0) << highBitElement.getValueAsInt() + 1);
                 int allocated = currenDiFile.getBitsAllocated() / 8;
+
+                int indlwh = layer * width * height;
 
                 using (MemoryStream pixels = new MemoryStream(pixelData.GetValues()))
                 {
@@ -496,12 +522,12 @@ namespace DICOMData
 
                             currentPix = getPixelIntensity(value & mask, currenDiFile);
 
-                            target[layer * width * height + x * height + y] = currentPix;
+                            target[indlwh + x * height + y] = currentPix;
                         }
                     }
                 }
 
-                state.progress++;
+                state.incrementProgress();
             }
             state.done();
         }

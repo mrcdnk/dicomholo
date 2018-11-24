@@ -219,6 +219,8 @@ namespace DICOMData
             sagittalTexture2Ds = new Texture2D[width];
 
             Color32[][] transTextureColors = new Color32[dicomFiles.Length][];
+            Color32[][] frontTextureColors = new Color32[height][];
+            Color32[][] sagTextureColors = new Color32[width][];
 
             progresshandler.init(dicomFiles.Length + height + width, "Creating Textures");
 
@@ -227,8 +229,8 @@ namespace DICOMData
             ConcurrentQueue<int> sagProgress = new ConcurrentQueue<int>();
 
             startCreatingTransTextures(threadState, transProgress, data, dicomFiles, transTextureColors, 1);
-            //startCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontalTexture2Ds, 1);
-            //startCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagittalTexture2Ds, 1);
+            startCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontTextureColors, 1);
+            startCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, 1);
 
             while (threadState.working > 0)
             {
@@ -244,18 +246,23 @@ namespace DICOMData
                         previewImage.texture = transversalTexture2Ds[current];
                     }
 
-                    //prioritize transversal image because its the first thing you see
                     yield return null;
                 }
 
                 while (frontProgress.TryDequeue(out current))
                 {
+                    frontalTexture2Ds[current] = new Texture2D(width, dicomFiles.Length, TextureFormat.ARGB32, true);
+                    frontalTexture2Ds[current].SetPixels32(frontTextureColors[current]);
                     frontalTexture2Ds[current].Apply();
+                    yield return null;
                 }
 
                 while (sagProgress.TryDequeue(out current))
                 {
+                    sagittalTexture2Ds[current] = new Texture2D(height, dicomFiles.Length, TextureFormat.ARGB32, true);
+                    sagittalTexture2Ds[current].SetPixels32(sagTextureColors[current]);
                     sagittalTexture2Ds[current].Apply();
+                    yield return null;
                 }
 
                 yield return null;
@@ -588,11 +595,8 @@ namespace DICOMData
 
         private static void createTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target, int start, int end)
         {
-
             for (int layer = start; layer < end; ++layer)
             {
-                //currentTex = new Texture2D(width, height, TextureFormat.ARGB32, true);
-                //pixelColor32s = currentTex.GetPixels32();
                 target[layer] = new Color32[width*height];
                 fillPixelsTransversal(layer, data, width, height, files, target[layer]);
                 processed.Enqueue(layer);
@@ -602,7 +606,7 @@ namespace DICOMData
             state.done();
         }
 
-        private void startCreatingFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Texture2D[] target, int threadCount)
+        private void startCreatingFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target, int threadCount)
         {
             int spacing = height / threadCount;
 
@@ -614,7 +618,7 @@ namespace DICOMData
 
                 if (i + 1 == threadCount)
                 {
-                    endIndex = files.Length;
+                    endIndex = height;
                 }
 
                 var t = new Thread(() => createFrontTextures(state, processed, data, width, height, files, target, startIndex, endIndex));
@@ -622,28 +626,20 @@ namespace DICOMData
             }
         }
 
-        private static void createFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Texture2D[] target, int start, int end)
+        private static void createFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target, int start, int end)
         {
-            Texture2D currentTex;
-            Color32[] pixelColor32s;
-
             for (int y = start; y < end; ++y)
             {
-                currentTex = new Texture2D(width, files.Length, TextureFormat.ARGB32, true);
-                pixelColor32s = currentTex.GetPixels32();
-                fillPixelsFrontal(y, data, width, height, files, pixelColor32s);
-                currentTex.SetPixels32(pixelColor32s);
-                currentTex.Apply();
-                target[y] = currentTex;
+                target[y] = new Color32[width * files.Length];
+                fillPixelsFrontal(y, data, width, height, files, target[y]);
                 processed.Enqueue(y);
                 state.incrementProgress();
-
             }
 
             state.done();
         }
 
-        private void startCreatingSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Texture2D[] target, int threadCount)
+        private void startCreatingSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target, int threadCount)
         {
             int spacing = width / threadCount;
 
@@ -655,7 +651,7 @@ namespace DICOMData
 
                 if (i + 1 == threadCount)
                 {
-                    endIndex = files.Length;
+                    endIndex = width;
                 }
 
                 var t = new Thread(() => createSagTextures(state, processed, data, width, height, files, target, startIndex, endIndex));
@@ -663,19 +659,12 @@ namespace DICOMData
             }
         }
 
-        private static void createSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Texture2D[] target, int start, int end)
+        private static void createSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target, int start, int end)
         {
-            Texture2D currentTex;
-            Color32[] pixelColor32s;
-
             for (int x = start; x < end; ++x)
             {
-                currentTex = new Texture2D(height, files.Length, TextureFormat.ARGB32, true);
-                pixelColor32s = currentTex.GetPixels32();
-                fillPixelsSagittal(x, data, width, height, files, pixelColor32s);
-                currentTex.SetPixels32(pixelColor32s);
-                currentTex.Apply();
-                target[x] = currentTex;
+                target[x] = new Color32[height * files.Length];
+                fillPixelsSagittal(x, data, width, height, files, target[x]);
                 processed.Enqueue(x);
                 state.incrementProgress();
             }

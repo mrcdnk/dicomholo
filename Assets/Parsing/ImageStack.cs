@@ -230,7 +230,7 @@ namespace DICOMData
 
             startCreatingTransTextures(threadState, transProgress, data, dicomFiles, transTextureColors, 1);
             startCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontTextureColors, 1);
-            startCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, 1);
+            //startCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, 1);
 
             while (threadState.working > 0)
             {
@@ -545,6 +545,7 @@ namespace DICOMData
                 }
 
                 var t = new Thread(() => createVolume(state, data, files, width, height, target, startIndex, endIndex));
+                t.Priority = System.Threading.ThreadPriority.Lowest;
                 t.Start();
             }
         }
@@ -589,6 +590,7 @@ namespace DICOMData
                 }
 
                 var t = new Thread(() => createTransTextures(state, processed, data, width, height, files, target, startIndex, endIndex));
+                t.Priority = System.Threading.ThreadPriority.Lowest;
                 t.Start();
             }
         }
@@ -622,6 +624,7 @@ namespace DICOMData
                 }
 
                 var t = new Thread(() => createFrontTextures(state, processed, data, width, height, files, target, startIndex, endIndex));
+                t.Priority = System.Threading.ThreadPriority.Lowest;
                 t.Start();
             }
         }
@@ -655,6 +658,7 @@ namespace DICOMData
                 }
 
                 var t = new Thread(() => createSagTextures(state, processed, data, width, height, files, target, startIndex, endIndex));
+                t.Priority = System.Threading.ThreadPriority.Lowest;
                 t.Start();
             }
         }

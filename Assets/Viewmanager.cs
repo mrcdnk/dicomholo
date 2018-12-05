@@ -4,13 +4,11 @@ using DICOMData;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Viewmanager : MonoBehaviour
+public class ViewManager : MonoBehaviour
 {
 
     public List<Button> disabledButtons;
     private ImageStack stack;
-
-    public OrthoSlices ortho;
 
 	// Use this for initialization
 	void Start () {
@@ -29,8 +27,6 @@ public class Viewmanager : MonoBehaviour
         {
             button.interactable = true;
         }*/
-
-        ortho.initialize(stack);
     }
 
     public void createSimple2D()

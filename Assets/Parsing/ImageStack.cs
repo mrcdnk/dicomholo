@@ -6,13 +6,8 @@ using DICOMParser;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Unity.Collections;
-using Unity.Jobs;
-using UnityEditor;
-using System.Threading.Tasks;
 
 namespace DICOMData
 {
@@ -56,27 +51,26 @@ namespace DICOMData
 
     public class ImageStack : MonoBehaviour
     {
-        public Dropdown selection;
-        public Progresshandler progresshandler;
-        public RawImage previewImage;
-        public Viewmanager viewmanager;
-        public Button LoadButton;
+        public Dropdown Selection;
+        public ProgressHandler ProgressHandler;
+        public RawImage PreviewImage;
+        public ViewManager ViewManager;
 
-        public RayMarching rayMarching;
+        public Button LoadVolumeButton;
+        public Button Load2DButton;
 
-        public GameObject renderTarget;
+        public GameObject Slice2DView;
+        public GameObject Volume;
+
+        public RayMarching RayMarching;
+
+        public GameObject RenderTarget;
 
         public Text debug;
 
         private int[] data;
 
         private ThreadState threadState = new ThreadState
-        {
-            working = 0,
-            progress = 0
-        };
-
-        private ThreadState previewState = new ThreadState
         {
             working = 0,
             progress = 0
@@ -100,36 +94,56 @@ namespace DICOMData
 
         private bool expl = true;
 
-        private bool initialize = false;
         private bool useThreadState = false;
 
         // Use this for initialization
         void Start()
         {
+            LoadVolumeButton.interactable = false;
+            Load2DButton.interactable = false;
+            Volume.SetActive(false);
+            Slice2DView.SetActive(false);
+            //Load first entry in dropdown
+            StartInitFiles();
         }
 
         // Update is called once per frame
         void Update()
         {
-            if (initialize)
-            {
-                LoadButton.interactable = false;
-                StartCoroutine("init");
-                initialize = false;
-            }
-
             if (useThreadState)
             {
-                progresshandler.update(threadState.progress);
+                ProgressHandler.update(threadState.progress);
             }
         }
 
-        public void Init()
+        public void StartInitFiles()
         {
-            initialize = true;
+            LoadVolumeButton.interactable = false;
+            Load2DButton.interactable = false;
+            StartCoroutine(nameof(InitFiles));
         }
 
-        private IEnumerator waitForThreads()
+        private void StartPreprocessData()
+        {
+            StartCoroutine(nameof(PreprocessData));
+        }
+
+        public void StartCreatingVolume()
+        {
+            LoadVolumeButton.interactable = false;
+            Load2DButton.interactable = false;
+            StartCoroutine(nameof(CreateVolume));
+        }
+
+        public void StartCreatingTextures()
+        {
+            Slice2DView.SetActive(true);
+            LoadVolumeButton.interactable = false;
+            Load2DButton.interactable = false;
+            StartCoroutine(nameof(CreateTextures));
+        }
+
+        private IEnumerator WaitForThreads()
         {
             while (threadState.working > 0)
             {
@@ -137,32 +151,32 @@ namespace DICOMData
             }
         }
 
-        private IEnumerator init()
+        private IEnumerator InitFiles()
         {
             //var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
 
             /*foreach (var fold in folders)
             {
-                if (fold.Contains(selection.captionText.text))
+                if (fold.Contains(Selection.captionText.text))
                 {
                     folderPath = fold;
                 }
                 break;
             }*/
 
-            //string[] filePaths = Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, selection.captionText.text));
+            //string[] filePaths = Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text));
 
-            //filePaths = Array.FindAll(filePaths, HasNoExtension);
+            //filePaths = Array.FindAll(filePaths, HasNoExtension); 
 
             int pos = 0; //startfile
 
             List<string> fileNames = new List<string>();
 
             while (UnityEngine.Windows.File.Exists(Path.Combine(
-                Path.Combine(Application.streamingAssetsPath, selection.captionText.text),
+                Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
                 "CTHd" + pos.ToString("D3"))))
             {
-                fileNames.Add(Path.Combine(Path.Combine(Application.streamingAssetsPath, selection.captionText.text),
+                fileNames.Add(Path.Combine(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
                     "CTHd" + pos.ToString("D3")));
                 pos++;
             }
@@ -172,14 +186,15 @@ namespace DICOMData
             yield return null;
             expl = new DiDataElement(fileNames[0]).quickscanExp();
 
-            progresshandler.init(fileNames.Count, "Loading Files");
+            ProgressHandler.init(fileNames.Count, "Loading Files");
             yield return null;
+
             foreach (var path in fileNames)
             {
                 DiFile diFile = new DiFile(expl);
                 diFile.initFromFile(path);
                 dicomFiles[diFile.getImageNumber()] = diFile;
-                progresshandler.increment(1);
+                ProgressHandler.increment(1);
                 yield return null;
             }
 
@@ -188,30 +203,51 @@ namespace DICOMData
 
             data = new int[dicomFiles.Length * width * height];
 
-            progresshandler.init(dicomFiles.Length, "Preprocessing Data");
+            StartPreprocessData();
+        }
+
+        private IEnumerator PreprocessData()
+        {
+            threadState.reset();
+
+            ProgressHandler.init(dicomFiles.Length, "Preprocessing Data");
             yield return null;
 
             useThreadState = true;
             startPreProcessing(threadState, dicomFiles, data, 28);
 
-            yield return waitForThreads();
+            yield return WaitForThreads();
 
+            LoadVolumeButton.interactable = true;
+            Load2DButton.interactable = true;
+        }
+
+        private IEnumerator CreateVolume()
+        {
             threadState.reset();
 
-            progresshandler.init(dicomFiles.Length, "Creating Volume");
+            ProgressHandler.init(dicomFiles.Length, "Creating Volume");
 
             volume = new Texture3D(width, height, dicomFiles.Length, TextureFormat.ARGB32, true);
 
             var cols = new Color[width * height * dicomFiles.Length];
-            
-            startCreatingVolume(threadState, dicomFiles, data, cols, 28);
 
-            yield return waitForThreads();
+            startCreatingVolume(threadState, dicomFiles, data, cols, 3);
+
+            yield return WaitForThreads();
+
+            LoadVolumeButton.interactable = false;
+            Load2DButton.interactable = true;
 
             volume.SetPixels(cols);
             volume.Apply();
-            rayMarching.initVolume(volume);
+            RayMarching.initVolume(volume);
 
+            Volume.SetActive(true);
+        }
+
+        private IEnumerator CreateTextures()
+        {    
             threadState.reset();
 
             transversalTexture2Ds = new Texture2D[dicomFiles.Length];
@@ -222,7 +258,7 @@ namespace DICOMData
             Color32[][] frontTextureColors = new Color32[height][];
             Color32[][] sagTextureColors = new Color32[width][];
 
-            progresshandler.init(dicomFiles.Length + height + width, "Creating Textures");
+            ProgressHandler.init(dicomFiles.Length + height + width, "Creating Textures");
 
             ConcurrentQueue<int> transProgress = new ConcurrentQueue<int>();
             ConcurrentQueue<int> frontProgress = new ConcurrentQueue<int>();
@@ -230,7 +266,7 @@ namespace DICOMData
 
             startCreatingTransTextures(threadState, transProgress, data, dicomFiles, transTextureColors, 1);
             startCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontTextureColors, 1);
-            //startCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, 1);
+            startCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, 1);
 
             while (threadState.working > 0)
             {
@@ -243,7 +279,7 @@ namespace DICOMData
                     transversalTexture2Ds[current].Apply();
                     if (current == 50)
                     {
-                        previewImage.texture = transversalTexture2Ds[current];
+                        PreviewImage.texture = transversalTexture2Ds[current];
                     }
 
                     yield return null;
@@ -268,7 +304,8 @@ namespace DICOMData
                 yield return null;
             }
 
-            viewmanager.ready(this);
+            LoadVolumeButton.interactable = true;
+            Load2DButton.interactable = false;
         }
 
         private static bool HasNoExtension(string f)

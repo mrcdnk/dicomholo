@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Progresshandler : MonoBehaviour {
+public class ProgressHandler : MonoBehaviour {
 
     private float max = 0;
 

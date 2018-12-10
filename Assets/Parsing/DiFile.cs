@@ -55,8 +55,16 @@ namespace DICOMParser
                 {
                     diDataElement = new DiDataElement(file_name, exp);
                     diDataElement.readNext(file);
+                    try
+                    {
+                        data_elements.Add(diDataElement.getTag(), diDataElement);
+                    }
+                    catch (ArgumentException ae)
+                    {
+                        Debug.Log(diDataElement.getTagString());
+                        throw ae;
+                    }
 
-                    data_elements.Add(diDataElement.getTag(), diDataElement);
                     // 0028 -> 40
                     if (diDataElement.getGroupID() == 40)
                     {

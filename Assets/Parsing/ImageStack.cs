@@ -6,8 +6,10 @@ using DICOMParser;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using DICOMViews;
 
 namespace DICOMData
 {
@@ -59,7 +61,7 @@ namespace DICOMData
         public Button LoadVolumeButton;
         public Button Load2DButton;
 
-        public GameObject Slice2DView;
+        public Slice2DView Slice2DView;
         public GameObject Volume;
 
         public RayMarching RayMarching;
@@ -102,8 +104,15 @@ namespace DICOMData
             LoadVolumeButton.interactable = false;
             Load2DButton.interactable = false;
             Volume.SetActive(false);
-            Slice2DView.SetActive(false);
-            //Load first entry in dropdown
+            Slice2DView.SetVisible(false);
+#if NETFX_CORE
+            Application.InvokeOnUIThread(async () => {
+                var filePicker = new FileOpenPicker();
+                filePicker.FileTypeFilter.Add("*");
+                var file = await filePicker.PickSingleFileAsync();
+            }, false);
+#endif
+            //Load first selected entry in dropdown
             StartInitFiles();
         }
 
@@ -137,7 +146,7 @@ namespace DICOMData
 
         public void StartCreatingTextures()
         {
-            Slice2DView.SetActive(true);
+            Slice2DView.SetVisible(true);
             LoadVolumeButton.interactable = false;
             Load2DButton.interactable = false;
             StartCoroutine(nameof(CreateTextures));
@@ -167,10 +176,18 @@ namespace DICOMData
             //string[] filePaths = Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text));
 
             //filePaths = Array.FindAll(filePaths, HasNoExtension); 
-
-            int pos = 0; //startfile
-
             List<string> fileNames = new List<string>();
+
+            foreach (string file in Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text)))
+            {
+                if (file.EndsWith(".dcm") || !file.Contains("."))
+                {
+                    fileNames.Add(file);
+                }
+            }
+
+            /*int pos = 0; //startfile
+
 
             while (UnityEngine.Windows.File.Exists(Path.Combine(
                 Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
@@ -179,7 +196,7 @@ namespace DICOMData
                 fileNames.Add(Path.Combine(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
                     "CTHd" + pos.ToString("D3")));
                 pos++;
-            }
+            }*/
 
             dicomFiles = new DiFile[fileNames.Count];
 
@@ -271,15 +288,24 @@ namespace DICOMData
             while (threadState.working > 0)
             {
                 int current;
+                Texture2D currentTexture2D;
 
                 while (transProgress.TryDequeue(out current))
                 {
-                    transversalTexture2Ds[current] = new Texture2D(width, height, TextureFormat.ARGB32, true);
-                    transversalTexture2Ds[current].SetPixels32(transTextureColors[current]);
-                    transversalTexture2Ds[current].Apply();
+                    currentTexture2D = new Texture2D(width, height, TextureFormat.ARGB32, true);
+                    currentTexture2D.SetPixels32(transTextureColors[current]);
+                    currentTexture2D.filterMode = FilterMode.Point;
+                    currentTexture2D.Apply();
+                    transversalTexture2Ds[current] = currentTexture2D;
+
                     if (current == 50)
                     {
                         PreviewImage.texture = transversalTexture2Ds[current];
+                    }
+
+                    if (Slice2DView != null)
+                    {
+                        Slice2DView.TextureUpdated(SliceType.TRANSVERSAL, current);
                     }
 
                     yield return null;
@@ -287,17 +313,33 @@ namespace DICOMData
 
                 while (frontProgress.TryDequeue(out current))
                 {
-                    frontalTexture2Ds[current] = new Texture2D(width, dicomFiles.Length, TextureFormat.ARGB32, true);
-                    frontalTexture2Ds[current].SetPixels32(frontTextureColors[current]);
-                    frontalTexture2Ds[current].Apply();
+                    currentTexture2D = new Texture2D(width, dicomFiles.Length, TextureFormat.ARGB32, true);
+                    currentTexture2D.SetPixels32(frontTextureColors[current]);
+                    currentTexture2D.filterMode = FilterMode.Point;
+                    currentTexture2D.Apply();
+                    frontalTexture2Ds[current] = currentTexture2D;
+
+                    if (Slice2DView != null)
+                    {
+                        Slice2DView.TextureUpdated(SliceType.FRONTAL, current);
+                    }
+
                     yield return null;
                 }
 
                 while (sagProgress.TryDequeue(out current))
                 {
-                    sagittalTexture2Ds[current] = new Texture2D(height, dicomFiles.Length, TextureFormat.ARGB32, true);
-                    sagittalTexture2Ds[current].SetPixels32(sagTextureColors[current]);
-                    sagittalTexture2Ds[current].Apply();
+                    currentTexture2D = new Texture2D(height, dicomFiles.Length, TextureFormat.ARGB32, true);
+                    currentTexture2D.SetPixels32(sagTextureColors[current]);
+                    currentTexture2D.filterMode = FilterMode.Point;
+                    currentTexture2D.Apply();
+                    sagittalTexture2Ds[current] = currentTexture2D;
+
+                    if (Slice2DView != null)
+                    {
+                        Slice2DView.TextureUpdated(SliceType.SAGITTAL, current);
+                    }
+
                     yield return null;
                 }
 

@@ -3017,11 +3017,12 @@ CanvasRenderer:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1827879157}
   m_CullTransparentMesh: 0
---- !u!1 &1833758474 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1988529825147506, guid: 7ccc00bbdafbf6d4190f4d3f9636fdf6,
+--- !u!114 &1833758475 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 114055041680442520, guid: 7ccc00bbdafbf6d4190f4d3f9636fdf6,
     type: 2}
   m_PrefabInternal: {fileID: 1662730079}
+  m_Script: {fileID: 11500000, guid: 046d3cbc03e11d44d9fd2b83c3e274ed, type: 3}
 --- !u!1 &1900373528
 GameObject:
   m_ObjectHideFlags: 0
@@ -3587,7 +3588,7 @@ MonoBehaviour:
   ViewManager: {fileID: 1260673079}
   LoadVolumeButton: {fileID: 1900373530}
   Load2DButton: {fileID: 2091123965}
-  Slice2DView: {fileID: 1833758474}
+  Slice2DView: {fileID: 1833758475}
   Volume: {fileID: 2014706675}
   RayMarching: {fileID: 1211682607}
   RenderTarget: {fileID: 2014706675}

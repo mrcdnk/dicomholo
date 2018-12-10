@@ -1,8 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using System;
+﻿using System;
 using System.Globalization;
+using UnityEngine;
 
 namespace DICOMParser
 {
@@ -50,7 +48,6 @@ namespace DICOMParser
         /**
          * Reads the next DiDataElement from a (dicom) input stream.
          * Might throwh an IOException, for example unexpected end of file.
-         * This method will be implemented in exercise 1.
          *
          * @param is a DiInputStream - must be open and readable
          */
@@ -70,6 +67,7 @@ namespace DICOMParser
                 vr = diDictonary.getVR(getTag());
             }
 
+           // Debug.Log(getTagString());
             //get vl
             switch (vr)
             {
@@ -99,9 +97,9 @@ namespace DICOMParser
                     }
                     break;
             }
-
+      
             //get data
-            values = new byte[vl];
+            values = new byte[Math.Max(vl, 0)];
 
             inputStream.Read(values, 0, values.Length);
         }

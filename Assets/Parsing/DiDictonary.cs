@@ -300,6 +300,8 @@ namespace DICOMParser
             data_element_map.Add(0x00082204, new TagMetaData(CS, "Transducer Orientation"));
             data_element_map.Add(0x00082208, new TagMetaData(CS, "Anatomic Structure"));
             data_element_map.Add(0x00084000, new TagMetaData(SH, "Group 0008 Comments (RET)"));
+            data_element_map.Add(0x00089215, new TagMetaData(SQ, "Derivation Code Sequence"));
+            data_element_map.Add(0x00090010, new TagMetaData(LO, "unknown"));
             data_element_map.Add(0x00100000, new TagMetaData(UL, "Group 0010 Length"));
             data_element_map.Add(0x00100010, new TagMetaData(PN, "Patient's Name"));
             data_element_map.Add(0x00100020, new TagMetaData(LO, "Patient ID"));

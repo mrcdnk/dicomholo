@@ -23,6 +23,9 @@ public class RayMarching : MonoBehaviour
 	[SerializeField][Range(0, 2)]
 	private float opacity = 1;
 
+    [SerializeField][Range(50, 512)]
+    public int stepcount = 128;
+
 	[Header("Clipping planes percentage")]
 	[SerializeField]
 	private Vector4 clipDimensions = new Vector4(100, 100, 100, 0);
@@ -106,6 +109,8 @@ public class RayMarching : MonoBehaviour
 
 	        _rayMarchMaterial.SetFloat("_Opacity", opacity); // Blending strength 
 	        _rayMarchMaterial.SetVector("_ClipDims", clipDimensions / 100f); // Clip box
+	        _rayMarchMaterial.SetFloat("_Steps", stepcount);
+            _rayMarchMaterial.SetFloat("_StepSize", 1/(float)stepcount);
 
 
 	        Graphics.Blit(null, volumeTarget, _rayMarchMaterial);

@@ -66,9 +66,9 @@ namespace DICOMParser
                     }
 
                     // 0028 -> 40
-                    if (diDataElement.getGroupID() == 40)
+                    if (diDataElement.GetGroupId() == 40)
                     {
-                        switch (diDataElement.getElementID())
+                        switch (diDataElement.GetElementId())
                         {
                             // Hoehe
                             case 16:
@@ -90,9 +90,9 @@ namespace DICOMParser
                         }
 
                     }
-                    else if (diDataElement.getGroupID() == 32)
+                    else if (diDataElement.GetGroupId() == 32)
                     {
-                        if (diDataElement.getElementID() == 19)
+                        if (diDataElement.GetElementId() == 19)
                         {
                             image_number = diDataElement.getValueAsInt();
                         }
@@ -178,13 +178,13 @@ namespace DICOMParser
 
         public DiDataElement GetElement(uint groupId, uint elementId)
         {
-            return data_elements.GetValue(DiDictonary.toTag(groupId, elementId));
+            return data_elements.GetValue(DiDictonary.ToTag(groupId, elementId));
         }
 
         public DiDataElement RemoveElement(uint groupId, uint elementId)
         {
             DiDataElement element = GetElement(groupId, elementId);
-            data_elements.Remove(DiDictonary.toTag(groupId, elementId));
+            data_elements.Remove(DiDictonary.ToTag(groupId, elementId));
 
             return element;
         }

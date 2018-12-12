@@ -28,6 +28,8 @@ Shader "Hidden/Ray Marching/Ray Marching"
 	float _Dimensions;
 	
 	float _Opacity;
+	int _Steps;
+	float _StepSize;
 	float4 _ClipDims;	
 	float4 _ClipPlane;
 	
@@ -45,10 +47,6 @@ Shader "Hidden/Ray Marching/Ray Marching"
 		return o;
 	}
 	
-	#define TOTAL_STEPS 128.0
-	#define STEP_CNT 128
-	#define STEP_SIZE 1 / 128.0
-	
 	half4 raymarch(v2f i, float offset) 
 	{
 		float3 frontPos = tex2D(_FrontTex, i.uv[1]).xyz;		
@@ -56,10 +54,10 @@ Shader "Hidden/Ray Marching/Ray Marching"
 		float3 dir = backPos - frontPos;
 		float3 pos = frontPos;
 		float4 dst = 0;
-		float3 stepDist = dir * STEP_SIZE;
+		float3 stepDist = dir * 1/_Steps;
 		
 			
-		for(int k = 0; k < STEP_CNT; k++)
+		for(int k = 0; k < _Steps; k++)
 		{
 			float4 src = tex3D(_VolumeTex, pos);
 			

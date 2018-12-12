@@ -1879,6 +1879,7 @@ MonoBehaviour:
     type: 3}
   rayMarchShader: {fileID: 4800000, guid: 694f20f00c5da8547b48a7fa1f3fc278, type: 3}
   opacity: 1
+  stepcount: 128
   clipDimensions: {x: 100, y: 100, z: 100, w: 0}
   clipPlane: {fileID: 0}
   cubeTarget: {fileID: 2014706679}
@@ -3315,7 +3316,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 2014706675}
   m_LocalRotation: {x: 0.6950403, y: 0.13007322, z: -0.13007322, w: 0.6950403}
-  m_LocalPosition: {x: 1.27, y: -0.07, z: 2.534}
+  m_LocalPosition: {x: 1.481, y: 0.28, z: 2.534}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -3341,7 +3342,7 @@ MonoBehaviour:
   appBarHoverOffsetZ: 0.05
   maxScale: 2
   rotationType: 0
-  handMotionToRotate: 0
+  handMotionToRotate: 1
   rotateAroundPivot: 0
   boundingBoxPrefab: {fileID: 114030465538688920, guid: 865a8ded6c47efd4285f04f3aebe99e9,
     type: 2}

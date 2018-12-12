@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using DICOMViews;
+using HoloToolkit.Unity.UX;
 
 namespace DICOMData
 {
@@ -179,8 +180,8 @@ namespace DICOMData
                     fileNames.Add(file);
                 }
             }*/
-            int pos = 0; //startfile
 
+            int pos = 0; //startfile
 
             while (UnityEngine.Windows.File.Exists(Path.Combine(
                 Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
@@ -242,7 +243,7 @@ namespace DICOMData
 
             var cols = new Color[width * height * dicomFiles.Length];
 
-            StartCreatingVolume(threadState, dicomFiles, data, cols, 3);
+            StartCreatingVolume(threadState, dicomFiles, data, cols, 10);
 
             yield return WaitForThreads();
 
@@ -268,17 +269,17 @@ namespace DICOMData
             Color32[][] frontTextureColors = new Color32[height][];
             Color32[][] sagTextureColors = new Color32[width][];
 
-            ProgressHandler.init(dicomFiles.Length + height + width, "Creating Textures");
+            ProgressHandler.init(dicomFiles.Length + height + width + 1, "Creating Textures");
 
             ConcurrentQueue<int> transProgress = new ConcurrentQueue<int>();
             ConcurrentQueue<int> frontProgress = new ConcurrentQueue<int>();
             ConcurrentQueue<int> sagProgress = new ConcurrentQueue<int>();
 
-            StartCreatingTransTextures(threadState, transProgress, data, dicomFiles, transTextureColors, windowCenter, windowWidth, 1);
-            StartCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontTextureColors, windowCenter, windowWidth, 1);
-            StartCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, windowCenter, windowWidth, 1);
-
-            while (threadState.working > 0)
+            StartCreatingTransTextures(threadState, transProgress, data, dicomFiles, transTextureColors, windowCenter, windowWidth, 2);
+            StartCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontTextureColors, windowCenter, windowWidth, 2);
+            StartCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, windowCenter, windowWidth, 2);
+            
+            while (threadState.working > 0 || !(transProgress.IsEmpty && frontProgress.IsEmpty && sagProgress.IsEmpty))
             {
                 int current;
                 Texture2D currentTexture2D;
@@ -388,12 +389,12 @@ namespace DICOMData
             }
         }
 
-        public static void fillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
+        public static void FillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
         {
-            fillPixelsTransversal(id, data, width, height, files, texData, integer => integer);
+            FillPixelsTransversal(id, data, width, height, files, texData, integer => integer);
         }
 
-        public static void fillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
+        public static void FillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
             Func<Color32, Color32> pShader, double windówWidth = -1, double windowCenter = -1)
         {
             int idxPartId = id * width * height;
@@ -412,12 +413,12 @@ namespace DICOMData
             }
         }
 
-        public static void fillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
+        public static void FillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
         {
-            fillPixelsFrontal(id, data, width, height, files, texData, integer => integer);
+            FillPixelsFrontal(id, data, width, height, files, texData, integer => integer);
         }
 
-        public static void fillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
+        public static void FillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
             Func<Color32, Color32> pShader, double windowWidth = -1, double windowCenter = -1)
         {
             int idxPart;
@@ -486,16 +487,16 @@ namespace DICOMData
         private static void PreProcess(ThreadState state, DiFile[] files, int width, int height,
             int[] target, int start, int end)
         {
-            DiFile currenDiFile;
+            DiFile currentDiFile;
             byte[] storedBytes = new byte[4];
 
             for (int layer = start; layer < end; ++layer)
             {
-                currenDiFile = files[layer];
-                DiDataElement pixelData = currenDiFile.RemoveElement(0x7FE0, 0x0010);
-                DiDataElement highBitElement = currenDiFile.GetElement(0x0028, 0x0102);
+                currentDiFile = files[layer];
+                DiDataElement pixelData = currentDiFile.RemoveElement(0x7FE0, 0x0010);
+                DiDataElement highBitElement = currentDiFile.GetElement(0x0028, 0x0102);
                 int mask = ~((~0) << highBitElement.GetInt() + 1);
-                int allocated = currenDiFile.GetBitsAllocated() / 8;
+                int allocated = currentDiFile.GetBitsAllocated() / 8;
 
                 int indlwh = layer * width * height;
 
@@ -512,7 +513,7 @@ namespace DICOMData
 
                             int value = BitConverter.ToInt32(storedBytes, 0);
 
-                            currentPix = GetPixelIntensity(value & mask, currenDiFile);
+                            currentPix = GetPixelIntensity(value & mask, currentDiFile);
 
                             target[indlwh + x * height + y] = currentPix;
                         }
@@ -598,7 +599,7 @@ namespace DICOMData
             for (int layer = start; layer < end; ++layer)
             {
                 target[layer] = new Color32[width*height];
-                fillPixelsTransversal(layer, data, width, height, files, target[layer], PixelShader.IDENTITY, windowWidth, windowCenter);
+                FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelShader.IDENTITY, windowWidth, windowCenter);
                 processed.Enqueue(layer);
                 state.incrementProgress();
             }
@@ -634,7 +635,7 @@ namespace DICOMData
             for (int y = start; y < end; ++y)
             {
                 target[y] = new Color32[width * files.Length];
-                fillPixelsFrontal(y, data, width, height, files, target[y], PixelShader.IDENTITY, windowWidth, windowCenter);
+                FillPixelsFrontal(y, data, width, height, files, target[y], PixelShader.IDENTITY, windowWidth, windowCenter);
                 processed.Enqueue(y);
                 state.incrementProgress();
             }

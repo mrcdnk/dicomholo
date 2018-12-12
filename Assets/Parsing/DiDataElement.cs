@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Globalization;
-using UnityEngine;
 
 namespace DICOMParser
 {
@@ -12,12 +11,12 @@ namespace DICOMParser
     public class DiDataElement
     {
 
-        private DiDictonary diDictonary = DiDictonary.Instance;
+        private DiDictonary diDictionary = DiDictonary.Instance;
 
         private uint groupid;
         private uint elementid;
         private int vl;
-        private uint vr;
+        private VRType vr;
         private byte[] values;
         private string fileName = null;
 
@@ -63,23 +62,23 @@ namespace DICOMParser
             //get vr
             if (groupid <= 2 || exp)
             {
-                vr = ((uint) inputStream.ReadByte() << 8) | (uint) inputStream.ReadByte();
+                vr = (VRType)(((uint) inputStream.ReadByte() << 8) | (uint) inputStream.ReadByte());
             }
             else
             {
-                vr = diDictonary.getVR(getTag());
+                vr = diDictionary.getVR(getTag());
             }
 
             // Debug.Log(getTagString());
             //get vl
             switch (vr)
             {
-                case DiDictonary.OB:
-                case DiDictonary.OF:
-                case DiDictonary.OW:
-                case DiDictonary.SQ:
-                case DiDictonary.UT:
-                case DiDictonary.UN:
+                case VRType.OB:
+                case VRType.OF:
+                case VRType.OW:
+                case VRType.SQ:
+                case VRType.UT:
+                case VRType.UN:
                     //special
                     if (groupid <= 2 || exp)
                     {
@@ -118,7 +117,7 @@ namespace DICOMParser
 
             try
             {
-                rawDouble = getValueAsDouble();
+                rawDouble = GetValueAsDouble();
             }
             catch (FormatException e)
             {
@@ -135,7 +134,7 @@ namespace DICOMParser
         {
             string str;
 
-            str = getTagString() + " (" + diDictonary.getTagDescr(getTag()) + ")  ";
+            str = getTagString() + " (" + diDictionary.GetTagDescription(getTag()) + ")  ";
             str += "VR: " + getVRString() + "  VL: " + vl + "  Values: " + getValueAsString();
 
             return str;
@@ -146,7 +145,7 @@ namespace DICOMParser
          *
          * @return the element numbber as an integer.
          */
-        public uint getElementID()
+        public uint GetElementId()
         {
             return elementid;
         }
@@ -156,7 +155,7 @@ namespace DICOMParser
          *
          * @param element_number the element number.
          */
-        public void setElementID(uint element_number)
+        public void SetElementId(uint element_number)
         {
             this.elementid = element_number;
         }
@@ -166,7 +165,7 @@ namespace DICOMParser
          *
          * @return the group number.
          */
-        public uint getGroupID()
+        public uint GetGroupId()
         {
             return groupid;
         }
@@ -177,7 +176,7 @@ namespace DICOMParser
          *
          * @param group_number the group_number.
          */
-        public void setGroupID(uint group_number)
+        public void SetGroupId(uint group_number)
         {
             this.groupid = group_number;
         }
@@ -187,7 +186,7 @@ namespace DICOMParser
          *
          * @return the value length
          */
-        public int getVL()
+        public int GetVl()
         {
             return vl;
         }
@@ -197,7 +196,7 @@ namespace DICOMParser
          *
          * @param value_length
          */
-        public void setVL(int value_length)
+        public void SetVl(int value_length)
         {
             this.vl = value_length;
         }
@@ -217,7 +216,7 @@ namespace DICOMParser
          *
          * @param values a byte array containing the element values.
          */
-        public void setValues(byte[] values)
+        public void SetValues(byte[] values)
         {
             this.values = values;
         }
@@ -227,7 +226,7 @@ namespace DICOMParser
          *
          * @return the double value
          */
-        public double getValueAsDouble()
+        public double GetValueAsDouble()
         {
             string str = getValueAsString();
 
@@ -274,10 +273,10 @@ namespace DICOMParser
             {
                 str = "(too long to be printed)";
             }
-            else if (vr == DiDictonary.AE || vr == DiDictonary.AS || vr == DiDictonary.CS || vr == DiDictonary.DA || vr == DiDictonary.DS ||
-                  vr == DiDictonary.DT || vr == DiDictonary.IS || vr == DiDictonary.LO || vr == DiDictonary.LT || vr == DiDictonary.OF ||
-                  vr == DiDictonary.PN || vr == DiDictonary.SH || vr == DiDictonary.ST || vr == DiDictonary.TM || vr == DiDictonary.UI ||
-                  vr == DiDictonary.UN || vr == DiDictonary.UT)
+            else if (vr == VRType.AE || vr == VRType.AS || vr == VRType.CS || vr == VRType.DA || vr == VRType.DS ||
+                  vr == VRType.DT || vr == VRType.IS || vr == VRType.LO || vr == VRType.LT || vr == VRType.OF ||
+                  vr == VRType.PN || vr == VRType.SH || vr == VRType.ST || vr == VRType.TM || vr == VRType.UI ||
+                  vr == VRType.UN || vr == VRType.UT)
             {
                 for (int i = 0; i < vl; i++)
                 {
@@ -287,41 +286,41 @@ namespace DICOMParser
                     }
                 }
             }
-            else if (vr == DiDictonary.FL)
+            else if (vr == VRType.FL)
             {
                 //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
                 float f = BitConverter.ToSingle(values, 0);
                 str = f.ToString("0.0000");
             }
-            else if (vr == DiDictonary.FD)
+            else if (vr == VRType.FD)
             {
                 //Int64 tmp = (values[7] << 56 | values[6] << 48 | values[5] << 40 | values[0] << 32 |
                 //        values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
                 Double d = BitConverter.ToDouble(values, 0);
                 str = d.ToString();
             }
-            else if (vr == DiDictonary.SL)
+            else if (vr == VRType.SL)
             {
                 //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
 
                 str = BitConverter.ToString(values, 0); ;
             }
-            else if (vr == DiDictonary.SQ)
+            else if (vr == VRType.SQ)
             {
                 str = "TODO";
             }
-            else if (vr == DiDictonary.SS)
+            else if (vr == VRType.SS)
             {
                 int tmp = (values[1] << 8 | values[0]);
                 str = "" + tmp;
             }
-            else if (vr == DiDictonary.UL)
+            else if (vr == VRType.UL)
             {
                 long tmp = ((values[3] & 0xFF) << 24 | (values[2] & 0xFF) << 16
                         | (values[1] & 0xFF) << 8 | (values[0] & 0xFF));
                 str = "" + tmp;
             }
-            else if (vr == DiDictonary.US)
+            else if (vr == VRType.US)
             {
                 int tmp = ((values[1] & 0xFF) << 8 | (values[0] & 0xFF));
                 str = "" + tmp;
@@ -348,10 +347,10 @@ namespace DICOMParser
         /**
          * Returns the vr tag as an integer value (faster for comparing).
          *
-         * @return the vr tag as integer - compare with public DiDictonary constants
+         * @return the vr tag as integer - compare with public VRType constants
          * @see DiDictonary
          */
-        public uint getVR()
+        public VRType getVR()
         {
             return vr;
         }
@@ -362,7 +361,7 @@ namespace DICOMParser
          * @param vr the vr value - use only public DiDictonary constants here
          * @see DiDictonary
          */
-        public void setVR(uint vr)
+        public void setVR(VRType vr)
         {
             this.vr = vr;
         }
@@ -374,7 +373,7 @@ namespace DICOMParser
          */
         public string getVRString()
         {
-            return "" + (char)((vr & 0xff00) >> 8) + "" + (char)(vr & 0x00ff);
+            return "" + (char)(((uint)vr & 0xff00) >> 8) + "" + (char)((uint)vr & 0x00ff);
         }
 
         /**

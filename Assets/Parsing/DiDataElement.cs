@@ -21,6 +21,9 @@ namespace DICOMParser
         private byte[] values;
         private string fileName = null;
 
+        private int rawInt;
+        private double rawDouble;
+
         bool exp = true;
 
         public DiDataElement()
@@ -60,14 +63,14 @@ namespace DICOMParser
             //get vr
             if (groupid <= 2 || exp)
             {
-                vr = ((uint)inputStream.ReadByte() << 8) | (uint)inputStream.ReadByte();
+                vr = ((uint) inputStream.ReadByte() << 8) | (uint) inputStream.ReadByte();
             }
             else
             {
                 vr = diDictonary.getVR(getTag());
             }
 
-           // Debug.Log(getTagString());
+            // Debug.Log(getTagString());
             //get vl
             switch (vr)
             {
@@ -95,13 +98,32 @@ namespace DICOMParser
                     {
                         vl = inputStream.ReadInt();
                     }
+
                     break;
             }
-      
+
             //get data
             values = new byte[Math.Max(vl, 0)];
 
             inputStream.Read(values, 0, values.Length);
+
+            try
+            {
+                rawInt = getValueAsInt();
+            }
+            catch (FormatException e)
+            {
+                //nothing to worry about, some elements aren't supposed to be used with Int
+            }
+
+            try
+            {
+                rawDouble = getValueAsDouble();
+            }
+            catch (FormatException e)
+            {
+                //nothing to worry about, some elements aren't supposed to be used with Double
+            }
         }
 
         /**
@@ -213,6 +235,14 @@ namespace DICOMParser
         }
 
         /**
+         * Returns the double computed at parsing time. Faster for performance.
+         */
+        public double GetDouble()
+        {
+            return rawDouble;
+        }
+
+        /**
          * Returns the value as an int value. Does not perform a typecheck before.
          *
          * @return the int value
@@ -221,6 +251,14 @@ namespace DICOMParser
         {
             string str = getValueAsString();
             return Int32.Parse(str.Trim(), CultureInfo.InvariantCulture);
+        }
+
+        /*
+         * Returns the int value computed at parsing time. Faster for performance.
+         */
+        public int GetInt()
+        {
+            return rawInt;
         }
 
         /**
@@ -245,7 +283,7 @@ namespace DICOMParser
                 {
                     if (values[i] > 0)
                     {
-                        str += ((char)(values[i]));
+                        str += (char)(values[i]);
                     }
                 }
             }

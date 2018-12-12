@@ -42,7 +42,7 @@ namespace DICOMParser
          * @param file_name a string containing the name of a valid dicom file
          * @throws Exception
          */
-        public void initFromFile(string file_name)
+        public void InitFromFile(string file_name)
         {
             this.file_name = file_name;
             DiFileStream file = new DiFileStream(this.file_name);
@@ -97,13 +97,6 @@ namespace DICOMParser
                             image_number = diDataElement.getValueAsInt();
                         }
                     }
-                    else if (diDataElement.getGroupID() == 2)
-                    {
-                        if (diDataElement.getElementID() == 16)
-                        {
-                            string uid = diDataElement.getValueAsString();
-                        }
-                    }
                 }
             }
 
@@ -147,7 +140,7 @@ namespace DICOMParser
          *
          * @return the number of allocated bits.
          */
-        public int getBitsAllocated()
+        public int GetBitsAllocated()
         {
             return bits_allocated;
         }
@@ -157,7 +150,7 @@ namespace DICOMParser
          *
          * @return the number of stored bits.
          */
-        public int getBitsStored()
+        public int GetBitsStored()
         {
             return bits_stored;
         }
@@ -167,7 +160,7 @@ namespace DICOMParser
          *
          * @return a reference to the data element Dictionary
          */
-        public Dictionary<uint, DiDataElement> getDataElements()
+        public Dictionary<uint, DiDataElement> GetDataElements()
         {
             return data_elements;
         }
@@ -178,19 +171,19 @@ namespace DICOMParser
          * @param id DiDataElement id
          * @return
          */
-        public DiDataElement getElement(uint id)
+        public DiDataElement GetElement(uint id)
         {
             return data_elements.GetValue(id);
         }
 
-        public DiDataElement getElement(uint groupId, uint elementId)
+        public DiDataElement GetElement(uint groupId, uint elementId)
         {
             return data_elements.GetValue(DiDictonary.toTag(groupId, elementId));
         }
 
-        public DiDataElement removeElement(uint groupId, uint elementId)
+        public DiDataElement RemoveElement(uint groupId, uint elementId)
         {
-            DiDataElement element = getElement(groupId, elementId);
+            DiDataElement element = GetElement(groupId, elementId);
             data_elements.Remove(DiDictonary.toTag(groupId, elementId));
 
             return element;
@@ -201,7 +194,7 @@ namespace DICOMParser
          *
          * @return the image width
          */
-        public int getImageWidth()
+        public int GetImageWidth()
         {
             return width;
         }
@@ -211,7 +204,7 @@ namespace DICOMParser
          *
          * @return the image height
          */
-        public int getImageHeight()
+        public int GetImageHeight()
         {
             return height;
         }
@@ -221,7 +214,7 @@ namespace DICOMParser
          *
          * @return the file name
          */
-        public string getFileName()
+        public string GetFileName()
         {
             return file_name;
         }
@@ -231,7 +224,7 @@ namespace DICOMParser
          *
          * @return the image number
          */
-        public int getImageNumber()
+        public int GetImageNumber()
         {
             return image_number;
         }
@@ -240,7 +233,7 @@ namespace DICOMParser
         public override bool Equals(System.Object o)
         {
             if (this == o) return true;
-            if (o == null || !this.GetType().Equals(o.GetType())) return false;
+            if (o == null || this.GetType() != o.GetType()) return false;
             DiFile diFile = (DiFile)o;
             return width == diFile.width &&
                     height == diFile.height &&

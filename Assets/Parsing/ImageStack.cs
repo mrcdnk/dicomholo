@@ -105,13 +105,7 @@ namespace DICOMData
             Load2DButton.interactable = false;
             Volume.SetActive(false);
             Slice2DView.SetVisible(false);
-#if NETFX_CORE
-            Application.InvokeOnUIThread(async () => {
-                var filePicker = new FileOpenPicker();
-                filePicker.FileTypeFilter.Add("*");
-                var file = await filePicker.PickSingleFileAsync();
-            }, false);
-#endif
+
             //Load first selected entry in dropdown
             StartInitFiles();
         }
@@ -178,15 +172,14 @@ namespace DICOMData
             //filePaths = Array.FindAll(filePaths, HasNoExtension); 
             List<string> fileNames = new List<string>();
 
-            foreach (string file in Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text)))
+            /*foreach (string file in Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text)))
             {
-                if (file.EndsWith(".dcm") || !file.Contains("."))
+                if (UnityEngine.Windows.File.Exists(file) && (file.EndsWith(".dcm") || !file.Contains(".")))
                 {
                     fileNames.Add(file);
                 }
-            }
-
-            /*int pos = 0; //startfile
+            }*/
+            int pos = 0; //startfile
 
 
             while (UnityEngine.Windows.File.Exists(Path.Combine(
@@ -196,7 +189,7 @@ namespace DICOMData
                 fileNames.Add(Path.Combine(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
                     "CTHd" + pos.ToString("D3")));
                 pos++;
-            }*/
+            }
 
             dicomFiles = new DiFile[fileNames.Count];
 
@@ -209,14 +202,14 @@ namespace DICOMData
             foreach (var path in fileNames)
             {
                 DiFile diFile = new DiFile(expl);
-                diFile.initFromFile(path);
-                dicomFiles[diFile.getImageNumber()] = diFile;
+                diFile.InitFromFile(path);
+                dicomFiles[diFile.GetImageNumber()] = diFile;
                 ProgressHandler.increment(1);
                 yield return null;
             }
 
-            width = dicomFiles[0].getImageWidth();
-            height = dicomFiles[0].getImageHeight();
+            width = dicomFiles[0].GetImageWidth();
+            height = dicomFiles[0].GetImageHeight();
 
             data = new int[dicomFiles.Length * width * height];
 
@@ -231,7 +224,7 @@ namespace DICOMData
             yield return null;
 
             useThreadState = true;
-            startPreProcessing(threadState, dicomFiles, data, 28);
+            StartPreProcessing(threadState, dicomFiles, data, 28);
 
             yield return WaitForThreads();
 
@@ -249,7 +242,7 @@ namespace DICOMData
 
             var cols = new Color[width * height * dicomFiles.Length];
 
-            startCreatingVolume(threadState, dicomFiles, data, cols, 3);
+            StartCreatingVolume(threadState, dicomFiles, data, cols, 3);
 
             yield return WaitForThreads();
 
@@ -281,9 +274,9 @@ namespace DICOMData
             ConcurrentQueue<int> frontProgress = new ConcurrentQueue<int>();
             ConcurrentQueue<int> sagProgress = new ConcurrentQueue<int>();
 
-            startCreatingTransTextures(threadState, transProgress, data, dicomFiles, transTextureColors, 1);
-            startCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontTextureColors, 1);
-            startCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, 1);
+            StartCreatingTransTextures(threadState, transProgress, data, dicomFiles, transTextureColors, windowCenter, windowWidth, 1);
+            StartCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontTextureColors, windowCenter, windowWidth, 1);
+            StartCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, windowCenter, windowWidth, 1);
 
             while (threadState.working > 0)
             {
@@ -400,7 +393,8 @@ namespace DICOMData
             fillPixelsTransversal(id, data, width, height, files, texData, integer => integer);
         }
 
-        public static void fillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData, Func<Color32, Color32> pShader)
+        public static void fillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
+            Func<Color32, Color32> pShader, double windówWidth = -1, double windowCenter = -1)
         {
             int idxPartId = id * width * height;
             int idxPart;
@@ -413,7 +407,7 @@ namespace DICOMData
                 {
                     int index = y * width + x;
 
-                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file));
+                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windówWidth, windowCenter));
                 }
             }
         }
@@ -423,7 +417,8 @@ namespace DICOMData
             fillPixelsFrontal(id, data, width, height, files, texData, integer => integer);
         }
 
-        public static void fillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData, Func<Color32, Color32> pShader)
+        public static void fillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
+            Func<Color32, Color32> pShader, double windowWidth = -1, double windowCenter = -1)
         {
             int idxPart;
 
@@ -436,17 +431,18 @@ namespace DICOMData
                 {
                     int index = i * height + x;
 
-                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file));
+                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windowWidth, windowCenter));
                 }
             }
         }
 
-        public static void fillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
+        public static void FillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
         {
-            fillPixelsSagittal(id, data, width, height, files, texData, integer => integer);
+            FillPixelsSagittal(id, data, width, height, files, texData, integer => integer);
         }
 
-        public static void fillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData, Func<Color32, Color32> pShader)
+        public static void FillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
+            Func<Color32, Color32> pShader, double windówWidth = -1, double windowCenter = -1)
         {
             int idxPart;
 
@@ -459,94 +455,16 @@ namespace DICOMData
                 {
                     int index = i * width + y;
 
-                    texData[index] = pShader(GetRGBValue(data[idxPart + y], file));
+                    texData[index] = pShader(GetRGBValue(data[idxPart + y], file, windówWidth, windowCenter));
                 }
             }
         }
 
-        private static int getPixelIntensity(int pixelIntensity, DiFile file)
+        private void StartPreProcessing(ThreadState state, DiFile[] files, int[] target, int threadCount)
         {
-            DiDataElement interceptElement = file.getElement(0x0028, 0x1052);
-            DiDataElement slopeElement = file.getElement(0x0028, 0x1053);
+            windowCenter = -1;
+            windowWidth = -1;
 
-            double intercept = 0;
-            double slope = 1;
-
-            if (interceptElement != null)
-            {
-                intercept = interceptElement.getValueAsDouble();
-            }
-
-            if (slopeElement != null)
-            {
-                slope = slopeElement.getValueAsDouble();
-            }
-
-            double intensity = (pixelIntensity * slope) + intercept;
-
-            return (int) intensity;
-        }
-
-        private static Color32 GetRGBValue(int pixelIntensity, DiFile file, float windowWidth = -1,
-            float windowCenter = -1)
-        {
-            int bitsStored = file.getBitsStored();
-
-            DiDataElement windowCenterElement = file.getElement(0x0028, 0x1050);
-            DiDataElement windowWidthElement = file.getElement(0x0028, 0x1051);
-            DiDataElement interceptElement = file.getElement(0x0028, 0x1052);
-            DiDataElement slopeElement = file.getElement(0x0028, 0x1053);
-            double intercept = 0;
-            double slope = 1;
-
-            if (interceptElement != null)
-            {
-                intercept = interceptElement.getValueAsDouble();
-            }
-
-            if (slopeElement != null)
-            {
-                slope = slopeElement.getValueAsDouble();
-            }
-
-            double intensity = pixelIntensity;
-
-
-            if ((windowCenterElement != null && windowWidthElement != null) ||
-                (windowCenter != -1 && windowWidth != -1))
-            {
-                double windowC = windowCenter != -1 ? (double) windowCenter : windowCenterElement.getValueAsDouble();
-                double windowW = windowWidth != -1 ? (double) windowWidth : windowWidthElement.getValueAsDouble();
-
-                if (intensity < windowC - (windowW / 2))
-                {
-                    intensity = 0;
-                }
-                else if (intensity > windowC + (windowW / 2))
-                {
-                    intensity = 255;
-                }
-                else
-                {
-                    //0 for rgb min value and 255 for rgb max value
-                    intensity = (((intensity - (windowC - 0.5f)) / (windowW - 1)) + 0.5f) * 255f;
-                }
-            }
-            else
-            {
-                double oldMax = Math.Pow(2, bitsStored) * slope + intercept;
-                double oRange = oldMax - intercept;
-                double rgbRange = 255;
-
-                intensity = (((intensity - intercept) * rgbRange) / oRange) + 0;
-            }
-
-            return new Color32((byte) Math.Round(intensity), (byte) Math.Round(intensity), (byte) Math.Round(intensity),
-                255);
-        }
-
-        private void startPreProcessing(ThreadState state, DiFile[] files, int[] target, int threadCount)
-        {
             int spacing = files.Length / threadCount;
 
             for (int i = 0; i < threadCount; ++i)
@@ -560,14 +478,13 @@ namespace DICOMData
                     endIndex = files.Length;
                 }
 
-                var t = new Thread(() => preProcess(state, files, width, height, target, startIndex, endIndex));
+                var t = new Thread(() => PreProcess(state, files, width, height, target, startIndex, endIndex));
                 t.Start();
             }
         }
 
-        private void preProcess(ThreadState state, DiFile[] files, int width, int height,
-            int[] target,
-            int start, int end)
+        private static void PreProcess(ThreadState state, DiFile[] files, int width, int height,
+            int[] target, int start, int end)
         {
             DiFile currenDiFile;
             byte[] storedBytes = new byte[4];
@@ -575,10 +492,10 @@ namespace DICOMData
             for (int layer = start; layer < end; ++layer)
             {
                 currenDiFile = files[layer];
-                DiDataElement pixelData = currenDiFile.removeElement(0x7FE0, 0x0010);
-                DiDataElement highBitElement = currenDiFile.getElement(0x0028, 0x0102);
-                int mask = ~((~0) << highBitElement.getValueAsInt() + 1);
-                int allocated = currenDiFile.getBitsAllocated() / 8;
+                DiDataElement pixelData = currenDiFile.RemoveElement(0x7FE0, 0x0010);
+                DiDataElement highBitElement = currenDiFile.GetElement(0x0028, 0x0102);
+                int mask = ~((~0) << highBitElement.GetInt() + 1);
+                int allocated = currenDiFile.GetBitsAllocated() / 8;
 
                 int indlwh = layer * width * height;
 
@@ -595,7 +512,7 @@ namespace DICOMData
 
                             int value = BitConverter.ToInt32(storedBytes, 0);
 
-                            currentPix = getPixelIntensity(value & mask, currenDiFile);
+                            currentPix = GetPixelIntensity(value & mask, currenDiFile);
 
                             target[indlwh + x * height + y] = currentPix;
                         }
@@ -608,7 +525,7 @@ namespace DICOMData
             state.done();
         }
 
-        private void startCreatingVolume(ThreadState state, DiFile[] files, int[] data, Color[] target, int threadCount)
+        private void StartCreatingVolume(ThreadState state, DiFile[] files, int[] data, Color[] target, int threadCount)
         {
             int spacing = files.Length / threadCount;
 
@@ -653,7 +570,8 @@ namespace DICOMData
             state.done();
         }
 
-        private void startCreatingTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target, int threadCount)
+        private void StartCreatingTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
+            double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = files.Length / threadCount;
 
@@ -668,18 +586,19 @@ namespace DICOMData
                     endIndex = files.Length;
                 }
 
-                var t = new Thread(() => createTransTextures(state, processed, data, width, height, files, target, startIndex, endIndex));
-                t.Priority = System.Threading.ThreadPriority.Lowest;
+                var t = new Thread(() => CreateTransTextures(state, processed, data, width, height, files, target,
+                    windowWidth, windowCenter, startIndex, endIndex));
                 t.Start();
             }
         }
 
-        private static void createTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target, int start, int end)
+        private static void CreateTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, 
+            Color32[][] target, double windowWidth, double windowCenter, int start, int end)
         {
             for (int layer = start; layer < end; ++layer)
             {
                 target[layer] = new Color32[width*height];
-                fillPixelsTransversal(layer, data, width, height, files, target[layer]);
+                fillPixelsTransversal(layer, data, width, height, files, target[layer], PixelShader.IDENTITY, windowWidth, windowCenter);
                 processed.Enqueue(layer);
                 state.incrementProgress();
             }
@@ -687,7 +606,8 @@ namespace DICOMData
             state.done();
         }
 
-        private void startCreatingFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target, int threadCount)
+        private void StartCreatingFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
+            double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = height / threadCount;
 
@@ -702,18 +622,19 @@ namespace DICOMData
                     endIndex = height;
                 }
 
-                var t = new Thread(() => createFrontTextures(state, processed, data, width, height, files, target, startIndex, endIndex));
-                t.Priority = System.Threading.ThreadPriority.Lowest;
+                var t = new Thread(() => CreateFrontTextures(state, processed, data, width, height, files, target,
+                    windowWidth, windowCenter, startIndex, endIndex));
                 t.Start();
             }
         }
 
-        private static void createFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target, int start, int end)
+        private static void CreateFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target,
+            double windowWidth, double windowCenter, int start, int end)
         {
             for (int y = start; y < end; ++y)
             {
                 target[y] = new Color32[width * files.Length];
-                fillPixelsFrontal(y, data, width, height, files, target[y]);
+                fillPixelsFrontal(y, data, width, height, files, target[y], PixelShader.IDENTITY, windowWidth, windowCenter);
                 processed.Enqueue(y);
                 state.incrementProgress();
             }
@@ -721,7 +642,8 @@ namespace DICOMData
             state.done();
         }
 
-        private void startCreatingSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target, int threadCount)
+        private void StartCreatingSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
+            double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = width / threadCount;
 
@@ -736,24 +658,110 @@ namespace DICOMData
                     endIndex = width;
                 }
 
-                var t = new Thread(() => createSagTextures(state, processed, data, width, height, files, target, startIndex, endIndex));
-                t.Priority = System.Threading.ThreadPriority.Lowest;
+                var t = new Thread(() => CreateSagTextures(state, processed, data, width, height, files, target,
+                    windowWidth, windowCenter, startIndex, endIndex));
                 t.Start();
             }
         }
 
-        private static void createSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target, int start, int end)
+        private static void CreateSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target,
+            double windowWidth, double windowCenter, int start, int end)
         {
             for (int x = start; x < end; ++x)
             {
                 target[x] = new Color32[height * files.Length];
-                fillPixelsSagittal(x, data, width, height, files, target[x]);
+                FillPixelsSagittal(x, data, width, height, files, target[x], PixelShader.IDENTITY, windowWidth, windowCenter);
                 processed.Enqueue(x);
                 state.incrementProgress();
             }
 
             state.done();
         }
+
+        /// <summary>
+        /// Applies intercept and slope of the given DiFile
+        /// </summary>
+        /// <param name="pixelIntensity">Raw pixel intensity</param>
+        /// <param name="file">DiFile containing the pixel</param>
+        /// <returns>The resulting value</returns>
+        private static int GetPixelIntensity(int pixelIntensity, DiFile file)
+        {
+            DiDataElement interceptElement = file.GetElement(0x0028, 0x1052);
+            DiDataElement slopeElement = file.GetElement(0x0028, 0x1053);
+
+            double intercept = interceptElement?.GetDouble() ?? 0;
+            double slope = slopeElement?.GetDouble() ?? 1;
+            double intensity = (pixelIntensity * slope) + intercept;
+
+            return (int)intensity;
+        }
+
+        /// <summary>
+        /// Computes the RGB Value for an intensity value
+        /// </summary>
+        /// <param name="pixelIntensity">Intensity value of a pixel</param>
+        /// <param name="file">DICOM File containing the pixel</param>
+        /// <param name="windowWidth">Option to set own window width</param>
+        /// <param name="windowCenter">Option to set own window center</param>
+        /// <returns>The resulting Color</returns>
+        private static Color32 GetRGBValue(int pixelIntensity, DiFile file, double windowWidth = -1,
+          double windowCenter = -1)
+        {
+            int bitsStored = file.GetBitsStored();
+
+            DiDataElement windowCenterElement = file.GetElement(0x0028, 0x1050);
+            DiDataElement windowWidthElement = file.GetElement(0x0028, 0x1051);
+            DiDataElement interceptElement = file.GetElement(0x0028, 0x1052);
+            DiDataElement slopeElement = file.GetElement(0x0028, 0x1053);
+
+            double intercept = interceptElement?.GetDouble() ?? 0;
+            double slope = slopeElement?.GetDouble() ?? 1;
+            double intensity = pixelIntensity;
+
+            if (windowCenter != -1 && windowWidth != -1)
+            {
+                intensity = ApplyWindow(intensity, windowWidth, windowCenter);
+            }
+            else if (windowCenterElement != null && windowWidthElement != null)
+            {
+                intensity = ApplyWindow(pixelIntensity, windowWidthElement.GetDouble(),
+                    windowCenterElement.GetDouble());
+            }
+            else
+            {
+                double oldMax = Math.Pow(2, bitsStored) * slope + intercept;
+                double oRange = oldMax - intercept;
+                double rgbRange = 255;
+
+                intensity = ((intensity - intercept) * rgbRange) / oRange;
+            }
+
+            byte result = (byte)Math.Round(intensity);
+
+            return new Color32(result, result, result, 255);
+        }
+
+        private static double ApplyWindow(double val, double width, double center)
+        {
+            double intensity = val;
+
+            if (intensity < center - (width / 2))
+            {
+                intensity = 0;
+            }
+            else if (intensity > center + (width / 2))
+            {
+                intensity = 255;
+            }
+            else
+            {
+                //0 for rgb min value and 255 for rgb max value
+                intensity = (((intensity - (center - 0.5f)) / (width - 1)) + 0.5f) * 255f;
+            }
+
+            return val;
+        }
+
     }
 
     public enum SliceType
@@ -773,6 +781,11 @@ namespace DICOMData
         {
             double dynAlpha = 210 * (Math.Max(argb.r - 10, 0)) / 255d;
             argb.a = (byte) dynAlpha;
+            return argb;
+        }
+
+        public static Color32 IDENTITY(Color32 argb)
+        {
             return argb;
         }
     }

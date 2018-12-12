@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿
 using System.IO;
 using System;
 using System.Text;
@@ -9,17 +7,21 @@ namespace DICOMParser
 {
     public class DiFileStream : FileStream
     {
-        private bool little_endian;
+        //General assumption: little_endian!!
+        private bool little_endian = true;
 
-        public DiFileStream(string fname) : base(fname, FileMode.Open, FileAccess.Read, FileShare.Read)
-        {
-            little_endian = true;
-        }
+        public DiFileStream(string fname) : base(fname, FileMode.Open, FileAccess.Read, FileShare.Read){}
 
         public uint ReadShort()
         {
             byte[] val = new byte[2];
             Read(val, 0, val.Length);
+
+            if (!little_endian)
+            {
+                Array.Reverse(val);
+            }
+
             return BitConverter.ToUInt16(val, 0);
         }
 
@@ -27,6 +29,12 @@ namespace DICOMParser
         {
             byte[] val = new byte[4];
             Read(val, 0, val.Length);
+
+            if (!little_endian)
+            {
+                Array.Reverse(val);
+            }
+
             return BitConverter.ToInt32(val, 0);
         }
 

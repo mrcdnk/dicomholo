@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿
 using DICOMData;
 using UnityEngine;
 using UnityEngine.UI;
@@ -41,7 +39,7 @@ public class OrthoSlices : MonoBehaviour
         local.y = transSlider.value * transStep;
 
         transImage.GetComponent<Transform>().localPosition = local;
-        Sprite current = transImage.GetComponent<Sprite>();
+        //Sprite current = transImage.GetComponent<Sprite>();
         SpriteRenderer currentRenderer = transImage.GetComponent<SpriteRenderer>();
 
         currentRenderer.material.mainTexture = imageStack.GetTexture2D(SliceType.TRANSVERSAL, (int)transSlider.value);

@@ -6,11 +6,9 @@ using DICOMParser;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using DICOMViews;
-using HoloToolkit.Unity.UX;
 
 namespace DICOMData
 {
@@ -92,8 +90,8 @@ namespace DICOMData
         private int width;
         private int height;
 
-        private double windowCenter = -1;
-        private double windowWidth = -1;
+        private double windowCenter = Double.MinValue;
+        private double windowWidth = Double.MinValue;
 
         private bool expl = true;
 
@@ -225,7 +223,7 @@ namespace DICOMData
             yield return null;
 
             useThreadState = true;
-            StartPreProcessing(threadState, dicomFiles, data, 28);
+            StartPreProcessing(threadState, dicomFiles, data, 20);
 
             yield return WaitForThreads();
 
@@ -243,11 +241,10 @@ namespace DICOMData
 
             var cols = new Color[width * height * dicomFiles.Length];
 
-            StartCreatingVolume(threadState, dicomFiles, data, cols, 10);
+            StartCreatingVolume(threadState, dicomFiles, data, cols, windowWidth, windowCenter, 10);
 
             yield return WaitForThreads();
 
-            LoadVolumeButton.interactable = false;
             Load2DButton.interactable = true;
 
             volume.SetPixels(cols);
@@ -269,7 +266,7 @@ namespace DICOMData
             Color32[][] frontTextureColors = new Color32[height][];
             Color32[][] sagTextureColors = new Color32[width][];
 
-            ProgressHandler.init(dicomFiles.Length + height + width + 1, "Creating Textures");
+            ProgressHandler.init(dicomFiles.Length + height + width, "Creating Textures");
 
             ConcurrentQueue<int> transProgress = new ConcurrentQueue<int>();
             ConcurrentQueue<int> frontProgress = new ConcurrentQueue<int>();
@@ -341,7 +338,6 @@ namespace DICOMData
             }
 
             LoadVolumeButton.interactable = true;
-            Load2DButton.interactable = false;
         }
 
         private static bool HasNoExtension(string f)
@@ -389,86 +385,14 @@ namespace DICOMData
             }
         }
 
-        public static void FillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
-        {
-            FillPixelsTransversal(id, data, width, height, files, texData, integer => integer);
-        }
-
-        public static void FillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
-            Func<Color32, Color32> pShader, double windówWidth = -1, double windowCenter = -1)
-        {
-            int idxPartId = id * width * height;
-            int idxPart;
-            DiFile file = files[id];
-
-            for (int y = 0; y < height; ++y)
-            {
-                idxPart = idxPartId + y;
-                for (int x = 0; x < width; ++x)
-                {
-                    int index = y * width + x;
-
-                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windówWidth, windowCenter));
-                }
-            }
-        }
-
-        public static void FillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
-        {
-            FillPixelsFrontal(id, data, width, height, files, texData, integer => integer);
-        }
-
-        public static void FillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
-            Func<Color32, Color32> pShader, double windowWidth = -1, double windowCenter = -1)
-        {
-            int idxPart;
-
-            for (int i = 0; i < files.Length; ++i)
-            {
-                idxPart = i * width * height + id;
-                DiFile file = files[i];
-
-                for (int x = 0; x < width; ++x)
-                {
-                    int index = i * height + x;
-
-                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windowWidth, windowCenter));
-                }
-            }
-        }
-
-        public static void FillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
-        {
-            FillPixelsSagittal(id, data, width, height, files, texData, integer => integer);
-        }
-
-        public static void FillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
-            Func<Color32, Color32> pShader, double windówWidth = -1, double windowCenter = -1)
-        {
-            int idxPart;
-
-            for (int i = 0; i < files.Length; ++i)
-            {
-                idxPart = i * width * height + id * height;
-                DiFile file = files[i];
-
-                for (int y = 0; y < height; ++y)
-                {
-                    int index = i * width + y;
-
-                    texData[index] = pShader(GetRGBValue(data[idxPart + y], file, windówWidth, windowCenter));
-                }
-            }
-        }
-
         private void StartPreProcessing(ThreadState state, DiFile[] files, int[] target, int threadCount)
         {
-            windowCenter = -1;
-            windowWidth = -1;
+            windowCenter = Double.MinValue;
+            windowWidth = Double.MinValue;
 
             int spacing = files.Length / threadCount;
 
-            for (int i = 0; i < threadCount; ++i)
+            for (var i = 0; i < threadCount; ++i)
             {
                 state.register();
                 int startIndex = i * spacing;
@@ -487,20 +411,22 @@ namespace DICOMData
         private static void PreProcess(ThreadState state, DiFile[] files, int width, int height,
             int[] target, int start, int end)
         {
-            DiFile currentDiFile;
-            byte[] storedBytes = new byte[4];
+            DiFile currentDiFile = null;
+            var storedBytes = new byte[4];
+            int debug = start;
+           
 
             for (int layer = start; layer < end; ++layer)
             {
+                debug = layer;
                 currentDiFile = files[layer];
                 DiDataElement pixelData = currentDiFile.RemoveElement(0x7FE0, 0x0010);
-                DiDataElement highBitElement = currentDiFile.GetElement(0x0028, 0x0102);
-                int mask = ~((~0) << highBitElement.GetInt() + 1);
+                int mask = ~(~0 << currentDiFile.GetHighBit() + 1);
                 int allocated = currentDiFile.GetBitsAllocated() / 8;
 
                 int indlwh = layer * width * height;
 
-                using (MemoryStream pixels = new MemoryStream(pixelData.GetValues()))
+                using (var pixels = new MemoryStream(pixelData.GetValues()))
                 {
                     int currentPix;
 
@@ -511,22 +437,33 @@ namespace DICOMData
                             //get current Int value
                             pixels.Read(storedBytes, 0, allocated);
 
-                            int value = BitConverter.ToInt32(storedBytes, 0);
+                            var value = BitConverter.ToInt32(storedBytes, 0);
 
                             currentPix = GetPixelIntensity(value & mask, currentDiFile);
 
                             target[indlwh + x * height + y] = currentPix;
                         }
                     }
+
                 }
 
                 state.incrementProgress();
             }
-
+         
             state.done();
         }
 
-        private void StartCreatingVolume(ThreadState state, DiFile[] files, int[] data, Color[] target, int threadCount)
+        /// <summary>
+        /// Starts threads for volume texture creation.
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
+        /// <param name="target">target jagged array, which the result will be written to.</param>
+        /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
+        /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
+        /// <param name="threadCount">Amount of Threads to use</param>
+        private void StartCreatingVolume(ThreadState state, DiFile[] files, int[] data, Color[] target, double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = files.Length / threadCount;
 
@@ -541,14 +478,27 @@ namespace DICOMData
                     endIndex = files.Length;
                 }
 
-                var t = new Thread(() => createVolume(state, data, files, width, height, target, startIndex, endIndex));
+                var t = new Thread(() => createVolume(state, data, files, width, height, target, windowWidth, windowCenter, startIndex, endIndex));
                 t.Priority = System.Threading.ThreadPriority.Lowest;
                 t.Start();
             }
         }
 
+        /// <summary>
+        /// Fills the given 3D color array using the given 3D pixel intensity array of same size.
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
+        /// <param name="dicomFiles">all the DICOM files.</param>
+        /// <param name="width">width of a transversal image.</param>
+        /// <param name="height">height of a transversal image.</param>
+        /// <param name="target">§D color array mapped to 1D Array.</param>
+        /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
+        /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
+        /// <param name="start">Start index used to determine partition of images to be computed</param>
+        /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
         private static void createVolume(ThreadState state, int[] data, DiFile[] dicomFiles, int width, int height,
-            Color[] target, int start, int end)
+            Color[] target, double windowWidth, double windowCenter, int start, int end)
         {
             int idx = start*width*height;
             int idxPartZ;
@@ -561,7 +511,7 @@ namespace DICOMData
                     idxPart = idxPartZ + y;
                     for (int x = 0; x < width; ++x, ++idx)
                     {
-                        target[idx] = PixelShader.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z]));
+                        target[idx] = PixelShader.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z], windowWidth, windowCenter));
                     }
                 }
 
@@ -571,6 +521,17 @@ namespace DICOMData
             state.done();
         }
 
+        /// <summary>
+        /// Starts threads for transversal texture creation.
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
+        /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="target">target jagged array, which the result will be written to.</param>
+        /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
+        /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
+        /// <param name="threadCount">Amount of Threads to use</param>
         private void StartCreatingTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int threadCount)
         {
@@ -593,13 +554,27 @@ namespace DICOMData
             }
         }
 
+        /// <summary>
+        /// Fills the target color array with the pixels for all transversal images in range from start to end (excluding end).
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
+        /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
+        /// <param name="width">width of a transversal image.</param>
+        /// <param name="height">height of a transversal image.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="target">target jagged array, which the result will be written to.</param>
+        /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
+        /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
+        /// <param name="start">Start index used to determine partition of images to be computed</param>
+        /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
         private static void CreateTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, 
             Color32[][] target, double windowWidth, double windowCenter, int start, int end)
         {
             for (int layer = start; layer < end; ++layer)
             {
                 target[layer] = new Color32[width*height];
-                FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelShader.IDENTITY, windowWidth, windowCenter);
+                FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(layer);
                 state.incrementProgress();
             }
@@ -607,6 +582,17 @@ namespace DICOMData
             state.done();
         }
 
+        /// <summary>
+        /// Starts threads for frontal texture creation.
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
+        /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="target">target jagged array, which the result will be written to.</param>
+        /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
+        /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
+        /// <param name="threadCount">Amount of Threads to use</param>
         private void StartCreatingFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int threadCount)
         {
@@ -629,13 +615,27 @@ namespace DICOMData
             }
         }
 
+        /// <summary>
+        /// Fills the target color array with the pixels for all frontal images in range from start to end (excluding end).
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
+        /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
+        /// <param name="width">width of a transversal image.</param>
+        /// <param name="height">height of a transversal image.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="target">target jagged array, which the result will be written to.</param>
+        /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
+        /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
+        /// <param name="start">Start index used to determine partition of images to be computed</param>
+        /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
         private static void CreateFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int start, int end)
         {
             for (int y = start; y < end; ++y)
             {
                 target[y] = new Color32[width * files.Length];
-                FillPixelsFrontal(y, data, width, height, files, target[y], PixelShader.IDENTITY, windowWidth, windowCenter);
+                FillPixelsFrontal(y, data, width, height, files, target[y], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(y);
                 state.incrementProgress();
             }
@@ -643,6 +643,17 @@ namespace DICOMData
             state.done();
         }
 
+        /// <summary>
+        /// Starts threads for saggital texture creation.
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
+        /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="target">target jagged array, which the result will be written to.</param>
+        /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
+        /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
+        /// <param name="threadCount">Amount of Threads to use</param>
         private void StartCreatingSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int threadCount)
         {
@@ -665,13 +676,27 @@ namespace DICOMData
             }
         }
 
+        /// <summary>
+        /// Fills the target color array with the pixels for all saggital images in range from start to end (excluding end).
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
+        /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
+        /// <param name="width">width of a transversal image.</param>
+        /// <param name="height">height of a transversal image.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="target">target jagged array, which the result will be written to.</param>
+        /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
+        /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
+        /// <param name="start">Start index used to determine partition of images to be computed</param>
+        /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
         private static void CreateSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int start, int end)
         {
             for (int x = start; x < end; ++x)
             {
                 target[x] = new Color32[height * files.Length];
-                FillPixelsSagittal(x, data, width, height, files, target[x], PixelShader.IDENTITY, windowWidth, windowCenter);
+                FillPixelsSagittal(x, data, width, height, files, target[x], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(x);
                 state.incrementProgress();
             }
@@ -680,33 +705,168 @@ namespace DICOMData
         }
 
         /// <summary>
-        /// Applies intercept and slope of the given DiFile
+        /// Wrapper for simple calls without specific shader or windowwidth/Center
         /// </summary>
-        /// <param name="pixelIntensity">Raw pixel intensity</param>
+        /// <param name="id">Image number</param>
+        /// <param name="data">3D Pixel intensity data</param>
+        /// <param name="width">transversal slice width</param>
+        /// <param name="height">transversal slice height</param>
+        /// <param name="files">array of all DICOM files</param>
+        /// <param name="texData">target texture array</param>
+        public static void FillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
+        {
+            FillPixelsTransversal(id, data, width, height, files, texData, PixelShader.Identity);
+        }
+
+        /// <summary>
+        /// Fills a Color32 Array with transversal texture data from the pixelIntensity values given by the data array.
+        /// </summary>
+        /// <param name="id">Image number</param>
+        /// <param name="data">3D Pixel intensity data</param>
+        /// <param name="width">transversal slice width</param>
+        /// <param name="height">transversal slice height</param>
+        /// <param name="files">array of all DICOM files</param>
+        /// <param name="texData">target texture array</param>
+        /// <param name="pShader">pixel shader to be applied to every pixel</param>
+        /// <param name="windówWidth">Optional possibility to override windowWidth</param>
+        /// <param name="windowCenter">Optional possibility to override windowCenter</param>
+        public static void FillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
+            Func<Color32, Color32> pShader, double windówWidth = Double.MinValue, double windowCenter = Double.MinValue)
+        {
+            int idxPartId = id * width * height;
+            int idxPart;
+            DiFile file = files[id];
+
+            for (int y = 0; y < height; ++y)
+            {
+                idxPart = idxPartId + y;
+                for (int x = 0; x < width; ++x)
+                {
+                    int index = y * width + x;
+
+                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windówWidth, windowCenter));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Wrapper for simple calls without specific shader or windowwidth/Center
+        /// </summary>
+        /// <param name="id">Image number</param>
+        /// <param name="data">3D Pixel intensity data</param>
+        /// <param name="width">transversal slice width</param>
+        /// <param name="height">transversal slice height</param>
+        /// <param name="files">array of all DICOM files</param>
+        /// <param name="texData">target texture array</param>
+        public static void FillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
+        {
+            FillPixelsFrontal(id, data, width, height, files, texData, PixelShader.Identity);
+        }
+
+        /// <summary>
+        /// Fills a Color32 Array with frontal texture data from the pixelIntensity values given by the data array.
+        /// </summary>
+        /// <param name="id">Image number</param>
+        /// <param name="data">3D Pixel intensity data</param>
+        /// <param name="width">transversal slice width</param>
+        /// <param name="height">transversal slice height</param>
+        /// <param name="files">array of all DICOM files</param>
+        /// <param name="texData">target texture array</param>
+        /// <param name="pShader">pixel shader to be applied to every pixel</param>
+        /// <param name="windówWidth">Optional possibility to override windowWidth</param>
+        /// <param name="windowCenter">Optional possibility to override windowCenter</param>
+        public static void FillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
+            Func<Color32, Color32> pShader, double windowWidth = Double.MinValue, double windowCenter = Double.MinValue)
+        {
+            int idxPart;
+
+            for (int i = 0; i < files.Length; ++i)
+            {
+                idxPart = i * width * height + id;
+                DiFile file = files[i];
+
+                for (int x = 0; x < width; ++x)
+                {
+                    int index = i * height + x;
+
+                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windowWidth, windowCenter));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Wrapper for simple calls without specific shader or windowwidth/Center
+        /// </summary>
+        /// <param name="id">Image number</param>
+        /// <param name="data">3D Pixel intensity data</param>
+        /// <param name="width">transversal slice width</param>
+        /// <param name="height">transversal slice height</param>
+        /// <param name="files">array of all DICOM files</param>
+        /// <param name="texData">target texture array</param>
+        public static void FillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
+        {
+            FillPixelsSagittal(id, data, width, height, files, texData, PixelShader.Identity);
+        }
+
+        /// <summary>
+        /// Fills a Color32 Array with sagittal texture data from the pixelIntensity values given by the data array.
+        /// </summary>
+        /// <param name="id">Image number</param>
+        /// <param name="data">3D Pixel intensity data</param>
+        /// <param name="width">transversal slice width</param>
+        /// <param name="height">transversal slice height</param>
+        /// <param name="files">array of all DICOM files</param>
+        /// <param name="texData">target texture array</param>
+        /// <param name="pShader">pixel shader to be applied to every pixel</param>
+        /// <param name="windówWidth">Optional possibility to override windowWidth</param>
+        /// <param name="windowCenter">Optional possibility to override windowCenter</param>
+        public static void FillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData,
+            Func<Color32, Color32> pShader, double windówWidth = Double.MinValue, double windowCenter = Double.MinValue)
+        {
+            int idxPart;
+
+            for (int i = 0; i < files.Length; ++i)
+            {
+                idxPart = i * width * height + id * height;
+                DiFile file = files[i];
+
+                for (int y = 0; y < height; ++y)
+                {
+                    int index = i * width + y;
+
+                    texData[index] = pShader(GetRGBValue(data[idxPart + y], file, windówWidth, windowCenter));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Applies intercept and slope of the given DiFile.
+        /// </summary>
+        /// <param name="rawIntensity">Raw pixel intensity</param>
         /// <param name="file">DiFile containing the pixel</param>
         /// <returns>The resulting value</returns>
-        private static int GetPixelIntensity(int pixelIntensity, DiFile file)
+        private static int GetPixelIntensity(int rawIntensity, DiFile file)
         {
             DiDataElement interceptElement = file.GetElement(0x0028, 0x1052);
             DiDataElement slopeElement = file.GetElement(0x0028, 0x1053);
 
             double intercept = interceptElement?.GetDouble() ?? 0;
             double slope = slopeElement?.GetDouble() ?? 1;
-            double intensity = (pixelIntensity * slope) + intercept;
+            double intensity = (rawIntensity * slope) + intercept;
 
             return (int)intensity;
         }
 
         /// <summary>
-        /// Computes the RGB Value for an intensity value
+        /// Computes the RGB Value for an intensity value.
         /// </summary>
         /// <param name="pixelIntensity">Intensity value of a pixel</param>
         /// <param name="file">DICOM File containing the pixel</param>
         /// <param name="windowWidth">Option to set own window width</param>
         /// <param name="windowCenter">Option to set own window center</param>
         /// <returns>The resulting Color</returns>
-        private static Color32 GetRGBValue(int pixelIntensity, DiFile file, double windowWidth = -1,
-          double windowCenter = -1)
+        private static Color32 GetRGBValue(int pixelIntensity, DiFile file, double windowWidth = Double.MinValue,
+          double windowCenter = Double.MinValue)
         {
             int bitsStored = file.GetBitsStored();
 
@@ -719,7 +879,7 @@ namespace DICOMData
             double slope = slopeElement?.GetDouble() ?? 1;
             double intensity = pixelIntensity;
 
-            if (windowCenter != -1 && windowWidth != -1)
+            if (windowCenter != Double.MinValue && windowWidth != Double.MinValue)
             {
                 intensity = ApplyWindow(intensity, windowWidth, windowCenter);
             }
@@ -737,11 +897,18 @@ namespace DICOMData
                 intensity = ((intensity - intercept) * rgbRange) / oRange;
             }
 
-            byte result = (byte)Math.Round(intensity);
+            var result = (byte)Math.Round(intensity);
 
             return new Color32(result, result, result, 255);
         }
 
+        /// <summary>
+        /// Applies the windowWidth and windowCenter attributes from a DICOM file.
+        /// </summary>
+        /// <param name="val">intensity value the window will be applied to</param>
+        /// <param name="width">width of the window</param>
+        /// <param name="center">center of the window</param>
+        /// <returns></returns>
         private static double ApplyWindow(double val, double width, double center)
         {
             double intensity = val;
@@ -757,27 +924,36 @@ namespace DICOMData
             else
             {
                 //0 for rgb min value and 255 for rgb max value
-                intensity = (((intensity - (center - 0.5f)) / (width - 1)) + 0.5f) * 255f;
+                intensity = ((intensity - (center - 0.5f)) / (width - 1) + 0.5f) * 255f;
             }
 
-            return val;
+            return intensity;
         }
 
     }
 
+    /// <summary>
+    /// SliceType Describes from which perspective the slice is generated
+    /// </summary>
     public enum SliceType
     {
-        TRANSVERSAL,
-        SAGITTAL,
-        FRONTAL
+        TRANSVERSAL, // The images as they are stored inside the DICOM File
+        SAGITTAL, // Side view
+        FRONTAL // View from the Front
     }
 
+    /// <summary>
+    /// This class contains Color32 => Color32 functions that can be applied when processing the pixels contained inside a DICOM file.
+    /// </summary>
     public class PixelShader
     {
-        private PixelShader()
-        {
-        }
+        private PixelShader(){}
 
+        /// <summary>
+        /// Dynamic alpha calculation based on grey rgb(x,x,x) value, where x is the intensity.
+        /// </summary>
+        /// <param name="argb">input color (assumed r=g=b)</param>
+        /// <returns>input color with calculated alpha value</returns>
         public static Color32 DYN_ALPHA(Color32 argb)
         {
             double dynAlpha = 210 * (Math.Max(argb.r - 10, 0)) / 255d;
@@ -785,7 +961,12 @@ namespace DICOMData
             return argb;
         }
 
-        public static Color32 IDENTITY(Color32 argb)
+        /// <summary>
+        /// Identity function color32 -> color32 
+        /// </summary>
+        /// <param name="argb"> input color </param>
+        /// <returns>unchanged input color</returns>
+        public static Color32 Identity(Color32 argb)
         {
             return argb;
         }

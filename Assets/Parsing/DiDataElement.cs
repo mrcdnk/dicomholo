@@ -55,6 +55,7 @@ namespace DICOMParser
          */
         public void readNext(DiFileStream inputStream)
         {
+            bool exp = this.exp;
             //get ids
             groupid = inputStream.ReadShort();
             elementid = inputStream.ReadShort();
@@ -69,7 +70,16 @@ namespace DICOMParser
                 vr = diDictionary.getVR(getTag());
             }
 
-            // Debug.Log(getTagString());
+            // There are three special SQ related Data Elements that are not ruled by the VR encoding rules
+            // conveyed by the Transfer Syntax. They shall be encoded as Implicit VR. These special Data Elements are
+            // Item (FFFE,E000), Item Delimitation Item (FFFE,E00D), and Sequence Delimitation Item (FFFE,E0DD).
+            // However, the Data Set within the Value Field of the Data Element Item (FFFE,E000) shall be encoded
+            // according to the rules conveyed by the Transfer Syntax.
+            if (groupid == 0xfffe && (elementid == 0xe000 || elementid == 0xe00d || elementid == 0xe0dd))
+            {
+                exp = false;
+            }
+
             //get vl
             switch (vr)
             {
@@ -101,16 +111,18 @@ namespace DICOMParser
                     break;
             }
 
-            //get data
-            values = new byte[Math.Max(vl, 0)];
+            vl = Math.Max(vl, 0);
 
-            inputStream.Read(values, 0, values.Length);
+            //get data
+            values = new byte[vl];
+
+            inputStream.Read(values, 0, vl);
 
             try
             {
                 rawInt = getValueAsInt();
             }
-            catch (FormatException e)
+            catch (Exception)
             {
                 //nothing to worry about, some elements aren't supposed to be used with Int
             }
@@ -119,7 +131,7 @@ namespace DICOMParser
             {
                 rawDouble = GetValueAsDouble();
             }
-            catch (FormatException e)
+            catch (Exception)
             {
                 //nothing to worry about, some elements aren't supposed to be used with Double
             }
@@ -135,7 +147,7 @@ namespace DICOMParser
             string str;
 
             str = getTagString() + " (" + diDictionary.GetTagDescription(getTag()) + ")  ";
-            str += "VR: " + getVRString() + "  VL: " + vl + "  Values: " + getValueAsString();
+            str += "VR: " + getVRString() + "  VL: " + vl + "  Values: " + GetValueAsString();
 
             return str;
         }
@@ -226,9 +238,9 @@ namespace DICOMParser
          *
          * @return the double value
          */
-        public double GetValueAsDouble()
+        private double GetValueAsDouble()
         {
-            string str = getValueAsString();
+            string str = GetValueAsString();
 
             return double.Parse(str.Trim(), CultureInfo.InvariantCulture);
         }
@@ -246,9 +258,9 @@ namespace DICOMParser
          *
          * @return the int value
          */
-        public int getValueAsInt()
+        private int getValueAsInt()
         {
-            string str = getValueAsString();
+            string str = GetValueAsString();
             return Int32.Parse(str.Trim(), CultureInfo.InvariantCulture);
         }
 
@@ -265,7 +277,7 @@ namespace DICOMParser
          *
          * @return the string value
          */
-        public string getValueAsString()
+        public string GetValueAsString()
         {
             string str = "";
 
@@ -273,71 +285,94 @@ namespace DICOMParser
             {
                 str = "(too long to be printed)";
             }
-            else if (vr == VRType.AE || vr == VRType.AS || vr == VRType.CS || vr == VRType.DA || vr == VRType.DS ||
-                  vr == VRType.DT || vr == VRType.IS || vr == VRType.LO || vr == VRType.LT || vr == VRType.OF ||
-                  vr == VRType.PN || vr == VRType.SH || vr == VRType.ST || vr == VRType.TM || vr == VRType.UI ||
-                  vr == VRType.UN || vr == VRType.UT)
+            else switch (vr)
             {
-                for (int i = 0; i < vl; i++)
+                case VRType.AE:
+                case VRType.AS:
+                case VRType.CS:
+                case VRType.DA:
+                case VRType.DS:
+                case VRType.DT:
+                case VRType.IS:
+                case VRType.LO:
+                case VRType.LT:
+                case VRType.OF:
+                case VRType.PN:
+                case VRType.SH:
+                case VRType.ST:
+                case VRType.TM:
+                case VRType.UI:
+                case VRType.UN:
+                case VRType.UT:
                 {
-                    if (values[i] > 0)
+                    for (int i = 0; i < vl; i++)
                     {
-                        str += (char)(values[i]);
+                        if (values[i] > 0)
+                        {
+                            str += (char)(values[i]);
+                        }
                     }
-                }
-            }
-            else if (vr == VRType.FL)
-            {
-                //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
-                float f = BitConverter.ToSingle(values, 0);
-                str = f.ToString("0.0000");
-            }
-            else if (vr == VRType.FD)
-            {
-                //Int64 tmp = (values[7] << 56 | values[6] << 48 | values[5] << 40 | values[0] << 32 |
-                //        values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
-                Double d = BitConverter.ToDouble(values, 0);
-                str = d.ToString();
-            }
-            else if (vr == VRType.SL)
-            {
-                //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
 
-                str = BitConverter.ToString(values, 0); ;
-            }
-            else if (vr == VRType.SQ)
-            {
-                str = "TODO";
-            }
-            else if (vr == VRType.SS)
-            {
-                int tmp = (values[1] << 8 | values[0]);
-                str = "" + tmp;
-            }
-            else if (vr == VRType.UL)
-            {
-                long tmp = ((values[3] & 0xFF) << 24 | (values[2] & 0xFF) << 16
-                        | (values[1] & 0xFF) << 8 | (values[0] & 0xFF));
-                str = "" + tmp;
-            }
-            else if (vr == VRType.US)
-            {
-                int tmp = ((values[1] & 0xFF) << 8 | (values[0] & 0xFF));
-                str = "" + tmp;
-            }
-            else
-            {
-                // supports: OB
-                for (int i = 0; i < vl; i++)
+                    break;
+                }
+                case VRType.FL:
                 {
-                    if (i < vl - 1)
+                    //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
+                    float f = BitConverter.ToSingle(values, 0);
+                    str = f.ToString("0.0000");
+                    break;
+                }
+                case VRType.FD:
+                {
+                    //Int64 tmp = (values[7] << 56 | values[6] << 48 | values[5] << 40 | values[0] << 32 |
+                    //        values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
+                    Double d = BitConverter.ToDouble(values, 0);
+                    str = d.ToString();
+                    break;
+                }
+                case VRType.SL:
+                    //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
+
+                    str = BitConverter.ToString(values, 0); ;
+                    break;
+                case VRType.SQ:
+                    str = "TODO";
+                    break;
+                case VRType.SS:
+                {
+                    int tmp = (values[1] << 8 | values[0]);
+                    str = "" + tmp;
+                    break;
+                }
+                case VRType.UL:
+                {
+                    long tmp = ((values[3] & 0xFF) << 24 | (values[2] & 0xFF) << 16
+                                                         | (values[1] & 0xFF) << 8 | (values[0] & 0xFF));
+                    str = "" + tmp;
+                    break;
+                }
+                case VRType.US:
+                {
+                    int tmp = ((values[1] & 0xFF) << 8 | (values[0] & 0xFF));
+                    str = "" + tmp;
+                    break;
+                }
+                default:
+                {
+                    // supports: OB
+                    for (int i = 0; i < vl; i++)
                     {
-                        str += ((int)(values[i]) + "|");
+                        if (i < vl - 1)
+                        {
+                            str += ((int)(values[i]) + "|");
+                        }
+                        else
+                        {
+                            str += ((int)(values[i]));
+                        }
                     }
-                    else
-                    {
-                        str += ((int)(values[i]));
-                    }
+
+                    break;
                 }
             }
 
@@ -350,7 +385,7 @@ namespace DICOMParser
          * @return the vr tag as integer - compare with public VRType constants
          * @see DiDictonary
          */
-        public VRType getVR()
+        public VRType GetVr()
         {
             return vr;
         }
@@ -419,7 +454,7 @@ namespace DICOMParser
 
             ds.Close();
 
-            string uid = de.getValueAsString();
+            string uid = de.GetValueAsString();
 
             return uid.StartsWith("1.2.840.10008.1.2.1") || uid.StartsWith("1.2.840.10008.1.2.2");
         }

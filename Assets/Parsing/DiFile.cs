@@ -11,6 +11,8 @@ namespace DICOMParser
      * Stores all DataElements and makes them accessable via getDataElement(TagName).
      * Also stores the pixel data & important information for displaying the contained image in
      * separate variables with special access functions.
+     *
+     * It is assumed that all DICOM files of a set are little_endian and of the same vr_format.
      */
     public class DiFile
     {
@@ -18,10 +20,13 @@ namespace DICOMParser
         private int height;
         private int bits_stored;
         private int bits_allocated;
+        private int high_bit;
         private bool exp = true;
-        private Dictionary<uint, DiDataElement> data_elements;
         private int image_number;
         string file_name;
+
+        private Dictionary<uint, DiDataElement> data_elements;
+        private Dictionary<uint, Dictionary<uint, DiDataElement>> sequences; // contains the sequences
 
         /**
          * Default Construtor - creates an empty DicomFile.
@@ -30,6 +35,7 @@ namespace DICOMParser
         {
             width = height = bits_stored = bits_allocated = image_number = 0;
             data_elements = new Dictionary<uint, DiDataElement>();
+            sequences = new Dictionary<uint, Dictionary<uint, DiDataElement>>();
             file_name = null;
             this.exp = exp;
         }
@@ -47,22 +53,53 @@ namespace DICOMParser
             this.file_name = file_name;
             DiFileStream file = new DiFileStream(this.file_name);
 
+        
             if (file.SkipHeader())
             {
-                DiDataElement diDataElement;
+                DiDataElement diDataElement = null, de_old = null;
 
                 while (file.Position+1 < file.Length)
                 {
                     diDataElement = new DiDataElement(file_name, exp);
                     diDataElement.readNext(file);
-                    try
+                 
+                    if (diDataElement.getTag() == 0xfffee00) // handle sequences ...
                     {
-                        data_elements.Add(diDataElement.getTag(), diDataElement);
+                        Dictionary<uint, DiDataElement> seq = new Dictionary<uint, DiDataElement>();
+                        DiDataElement seq_de = new DiDataElement();
+                        while (seq_de.getTag() != 0xfffee0dd)
+                        {
+                            seq_de = new DiDataElement();
+                            seq_de.readNext(file);
+                            seq[seq_de.getTag()] = seq_de;
+                        }
+                        sequences[de_old.getTag()] = seq;
                     }
-                    catch (ArgumentException ae)
+                    else if (diDataElement.getTag() == 0x7fe00010 && diDataElement.GetVl() == 0)
                     {
-                        Debug.Log(diDataElement.getTagString());
-                        throw ae;
+                        Debug.Log(diDataElement);
+                        // encapsulated pixel format
+                        Dictionary<uint, DiDataElement> seq = new Dictionary<uint, DiDataElement>();
+                        DiDataElement seq_de = new DiDataElement();
+                        DiDataElement pixel_data_de = diDataElement;
+                        int count = 0;
+
+                        while ((seq_de.getTag() != 0xfffee0dd))
+                        {
+                            seq_de = new DiDataElement();
+                            seq_de.readNext(file);
+                            if (seq_de.GetVl() > 4)
+                            {
+                                pixel_data_de = seq_de;
+                            }
+                            seq[seq_de.getTag()] = seq_de;
+                            count++;
+                        }
+                        data_elements[diDataElement.getTag()] = pixel_data_de;
+                    }
+                    else
+                    { // handle all but sequences
+                        data_elements.Add(diDataElement.getTag(), diDataElement);
                     }
 
                     // 0028 -> 40
@@ -72,21 +109,23 @@ namespace DICOMParser
                         {
                             // Hoehe
                             case 16:
-                                height = diDataElement.getValueAsInt();
+                                height = diDataElement.GetInt();
                                 break;
                             // Breite
                             case 17:
-                                width = diDataElement.getValueAsInt();
+                                width = diDataElement.GetInt();
                                 break;
                             // bits allocated
                             case 256:
-                                bits_allocated = diDataElement.getValueAsInt();
+                                bits_allocated = diDataElement.GetInt();
                                 break;
                             // bits stored
                             case 257:
-                                bits_stored = diDataElement.getValueAsInt();
+                                bits_stored = diDataElement.GetInt();
                                 break;
-
+                            case 258:
+                                high_bit = diDataElement.GetInt();
+                                break;
                         }
 
                     }
@@ -94,8 +133,15 @@ namespace DICOMParser
                     {
                         if (diDataElement.GetElementId() == 19)
                         {
-                            image_number = diDataElement.getValueAsInt();
+                            image_number = diDataElement.GetInt();
                         }
+                    }
+
+                    de_old = diDataElement;
+
+                    if (diDataElement.getTag() == 0x7fe0010)
+                    {
+                        break;
                     }
                 }
             }
@@ -153,6 +199,11 @@ namespace DICOMParser
         public int GetBitsStored()
         {
             return bits_stored;
+        }
+
+        public int GetHighBit()
+        {
+            return high_bit;
         }
 
         /**

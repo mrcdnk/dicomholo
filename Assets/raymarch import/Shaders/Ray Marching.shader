@@ -47,7 +47,7 @@ Shader "Hidden/Ray Marching/Ray Marching"
 		return o;
 	}
 	
-	half4 raymarch(v2f i, float offset) 
+	half4 raymarch(v2f i) 
 	{
 		float3 frontPos = tex2D(_FrontTex, i.uv[1]).xyz;		
 		float3 backPos = tex2D(_BackTex, i.uv[1]).xyz;				
@@ -75,7 +75,7 @@ Shader "Hidden/Ray Marching/Ray Marching"
 			pos += stepDist;
 		}
 
-    	return dst + dst;
+    	return dst+dst;
 	}
 
 	ENDCG
@@ -89,7 +89,7 @@ Subshader {
 		CGPROGRAM
 		#pragma vertex vert
 		#pragma fragment frag
-		half4 frag(v2f i) : COLOR { return raymarch(i, 0); }	
+		half4 frag(v2f i) : COLOR { return raymarch(i); }	
 		ENDCG
 	}					
 }

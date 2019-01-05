@@ -63,9 +63,9 @@ namespace DICOMData
         public Slice2DView Slice2DView;
         public GameObject Volume;
 
-        public RayMarching RayMarching;
+        public VolumeRendering.VolumeRendering VolumeRendering;
 
-        public GameObject RenderTarget;
+        public RayMarching RayMarching;
 
         public Text debug;
 
@@ -249,6 +249,8 @@ namespace DICOMData
 
             volume.SetPixels(cols);
             volume.Apply();
+
+            VolumeRendering.SetVolume(volume);
             RayMarching.initVolume(volume);
 
             Volume.SetActive(true);

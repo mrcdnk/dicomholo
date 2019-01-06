@@ -573,7 +573,6 @@ namespace DICOMParser
                 }
 
                 var t = new Thread(() => createVolume(state, data, files, width, height, target, windowWidth, windowCenter, startIndex, endIndex));
-                t.Priority = System.Threading.ThreadPriority.Lowest;
                 t.Start();
             }
         }

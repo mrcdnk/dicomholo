@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using DICOMParser;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -10,8 +9,11 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using DICOMViews;
 
-namespace DICOMData
+namespace DICOMParser
 {
+    /// <summary>
+    /// Synchronized object to track progress of multiple threads.
+    /// </summary>
     public class ThreadState
     {
         private object wMutex = new object();
@@ -19,13 +21,19 @@ namespace DICOMData
         public int progress;
         public int working;
 
-        public void reset()
+        /// <summary>
+        /// Resets the state.
+        /// </summary>
+        public void Reset()
         {
             progress = 0;
             working = 0;
         }
 
-        public void incrementProgress()
+        /// <summary>
+        /// Used inside a thread to indicate progression.
+        /// </summary>
+        public void IncrementProgress()
         {
             lock (pMutex)
             {
@@ -33,7 +41,10 @@ namespace DICOMData
             }
         }
 
-        public void register()
+        /// <summary>
+        /// Registers a thread to this state.
+        /// </summary>
+        public void Register()
         {
             lock (wMutex)
             {
@@ -41,7 +52,10 @@ namespace DICOMData
             }
         }
 
-        public void done()
+        /// <summary>
+        /// Called by a thread when there is no work left to do.
+        /// </summary>
+        public void Done()
         {
             lock (wMutex)
             {
@@ -50,6 +64,9 @@ namespace DICOMData
         }
     }
 
+    /// <summary>
+    /// Contains all DICOM data and data generated from it.
+    /// </summary>
     public class ImageStack : MonoBehaviour
     {
         public Dropdown Selection;
@@ -118,6 +135,9 @@ namespace DICOMData
             }
         }
 
+        /// <summary>
+        /// Start coroutine for parsing of files.
+        /// </summary>
         public void StartInitFiles()
         {
             LoadVolumeButton.interactable = false;
@@ -125,11 +145,17 @@ namespace DICOMData
             StartCoroutine(nameof(InitFiles));
         }
 
+        /// <summary>
+        /// Starts coroutine for preprocessing DICOM pixeldata
+        /// </summary>
         private void StartPreprocessData()
         {
             StartCoroutine(nameof(PreprocessData));
         }
 
+        /// <summary>
+        /// Starts coroutine for creating the 3D texture
+        /// </summary>
         public void StartCreatingVolume()
         {
             LoadVolumeButton.interactable = false;
@@ -137,6 +163,9 @@ namespace DICOMData
             StartCoroutine(nameof(CreateVolume));
         }
 
+        /// <summary>
+        /// Start coroutine for creating 2D textures.
+        /// </summary>
         public void StartCreatingTextures()
         {
             Slice2DView.SetVisible(true);
@@ -145,6 +174,11 @@ namespace DICOMData
             StartCoroutine(nameof(CreateTextures));
         }
 
+
+        /// <summary>
+        /// Allows a Unity coroutine to wait for every working thread to finish.
+        /// </summary>
+        /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator WaitForThreads()
         {
             while (threadState.working > 0)
@@ -153,6 +187,10 @@ namespace DICOMData
             }
         }
 
+        /// <summary>
+        /// Unity coroutine for loading the selected folder of files.
+        /// </summary>
+        /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator InitFiles()
         {
             //var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
@@ -215,9 +253,13 @@ namespace DICOMData
             StartPreprocessData();
         }
 
+        /// <summary>
+        /// Unity coroutine used to preprocess the DICOM pixel data using multiple threads.
+        /// </summary>
+        /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator PreprocessData()
         {
-            threadState.reset();
+            threadState.Reset();
 
             ProgressHandler.init(dicomFiles.Length, "Preprocessing Data");
             yield return null;
@@ -231,9 +273,13 @@ namespace DICOMData
             Load2DButton.interactable = true;
         }
 
+        /// <summary>
+        /// Unity coroutine used to create the 3D texture using multiple threads.
+        /// </summary>
+        /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateVolume()
         {
-            threadState.reset();
+            threadState.Reset();
 
             ProgressHandler.init(dicomFiles.Length, "Creating Volume");
 
@@ -241,7 +287,7 @@ namespace DICOMData
 
             var cols = new Color[width * height * dicomFiles.Length];
 
-            StartCreatingVolume(threadState, dicomFiles, data, cols, windowWidth, windowCenter, 10);
+            StartCreatingVolume(threadState, dicomFiles, data, cols, windowWidth, windowCenter, 6);
 
             yield return WaitForThreads();
 
@@ -256,9 +302,13 @@ namespace DICOMData
             Volume.SetActive(true);
         }
 
+        /// <summary>
+        /// Unity coroutine used to create all textures using multiple threads.
+        /// </summary>
+        /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateTextures()
         {    
-            threadState.reset();
+            threadState.Reset();
 
             transversalTexture2Ds = new Texture2D[dicomFiles.Length];
             frontalTexture2Ds = new Texture2D[height];
@@ -298,7 +348,7 @@ namespace DICOMData
 
                     if (Slice2DView != null)
                     {
-                        Slice2DView.TextureUpdated(SliceType.TRANSVERSAL, current);
+                        Slice2DView.TextureUpdated(SliceType.Transversal, current);
                     }
 
                     yield return null;
@@ -314,7 +364,7 @@ namespace DICOMData
 
                     if (Slice2DView != null)
                     {
-                        Slice2DView.TextureUpdated(SliceType.FRONTAL, current);
+                        Slice2DView.TextureUpdated(SliceType.Frontal, current);
                     }
 
                     yield return null;
@@ -330,7 +380,7 @@ namespace DICOMData
 
                     if (Slice2DView != null)
                     {
-                        Slice2DView.TextureUpdated(SliceType.SAGITTAL, current);
+                        Slice2DView.TextureUpdated(SliceType.Sagittal, current);
                     }
 
                     yield return null;
@@ -342,51 +392,83 @@ namespace DICOMData
             LoadVolumeButton.interactable = true;
         }
 
+        /// <summary>
+        /// Checks if a file has an extension.
+        /// </summary>
+        /// <param name="f">the filename</param>
+        /// <returns>true if the file has no extension.</returns>
         private static bool HasNoExtension(string f)
         {
             return !Regex.Match(f, @"[.]*\.[.]*").Success;
         }
 
+        /// <summary>
+        /// Returns the raw data array containing the intensity values.
+        /// </summary>
+        /// <returns>The raw 3D array with intensity values.</returns>
         public int[] GetData()
         {
             return data;
         }
 
-        public Texture2D GetTexture2D(SliceType type, int id)
+        /// <summary>
+        /// Returns the Texture2D with the given index of the given SliceType.
+        /// </summary>
+        /// <param name="type">Requested SliceType</param>
+        /// <param name="index">The index of the texture</param>
+        /// <returns></returns>
+        public Texture2D GetTexture2D(SliceType type, int index)
         {
             switch (type)
             {
-                case SliceType.TRANSVERSAL: return transversalTexture2Ds[id];
-                case SliceType.FRONTAL: return frontalTexture2Ds[id];
-                case SliceType.SAGITTAL: return sagittalTexture2Ds[id];
+                case SliceType.Transversal: return transversalTexture2Ds[index];
+                case SliceType.Frontal: return frontalTexture2Ds[index];
+                case SliceType.Sagittal: return sagittalTexture2Ds[index];
             }
 
             return null;
         }
 
+        /// <summary>
+        /// Checks if the arrays containing the slices exist.
+        /// </summary>
+        /// <param name="type">Requested SliceType</param>
+        /// <returns>True if the corresponding array is not null</returns>
         public bool HasData(SliceType type)
         {
             switch (type)
             {
-                case SliceType.TRANSVERSAL: return transversalTexture2Ds != null;
-                case SliceType.FRONTAL: return frontalTexture2Ds != null;
-                case SliceType.SAGITTAL: return sagittalTexture2Ds != null;
+                case SliceType.Transversal: return transversalTexture2Ds != null;
+                case SliceType.Frontal: return frontalTexture2Ds != null;
+                case SliceType.Sagittal: return sagittalTexture2Ds != null;
             }
 
             return false;
         }
 
+        /// <summary>
+        /// Returns the maximum value for the given slice type, starting from 0.
+        /// </summary>
+        /// <param name="type">Requested SliceType</param>
+        /// <returns>Max Value for the SliceType</returns>
         public int GetMaxValue(SliceType type)
         {
             switch (type)
             {
-                case SliceType.TRANSVERSAL: return dicomFiles.Length;
-                case SliceType.FRONTAL: return height;
-                case SliceType.SAGITTAL: return width;
+                case SliceType.Transversal: return dicomFiles.Length-1;
+                case SliceType.Frontal: return height-1;
+                case SliceType.Sagittal: return width-1;
                 default: return 0;
             }
         }
 
+        /// <summary>
+        /// Starts one or more Threads for preprocessing.
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="target">1D array receiving the 3D data.</param>
+        /// <param name="threadCount">Amount of Threads to use.</param>
         private void StartPreProcessing(ThreadState state, DiFile[] files, int[] target, int threadCount)
         {
             windowCenter = Double.MinValue;
@@ -396,7 +478,7 @@ namespace DICOMData
 
             for (var i = 0; i < threadCount; ++i)
             {
-                state.register();
+                state.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -410,6 +492,16 @@ namespace DICOMData
             }
         }
 
+        /// <summary>
+        /// Fills the target array with 3D data while applying basic preprocessing.
+        /// </summary>
+        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="files">all the DICOM files.</param>
+        /// <param name="width">width of a DICOM slice.</param>
+        /// <param name="height">height of a DICOM slice.</param>
+        /// <param name="target">1D array receiving the 3D data.</param>
+        /// <param name="start">Start index used to determine partition of images to be computed</param>
+        /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
         private static void PreProcess(ThreadState state, DiFile[] files, int width, int height,
             int[] target, int start, int end)
         {
@@ -449,10 +541,10 @@ namespace DICOMData
 
                 }
 
-                state.incrementProgress();
+                state.IncrementProgress();
             }
          
-            state.done();
+            state.Done();
         }
 
         /// <summary>
@@ -471,7 +563,7 @@ namespace DICOMData
 
             for (int i = 0; i < threadCount; ++i)
             {
-                state.register();
+                state.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -517,10 +609,10 @@ namespace DICOMData
                     }
                 }
 
-                state.incrementProgress();
+                state.IncrementProgress();
             }
 
-            state.done();
+            state.Done();
         }
 
         /// <summary>
@@ -541,7 +633,7 @@ namespace DICOMData
 
             for (int i = 0; i < threadCount; ++i)
             {
-                state.register();
+                state.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -578,10 +670,10 @@ namespace DICOMData
                 target[layer] = new Color32[width*height];
                 FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(layer);
-                state.incrementProgress();
+                state.IncrementProgress();
             }
 
-            state.done();
+            state.Done();
         }
 
         /// <summary>
@@ -602,7 +694,7 @@ namespace DICOMData
 
             for (int i = 0; i < threadCount; ++i)
             {
-                state.register();
+                state.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -639,10 +731,10 @@ namespace DICOMData
                 target[y] = new Color32[width * files.Length];
                 FillPixelsFrontal(y, data, width, height, files, target[y], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(y);
-                state.incrementProgress();
+                state.IncrementProgress();
             }
 
-            state.done();
+            state.Done();
         }
 
         /// <summary>
@@ -663,7 +755,7 @@ namespace DICOMData
 
             for (int i = 0; i < threadCount; ++i)
             {
-                state.register();
+                state.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -700,10 +792,10 @@ namespace DICOMData
                 target[x] = new Color32[height * files.Length];
                 FillPixelsSagittal(x, data, width, height, files, target[x], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(x);
-                state.incrementProgress();
+                state.IncrementProgress();
             }
 
-            state.done();
+            state.Done();
         }
 
         /// <summary>
@@ -939,9 +1031,9 @@ namespace DICOMData
     /// </summary>
     public enum SliceType
     {
-        TRANSVERSAL, // The images as they are stored inside the DICOM File
-        SAGITTAL, // Side view
-        FRONTAL // View from the Front
+        Transversal, // The images as they are stored inside the DICOM File
+        Sagittal, // Side view
+        Frontal // View from the Front
     }
 
     /// <summary>

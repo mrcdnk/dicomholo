@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DICOMData;
+using DICOMParser;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,7 +20,7 @@ namespace DICOMViews
 
         private readonly Dictionary<SliceType, int> selection = new Dictionary<SliceType, int>();
 
-        private SliceType current = SliceType.TRANSVERSAL;
+        private SliceType current = SliceType.Transversal;
 
         // Use this for initialization
         void Start()
@@ -49,7 +49,7 @@ namespace DICOMViews
             transButton.interactable = false;
             frontButton.interactable = true;
             sagButton.interactable = true;
-            Show(SliceType.TRANSVERSAL);
+            Show(SliceType.Transversal);
         }
 
         public void ShowFront()
@@ -57,7 +57,7 @@ namespace DICOMViews
             transButton.interactable = true;
             frontButton.interactable = false;
             sagButton.interactable = true;
-            Show(SliceType.FRONTAL);
+            Show(SliceType.Frontal);
         }
 
         public void ShowSag()
@@ -65,7 +65,7 @@ namespace DICOMViews
             transButton.interactable = true;
             frontButton.interactable = true;
             sagButton.interactable = false;
-            Show(SliceType.SAGITTAL);
+            Show(SliceType.Sagittal);
         }
 
         public void Show(SliceType type)

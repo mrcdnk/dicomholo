@@ -72,7 +72,14 @@ namespace Segmentation
            Array.Clear(segmentData, 0, segmentData.Length);
         }
 
-        public abstract bool Done();
+        /// <summary>
+        /// Returns true when there is no work left to do, only needs to be overridden when using multiple threads.
+        /// </summary>
+        /// <returns></returns>
+        public bool Done()
+        {
+            return true;
+        }
 
         /// <summary>
         /// Sets the given point to the given value.

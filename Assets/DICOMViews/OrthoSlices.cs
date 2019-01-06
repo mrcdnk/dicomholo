@@ -27,9 +27,8 @@ public class OrthoSlices : MonoBehaviour
     public void initialize(ImageStack stack)
     {
         this.imageStack = stack;
-        transStep = 1f/(stack.GetMaxValue(SliceType.TRANSVERSAL)-1);
-        Debug.Log(stack.GetMaxValue(SliceType.TRANSVERSAL));
-        transSlider.maxValue = stack.GetMaxValue(SliceType.TRANSVERSAL - 1);
+        transStep = 1f/(stack.GetMaxValue(SliceType.TRANSVERSAL));
+        transSlider.maxValue = stack.GetMaxValue(SliceType.TRANSVERSAL);
     }
 
     public void onTransSliderChanged()

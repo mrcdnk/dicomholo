@@ -553,7 +553,7 @@ namespace DICOMParser
                     idxPart = idxPartZ + y;
                     for (int x = 0; x < width; ++x, ++idx)
                     {
-                        target[idx] = PixelShader.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z], windowWidth, windowCenter));
+                        target[idx] = PixelProcessor.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z], windowWidth, windowCenter));
                     }
                 }
 
@@ -616,7 +616,7 @@ namespace DICOMParser
             for (int layer = start; layer < end; ++layer)
             {
                 target[layer] = new Color32[width*height];
-                FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelShader.Identity, windowWidth, windowCenter);
+                FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelProcessor.Identity, windowWidth, windowCenter);
                 processed.Enqueue(layer);
                 groupState.IncrementProgress();
             }
@@ -677,7 +677,7 @@ namespace DICOMParser
             for (int y = start; y < end; ++y)
             {
                 target[y] = new Color32[width * files.Length];
-                FillPixelsFrontal(y, data, width, height, files, target[y], PixelShader.Identity, windowWidth, windowCenter);
+                FillPixelsFrontal(y, data, width, height, files, target[y], PixelProcessor.Identity, windowWidth, windowCenter);
                 processed.Enqueue(y);
                 groupState.IncrementProgress();
             }
@@ -738,7 +738,7 @@ namespace DICOMParser
             for (int x = start; x < end; ++x)
             {
                 target[x] = new Color32[height * files.Length];
-                FillPixelsSagittal(x, data, width, height, files, target[x], PixelShader.Identity, windowWidth, windowCenter);
+                FillPixelsSagittal(x, data, width, height, files, target[x], PixelProcessor.Identity, windowWidth, windowCenter);
                 processed.Enqueue(x);
                 groupState.IncrementProgress();
             }
@@ -757,7 +757,7 @@ namespace DICOMParser
         /// <param name="texData">target texture array</param>
         public static void FillPixelsTransversal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
         {
-            FillPixelsTransversal(id, data, width, height, files, texData, PixelShader.Identity);
+            FillPixelsTransversal(id, data, width, height, files, texData, PixelProcessor.Identity);
         }
 
         /// <summary>
@@ -802,7 +802,7 @@ namespace DICOMParser
         /// <param name="texData">target texture array</param>
         public static void FillPixelsFrontal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
         {
-            FillPixelsFrontal(id, data, width, height, files, texData, PixelShader.Identity);
+            FillPixelsFrontal(id, data, width, height, files, texData, PixelProcessor.Identity);
         }
 
         /// <summary>
@@ -847,7 +847,7 @@ namespace DICOMParser
         /// <param name="texData">target texture array</param>
         public static void FillPixelsSagittal(int id, int[] data, int width, int height, DiFile[] files, Color32[] texData)
         {
-            FillPixelsSagittal(id, data, width, height, files, texData, PixelShader.Identity);
+            FillPixelsSagittal(id, data, width, height, files, texData, PixelProcessor.Identity);
         }
 
         /// <summary>
@@ -972,35 +972,5 @@ namespace DICOMParser
             return intensity;
         }
 
-    }
-
-    /// <summary>
-    /// This class contains Color32 => Color32 functions that can be applied when processing the pixels contained inside a DICOM file.
-    /// </summary>
-    public class PixelShader
-    {
-        private PixelShader(){}
-
-        /// <summary>
-        /// Dynamic alpha calculation based on grey rgb(x,x,x) value, where x is the intensity.
-        /// </summary>
-        /// <param name="argb">input color (assumed r=g=b)</param>
-        /// <returns>input color with calculated alpha value</returns>
-        public static Color32 DYN_ALPHA(Color32 argb)
-        {
-            double dynAlpha = 210 * (Math.Max(argb.r - 10, 0)) / 255d;
-            argb.a = (byte) dynAlpha;
-            return argb;
-        }
-
-        /// <summary>
-        /// Identity function color32 -> color32 
-        /// </summary>
-        /// <param name="argb"> input color </param>
-        /// <returns>unchanged input color</returns>
-        public static Color32 Identity(Color32 argb)
-        {
-            return argb;
-        }
     }
 }

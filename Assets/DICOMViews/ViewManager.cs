@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using DICOMData;
+using DICOMParser;
 using UnityEngine;
 using UnityEngine.UI;
 

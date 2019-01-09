@@ -6,63 +6,12 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading;
 using DICOMViews;
+using Threads;
+using System.Threading;
 
 namespace DICOMParser
 {
-    /// <summary>
-    /// Synchronized object to track progress of multiple threads.
-    /// </summary>
-    public class ThreadState
-    {
-        private object wMutex = new object();
-        private object pMutex = new object();
-        public int progress;
-        public int working;
-
-        /// <summary>
-        /// Resets the state.
-        /// </summary>
-        public void Reset()
-        {
-            progress = 0;
-            working = 0;
-        }
-
-        /// <summary>
-        /// Used inside a thread to indicate progression.
-        /// </summary>
-        public void IncrementProgress()
-        {
-            lock (pMutex)
-            {
-                progress++;
-            }
-        }
-
-        /// <summary>
-        /// Registers a thread to this state.
-        /// </summary>
-        public void Register()
-        {
-            lock (wMutex)
-            {
-                working++;
-            }
-        }
-
-        /// <summary>
-        /// Called by a thread when there is no work left to do.
-        /// </summary>
-        public void Done()
-        {
-            lock (wMutex)
-            {
-                working--;
-            }
-        }
-    }
 
     /// <summary>
     /// Contains all DICOM data and data generated from it.
@@ -88,7 +37,7 @@ namespace DICOMParser
 
         private int[] data;
 
-        private ThreadState threadState = new ThreadState
+        private ThreadGroupState _threadGroupState = new ThreadGroupState
         {
             working = 0,
             progress = 0
@@ -131,7 +80,7 @@ namespace DICOMParser
         {
             if (useThreadState)
             {
-                ProgressHandler.update(threadState.progress);
+                ProgressHandler.update(_threadGroupState.progress);
             }
         }
 
@@ -181,7 +130,7 @@ namespace DICOMParser
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator WaitForThreads()
         {
-            while (threadState.working > 0)
+            while (_threadGroupState.working > 0)
             {
                 yield return null;
             }
@@ -259,13 +208,13 @@ namespace DICOMParser
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator PreprocessData()
         {
-            threadState.Reset();
+            _threadGroupState.Reset();
 
             ProgressHandler.init(dicomFiles.Length, "Preprocessing Data");
             yield return null;
 
             useThreadState = true;
-            StartPreProcessing(threadState, dicomFiles, data, 20);
+            StartPreProcessing(_threadGroupState, dicomFiles, data, 20);
 
             yield return WaitForThreads();
 
@@ -279,7 +228,7 @@ namespace DICOMParser
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateVolume()
         {
-            threadState.Reset();
+            _threadGroupState.Reset();
 
             ProgressHandler.init(dicomFiles.Length, "Creating Volume");
 
@@ -287,7 +236,7 @@ namespace DICOMParser
 
             var cols = new Color[width * height * dicomFiles.Length];
 
-            StartCreatingVolume(threadState, dicomFiles, data, cols, windowWidth, windowCenter, 6);
+            StartCreatingVolume(_threadGroupState, dicomFiles, data, cols, windowWidth, windowCenter, 6);
 
             yield return WaitForThreads();
 
@@ -308,7 +257,7 @@ namespace DICOMParser
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateTextures()
         {    
-            threadState.Reset();
+            _threadGroupState.Reset();
 
             transversalTexture2Ds = new Texture2D[dicomFiles.Length];
             frontalTexture2Ds = new Texture2D[height];
@@ -324,11 +273,11 @@ namespace DICOMParser
             ConcurrentQueue<int> frontProgress = new ConcurrentQueue<int>();
             ConcurrentQueue<int> sagProgress = new ConcurrentQueue<int>();
 
-            StartCreatingTransTextures(threadState, transProgress, data, dicomFiles, transTextureColors, windowCenter, windowWidth, 2);
-            StartCreatingFrontTextures(threadState, frontProgress, data, dicomFiles, frontTextureColors, windowCenter, windowWidth, 2);
-            StartCreatingSagTextures(threadState, sagProgress, data, dicomFiles, sagTextureColors, windowCenter, windowWidth, 2);
+            StartCreatingTransTextures(_threadGroupState, transProgress, data, dicomFiles, transTextureColors, windowCenter, windowWidth, 2);
+            StartCreatingFrontTextures(_threadGroupState, frontProgress, data, dicomFiles, frontTextureColors, windowCenter, windowWidth, 2);
+            StartCreatingSagTextures(_threadGroupState, sagProgress, data, dicomFiles, sagTextureColors, windowCenter, windowWidth, 2);
             
-            while (threadState.working > 0 || !(transProgress.IsEmpty && frontProgress.IsEmpty && sagProgress.IsEmpty))
+            while (_threadGroupState.working > 0 || !(transProgress.IsEmpty && frontProgress.IsEmpty && sagProgress.IsEmpty))
             {
                 int current;
                 Texture2D currentTexture2D;
@@ -465,11 +414,11 @@ namespace DICOMParser
         /// <summary>
         /// Starts one or more Threads for preprocessing.
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="files">all the DICOM files.</param>
         /// <param name="target">1D array receiving the 3D data.</param>
         /// <param name="threadCount">Amount of Threads to use.</param>
-        private void StartPreProcessing(ThreadState state, DiFile[] files, int[] target, int threadCount)
+        private void StartPreProcessing(ThreadGroupState groupState, DiFile[] files, int[] target, int threadCount)
         {
             windowCenter = Double.MinValue;
             windowWidth = Double.MinValue;
@@ -478,7 +427,7 @@ namespace DICOMParser
 
             for (var i = 0; i < threadCount; ++i)
             {
-                state.Register();
+                groupState.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -487,7 +436,7 @@ namespace DICOMParser
                     endIndex = files.Length;
                 }
 
-                var t = new Thread(() => PreProcess(state, files, width, height, target, startIndex, endIndex));
+                var t = new Thread(() => PreProcess(groupState, files, width, height, target, startIndex, endIndex));
                 t.Start();
             }
         }
@@ -495,14 +444,14 @@ namespace DICOMParser
         /// <summary>
         /// Fills the target array with 3D data while applying basic preprocessing.
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="files">all the DICOM files.</param>
         /// <param name="width">width of a DICOM slice.</param>
         /// <param name="height">height of a DICOM slice.</param>
         /// <param name="target">1D array receiving the 3D data.</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void PreProcess(ThreadState state, DiFile[] files, int width, int height,
+        private static void PreProcess(ThreadGroupState groupState, DiFile[] files, int width, int height,
             int[] target, int start, int end)
         {
             DiFile currentDiFile = null;
@@ -541,29 +490,29 @@ namespace DICOMParser
 
                 }
 
-                state.IncrementProgress();
+                groupState.IncrementProgress();
             }
          
-            state.Done();
+            groupState.Done();
         }
 
         /// <summary>
         /// Starts threads for volume texture creation.
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="files">all the DICOM files.</param>
         /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
         /// <param name="target">target jagged array, which the result will be written to.</param>
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingVolume(ThreadState state, DiFile[] files, int[] data, Color[] target, double windowWidth, double windowCenter, int threadCount)
+        private void StartCreatingVolume(ThreadGroupState groupState, DiFile[] files, int[] data, Color[] target, double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = files.Length / threadCount;
 
             for (int i = 0; i < threadCount; ++i)
             {
-                state.Register();
+                groupState.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -572,7 +521,7 @@ namespace DICOMParser
                     endIndex = files.Length;
                 }
 
-                var t = new Thread(() => createVolume(state, data, files, width, height, target, windowWidth, windowCenter, startIndex, endIndex));
+                var t = new Thread(() => createVolume(groupState, data, files, width, height, target, windowWidth, windowCenter, startIndex, endIndex));
                 t.Start();
             }
         }
@@ -580,7 +529,7 @@ namespace DICOMParser
         /// <summary>
         /// Fills the given 3D color array using the given 3D pixel intensity array of same size.
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
         /// <param name="dicomFiles">all the DICOM files.</param>
         /// <param name="width">width of a transversal image.</param>
@@ -590,7 +539,7 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void createVolume(ThreadState state, int[] data, DiFile[] dicomFiles, int width, int height,
+        private static void createVolume(ThreadGroupState groupState, int[] data, DiFile[] dicomFiles, int width, int height,
             Color[] target, double windowWidth, double windowCenter, int start, int end)
         {
             int idx = start*width*height;
@@ -608,16 +557,16 @@ namespace DICOMParser
                     }
                 }
 
-                state.IncrementProgress();
+                groupState.IncrementProgress();
             }
 
-            state.Done();
+            groupState.Done();
         }
 
         /// <summary>
         /// Starts threads for transversal texture creation.
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
         /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
         /// <param name="files">all the DICOM files.</param>
@@ -625,14 +574,14 @@ namespace DICOMParser
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
+        private void StartCreatingTransTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = files.Length / threadCount;
 
             for (int i = 0; i < threadCount; ++i)
             {
-                state.Register();
+                groupState.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -641,7 +590,7 @@ namespace DICOMParser
                     endIndex = files.Length;
                 }
 
-                var t = new Thread(() => CreateTransTextures(state, processed, data, width, height, files, target,
+                var t = new Thread(() => CreateTransTextures(groupState, processed, data, width, height, files, target,
                     windowWidth, windowCenter, startIndex, endIndex));
                 t.Start();
             }
@@ -650,7 +599,7 @@ namespace DICOMParser
         /// <summary>
         /// Fills the target color array with the pixels for all transversal images in range from start to end (excluding end).
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
         /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
         /// <param name="width">width of a transversal image.</param>
@@ -661,7 +610,7 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void CreateTransTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, 
+        private static void CreateTransTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, 
             Color32[][] target, double windowWidth, double windowCenter, int start, int end)
         {
             for (int layer = start; layer < end; ++layer)
@@ -669,16 +618,16 @@ namespace DICOMParser
                 target[layer] = new Color32[width*height];
                 FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(layer);
-                state.IncrementProgress();
+                groupState.IncrementProgress();
             }
 
-            state.Done();
+            groupState.Done();
         }
 
         /// <summary>
         /// Starts threads for frontal texture creation.
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
         /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
         /// <param name="files">all the DICOM files.</param>
@@ -686,14 +635,14 @@ namespace DICOMParser
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
+        private void StartCreatingFrontTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = height / threadCount;
 
             for (int i = 0; i < threadCount; ++i)
             {
-                state.Register();
+                groupState.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -702,7 +651,7 @@ namespace DICOMParser
                     endIndex = height;
                 }
 
-                var t = new Thread(() => CreateFrontTextures(state, processed, data, width, height, files, target,
+                var t = new Thread(() => CreateFrontTextures(groupState, processed, data, width, height, files, target,
                     windowWidth, windowCenter, startIndex, endIndex));
                 t.Start();
             }
@@ -711,7 +660,7 @@ namespace DICOMParser
         /// <summary>
         /// Fills the target color array with the pixels for all frontal images in range from start to end (excluding end).
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
         /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
         /// <param name="width">width of a transversal image.</param>
@@ -722,7 +671,7 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void CreateFrontTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target,
+        private static void CreateFrontTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int start, int end)
         {
             for (int y = start; y < end; ++y)
@@ -730,16 +679,16 @@ namespace DICOMParser
                 target[y] = new Color32[width * files.Length];
                 FillPixelsFrontal(y, data, width, height, files, target[y], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(y);
-                state.IncrementProgress();
+                groupState.IncrementProgress();
             }
 
-            state.Done();
+            groupState.Done();
         }
 
         /// <summary>
         /// Starts threads for saggital texture creation.
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
         /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
         /// <param name="files">all the DICOM files.</param>
@@ -747,14 +696,14 @@ namespace DICOMParser
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
+        private void StartCreatingSagTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = width / threadCount;
 
             for (int i = 0; i < threadCount; ++i)
             {
-                state.Register();
+                groupState.Register();
                 int startIndex = i * spacing;
                 int endIndex = startIndex + spacing;
 
@@ -763,7 +712,7 @@ namespace DICOMParser
                     endIndex = width;
                 }
 
-                var t = new Thread(() => CreateSagTextures(state, processed, data, width, height, files, target,
+                var t = new Thread(() => CreateSagTextures(groupState, processed, data, width, height, files, target,
                     windowWidth, windowCenter, startIndex, endIndex));
                 t.Start();
             }
@@ -772,7 +721,7 @@ namespace DICOMParser
         /// <summary>
         /// Fills the target color array with the pixels for all saggital images in range from start to end (excluding end).
         /// </summary>
-        /// <param name="state">synchronized Threadstate used to observe progress of one or multiple threads.</param>
+        /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
         /// <param name="data">pixel intensity values in a 3D Array mapped to a 1D Array.</param>
         /// <param name="width">width of a transversal image.</param>
@@ -783,7 +732,7 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void CreateSagTextures(ThreadState state, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target,
+        private static void CreateSagTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, int width, int height, DiFile[] files, Color32[][] target,
             double windowWidth, double windowCenter, int start, int end)
         {
             for (int x = start; x < end; ++x)
@@ -791,10 +740,10 @@ namespace DICOMParser
                 target[x] = new Color32[height * files.Length];
                 FillPixelsSagittal(x, data, width, height, files, target[x], PixelShader.Identity, windowWidth, windowCenter);
                 processed.Enqueue(x);
-                state.IncrementProgress();
+                groupState.IncrementProgress();
             }
 
-            state.Done();
+            groupState.Done();
         }
 
         /// <summary>
@@ -1023,16 +972,6 @@ namespace DICOMParser
             return intensity;
         }
 
-    }
-
-    /// <summary>
-    /// SliceType Describes from which perspective the slice is generated
-    /// </summary>
-    public enum SliceType
-    {
-        Transversal, // The images as they are stored inside the DICOM File
-        Sagittal, // Side view
-        Frontal // View from the Front
     }
 
     /// <summary>

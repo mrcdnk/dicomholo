@@ -9,24 +9,27 @@ public class TubeSliderManager : MonoBehaviour
     public string SliderName;
 
     [SerializeField]
-    public uint SliderMinimumValue = 0;
+    public float SliderMinimumValue = 0;
     public string SliderMinimumLabel;
 
-
-
     [SerializeField]
-    public uint SliderMaximumValue = 100;
+    public float SliderMaximumValue = 100;
     public string SliderMaximumLabel;
 
-    public uint CurrentValue = 50;
+    [SerializeField]
+    private float _currentValue = 0.5f;
 
-    public bool isCurrentValueToBeDisplayed = true;
+    public int CurrentInt => Mathf.RoundToInt((SliderRange * _currentValue)+SliderMinimumValue);
+
+    public float CurrentFloat => (_currentValue * SliderRange) + SliderMinimumValue;
+
+    public float CurrentPercentage => _currentValue;
+
+    public bool DisplayInt = true;
 
     public Stats ButtonColor;
     public Color ButtonColorOffFocus;
     public Color ButtonColorOnFocus;
-
-    private Rigidbody rb;
 
     private GameObject leftHolder;
     private GameObject rightHolder;
@@ -39,7 +42,7 @@ public class TubeSliderManager : MonoBehaviour
 
     private bool isSliderManipulationTriggered;
 
-    private uint SliderRange;
+    private float SliderRange;
 
     private Vector3 start;
     private Vector3 end;
@@ -50,7 +53,6 @@ public class TubeSliderManager : MonoBehaviour
     private float angleMinBound;
     private float angleMaxBound;
     private Vector3 newPositionVector;
-    private float diff;
 
     void Awake()
     {
@@ -83,12 +85,10 @@ public class TubeSliderManager : MonoBehaviour
 
         sliderVector = end - start;
 
-        diff = button.GetComponent<BoxCollider>().bounds.size.x;
+        button.transform.position = start + (-button.transform.up.normalized * _currentValue * sliderVector.magnitude);
 
-        button.transform.position = start + (-button.transform.up.normalized * (((float)CurrentValue / (float)SliderRange)) * (sliderVector.magnitude));
-
+        button.GetComponentInChildren<TextMesh>().text = getCurrentValueAsString();
         button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
-
     }
 
     public Color buttonColorOffFocus
@@ -122,15 +122,15 @@ public class TubeSliderManager : MonoBehaviour
 
             newPositionVector = movementDistance;
 
-            var ClickedValue = (uint)Mathf.RoundToInt((float)SliderRange * ((newPositionVector.magnitude) / (sliderVector.magnitude)));
+            var clickedValue = newPositionVector.magnitude/sliderVector.magnitude;
 
             angleMinBound = AngleDir(transform.forward, newPositionVector, transform.up);
             angleMaxBound = AngleDir(transform.forward, end - newPosition, transform.up);
 
-            if (angleMinBound != -1f && angleMaxBound != -1f && ClickedValue >= SliderMinimumValue && ClickedValue <= SliderMaximumValue)
+            if (angleMinBound != -1f && angleMaxBound != -1f && clickedValue >= SliderMinimumValue && clickedValue <= SliderMaximumValue)
             {
                 button.transform.position = newPosition;
-                CurrentValue = ClickedValue;
+                _currentValue = clickedValue;
             }
         }
     }
@@ -143,11 +143,9 @@ public class TubeSliderManager : MonoBehaviour
 
         InputManager.Instance.PushModalInputHandler(button);
 
-        rb = button.GetComponent<Rigidbody>();
-
         prevPosition = button.transform.position;
 
-        setDisplay(SliderMinimumLabel, SliderMaximumLabel, CurrentValue.ToString());
+        showLabels();
 
         isSliderManipulationTriggered = true;
     }
@@ -169,12 +167,10 @@ public class TubeSliderManager : MonoBehaviour
         if (angleMinBound != -1f && angleMaxBound != -1f)
         {
             button.transform.position = newPosition;
-            CurrentValue = (uint)Mathf.RoundToInt((float)SliderRange * ((newPositionVector.magnitude) / (sliderVector.magnitude)));
+            _currentValue = newPositionVector.magnitude/sliderVector.magnitude;
         }
             
-
-        setDisplay(SliderMinimumLabel, SliderMaximumLabel, CurrentValue.ToString());
-
+        showLabels();
     }
 
     public void ManipulationCompleted(ManipulationEventData eventData)
@@ -182,7 +178,7 @@ public class TubeSliderManager : MonoBehaviour
         if (isSliderManipulationTriggered)
         {
             button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
-            setDisplay("", "", "");
+            hideLabels();
 
             InputManager.Instance.PopModalInputHandler();
 
@@ -196,7 +192,7 @@ public class TubeSliderManager : MonoBehaviour
         if (isSliderManipulationTriggered)
         {
             button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
-            setDisplay("", "", "");
+            hideLabels();
 
             InputManager.Instance.PopModalInputHandler();
 
@@ -207,11 +203,8 @@ public class TubeSliderManager : MonoBehaviour
     public void ButtonOnFocus()
     {
         button.GetComponent<Renderer>().material.color = ButtonColorOnFocus;
-        if (isCurrentValueToBeDisplayed)
-        {
-            button.GetComponentInChildren<TextMesh>().text = CurrentValue.ToString();
-        }
-
+        
+        button.GetComponentInChildren<TextMesh>().text = getCurrentValueAsString();
     }
 
     public void ButtonOffFocus()
@@ -221,22 +214,26 @@ public class TubeSliderManager : MonoBehaviour
             button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
 
         }
-
-        button.GetComponentInChildren<TextMesh>().text = "";
     }
 
-    public void setDisplay(string min, string max, string current)
+    public void showLabels()
     {
 
-        leftHolder.transform.GetChild(0).GetComponent<TextMesh>().text = min;
-        rightHolder.transform.GetChild(0).GetComponent<TextMesh>().text = max;
+        leftHolder.transform.GetChild(0).GetComponent<TextMesh>().text = SliderMinimumLabel;
+        rightHolder.transform.GetChild(0).GetComponent<TextMesh>().text = SliderMaximumLabel;
+ 
+        button.GetComponentInChildren<TextMesh>().text = getCurrentValueAsString();      
+    }
 
+    private string getCurrentValueAsString()
+    {
+        return DisplayInt ? CurrentInt.ToString() : CurrentFloat.ToString("N2");
+    }
 
-        if (isCurrentValueToBeDisplayed)
-        {
-            button.GetComponentInChildren<TextMesh>().text = current;
-        }
-
+    public void hideLabels()
+    {
+        leftHolder.transform.GetChild(0).GetComponent<TextMesh>().text = "";
+        rightHolder.transform.GetChild(0).GetComponent<TextMesh>().text = "";
     }
 
     float AngleDir(Vector3 fwd, Vector3 targetDir, Vector3 up)

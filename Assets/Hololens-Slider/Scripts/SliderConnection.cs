@@ -5,11 +5,9 @@ using UnityEngine;
 public class SliderConnection : MonoBehaviour {
 
     [Tooltip("Drag the slider object to link the values")]
-    public GameObject Slider;
+    public TubeSliderManager Slider;
 
-	public uint Value;
-
-    private TubeSliderManager linkedSlider;
+	public int Value;
 
 	// Use this for initialization
 	void Awake () {
@@ -18,16 +16,14 @@ public class SliderConnection : MonoBehaviour {
 			return;
 		}        
 
-        linkedSlider = GameObject.Find(Slider.name).GetComponent<TubeSliderManager>();
-
-        Value = linkedSlider.CurrentValue;
+        Value = Slider.CurrentInt;
 
         gameObject.SendMessage("GetSliderValue", Value);
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		Value = linkedSlider.CurrentValue;
+		Value = Slider.CurrentInt;
         gameObject.SendMessage("GetSliderValue", Value);
     }
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 public class SliderConnection : MonoBehaviour {
 
     [Tooltip("Drag the slider object to link the values")]
-    public TubeSliderManager Slider;
+    public TubeSlider Slider;
 
 	public int Value;
 

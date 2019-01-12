@@ -2,28 +2,63 @@
 using UnityEngine;
 using Cursor = HoloToolkit.Unity.InputModule.Cursor;
 
-public class TubeSliderManager : MonoBehaviour
+public class TubeSlider : MonoBehaviour
 {
     public Cursor Cursor;
+    public SliderChangedEvent SliderChangedEvent = new SliderChangedEvent();
 
     public string SliderName;
 
     [SerializeField]
-    public float SliderMinimumValue = 0;
+    private float _sliderMinValue = 0;
+
+    public float SliderMinimumValue
+    {
+        get { return _sliderMinValue; }
+        set
+        {
+            _sliderMinValue = value;
+            SliderRange = SliderMaximumValue - SliderMinimumValue;
+        }
+    }
     public string SliderMinimumLabel;
 
     [SerializeField]
-    public float SliderMaximumValue = 100;
+    private float _sliderMaxValue = 100;
+
+    public float SliderMaximumValue
+    {
+        get { return _sliderMaxValue; }
+        set
+        {
+            _sliderMaxValue = value;
+            SliderRange = SliderMaximumValue - SliderMinimumValue;
+        }
+    }
     public string SliderMaximumLabel;
 
     [SerializeField]
     private float _currentValue = 0.5f;
 
-    public int CurrentInt => Mathf.RoundToInt((SliderRange * _currentValue)+SliderMinimumValue);
+    public int CurrentInt
+    {
+        get { return Mathf.RoundToInt((SliderRange * _currentValue) + SliderMinimumValue); }
+        set
+        {
+            _currentValue = (value - _sliderMinValue)/SliderRange;
+            button.transform.position = start + (-button.transform.up.normalized * _currentValue * sliderVector.magnitude);
+            button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
+            SliderChangedEvent.Invoke(this);
+        }
+    }
 
     public float CurrentFloat => (_currentValue * SliderRange) + SliderMinimumValue;
 
-    public float CurrentPercentage => _currentValue;
+    public float CurrentPercentage
+    {
+        get { return _currentValue; }
+        private set { _currentValue = value; SliderChangedEvent.Invoke(this); }
+    }
 
     public bool DisplayInt = true;
 
@@ -87,8 +122,9 @@ public class TubeSliderManager : MonoBehaviour
 
         button.transform.position = start + (-button.transform.up.normalized * _currentValue * sliderVector.magnitude);
 
-        button.GetComponentInChildren<TextMesh>().text = getCurrentValueAsString();
+        button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
         button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
+        SliderChangedEvent.Invoke(this);
     }
 
     public Color buttonColorOffFocus
@@ -127,10 +163,10 @@ public class TubeSliderManager : MonoBehaviour
             angleMinBound = AngleDir(transform.forward, newPositionVector, transform.up);
             angleMaxBound = AngleDir(transform.forward, end - newPosition, transform.up);
 
-            if (angleMinBound != -1f && angleMaxBound != -1f && clickedValue >= SliderMinimumValue && clickedValue <= SliderMaximumValue)
+            if (angleMinBound != -1f && angleMaxBound != -1f && clickedValue >= 0 && clickedValue <= 1)
             {
                 button.transform.position = newPosition;
-                _currentValue = clickedValue;
+                CurrentPercentage = clickedValue;
             }
         }
     }
@@ -145,7 +181,7 @@ public class TubeSliderManager : MonoBehaviour
 
         prevPosition = button.transform.position;
 
-        showLabels();
+        ShowLabels();
 
         isSliderManipulationTriggered = true;
     }
@@ -167,10 +203,10 @@ public class TubeSliderManager : MonoBehaviour
         if (angleMinBound != -1f && angleMaxBound != -1f)
         {
             button.transform.position = newPosition;
-            _currentValue = newPositionVector.magnitude/sliderVector.magnitude;
+            CurrentPercentage = newPositionVector.magnitude/sliderVector.magnitude;
         }
             
-        showLabels();
+        ShowLabels();
     }
 
     public void ManipulationCompleted(ManipulationEventData eventData)
@@ -178,7 +214,7 @@ public class TubeSliderManager : MonoBehaviour
         if (isSliderManipulationTriggered)
         {
             button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
-            hideLabels();
+            HideLabels();
 
             InputManager.Instance.PopModalInputHandler();
 
@@ -192,7 +228,7 @@ public class TubeSliderManager : MonoBehaviour
         if (isSliderManipulationTriggered)
         {
             button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
-            hideLabels();
+            HideLabels();
 
             InputManager.Instance.PopModalInputHandler();
 
@@ -204,7 +240,7 @@ public class TubeSliderManager : MonoBehaviour
     {
         button.GetComponent<Renderer>().material.color = ButtonColorOnFocus;
         
-        button.GetComponentInChildren<TextMesh>().text = getCurrentValueAsString();
+        button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
     }
 
     public void ButtonOffFocus()
@@ -216,21 +252,21 @@ public class TubeSliderManager : MonoBehaviour
         }
     }
 
-    public void showLabels()
+    public void ShowLabels()
     {
 
         leftHolder.transform.GetChild(0).GetComponent<TextMesh>().text = SliderMinimumLabel;
         rightHolder.transform.GetChild(0).GetComponent<TextMesh>().text = SliderMaximumLabel;
  
-        button.GetComponentInChildren<TextMesh>().text = getCurrentValueAsString();      
+        button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();      
     }
 
-    private string getCurrentValueAsString()
+    private string GetCurrentValueAsString()
     {
         return DisplayInt ? CurrentInt.ToString() : CurrentFloat.ToString("N2");
     }
 
-    public void hideLabels()
+    public void HideLabels()
     {
         leftHolder.transform.GetChild(0).GetComponent<TextMesh>().text = "";
         rightHolder.transform.GetChild(0).GetComponent<TextMesh>().text = "";

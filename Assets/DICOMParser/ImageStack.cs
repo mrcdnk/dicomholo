@@ -338,6 +338,8 @@ namespace DICOMParser
                 yield return null;
             }
 
+            Slice2DView.InitSlider();
+
             LoadVolumeButton.interactable = true;
         }
 

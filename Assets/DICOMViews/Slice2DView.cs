@@ -10,31 +10,31 @@ namespace DICOMViews
 
     public class Slice2DView : MonoBehaviour
     {
-        public ImageStack imageStack;
-        public Slider sliceSlider;
-        public Button transButton;
-        public Button frontButton;
-        public Button sagButton;
+        public ImageStack ImageStack;
+        public TubeSlider SliceSlider;
+        public Button TransButton;
+        public Button FrontButton;
+        public Button SagButton;
 
-        private RawImage display;
+        private RawImage _display;
 
-        private readonly Dictionary<SliceType, int> selection = new Dictionary<SliceType, int>();
+        private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
 
-        private SliceType current = SliceType.Transversal;
+        private SliceType _currentSliceType = SliceType.Transversal;
 
         // Use this for initialization
         void Start()
         {
-            display = GetComponentInChildren<RawImage>();
+            _display = GetComponentInChildren<RawImage>();
 
             foreach (var type in Enum.GetValues(typeof(SliceType)).Cast<SliceType>())
             {
-                selection[type] = 0;
+                _selection[type] = 0;
             }
 
-            if (imageStack != null && imageStack.HasData(current))
+            if (ImageStack != null && ImageStack.HasData(_currentSliceType))
             {
-                display.texture = imageStack.GetTexture2D(current, selection[current]);
+                _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
             }
         }
 
@@ -44,60 +44,69 @@ namespace DICOMViews
 
         }
 
+        public void InitSlider()
+        {
+            SliceSlider.SliderMaximumValue = ImageStack.GetMaxValue(_currentSliceType);
+            SliceSlider.CurrentInt = _selection[_currentSliceType];
+        }
+
         public void ShowTrans()
         {
-            transButton.interactable = false;
-            frontButton.interactable = true;
-            sagButton.interactable = true;
+            TransButton.interactable = false;
+            FrontButton.interactable = true;
+            SagButton.interactable = true;
             Show(SliceType.Transversal);
         }
 
         public void ShowFront()
         {
-            transButton.interactable = true;
-            frontButton.interactable = false;
-            sagButton.interactable = true;
+            TransButton.interactable = true;
+            FrontButton.interactable = false;
+            SagButton.interactable = true;
             Show(SliceType.Frontal);
         }
 
         public void ShowSag()
         {
-            transButton.interactable = true;
-            frontButton.interactable = true;
-            sagButton.interactable = false;
+            TransButton.interactable = true;
+            FrontButton.interactable = true;
+            SagButton.interactable = false;
             Show(SliceType.Sagittal);
         }
 
         public void Show(SliceType type)
         {
-            current = type;
-            sliceSlider.maxValue = imageStack.GetMaxValue(current);
-            sliceSlider.value = selection[current];
-            display.texture = imageStack.GetTexture2D(current, selection[current]);
+            _currentSliceType = type;
+            SliceSlider.SliderMaximumValue = ImageStack.GetMaxValue(_currentSliceType);
+            SliceSlider.CurrentInt = _selection[_currentSliceType];
+            _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
         }
 
-        public void SelectionChanged()
+        public void SelectionChanged(TubeSlider slider)
         {
-            selection[current] = (int) sliceSlider.value;
-            display.texture = imageStack.GetTexture2D(current, selection[current]);
+            if (_selection != null && _display != null)
+            {
+                _selection[_currentSliceType] = slider.CurrentInt;
+                _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+            }
         }
 
         public void TextureUpdated(SliceType type, int index)
         {
-            if (current == type && selection[current] == index)
+            if (_currentSliceType == type && _selection[_currentSliceType] == index)
             {
-                display.texture = imageStack.GetTexture2D(current, selection[current]);
+                _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
             }
         }
 
         public SliceType GetCurrentSliceType()
         {
-            return current;
+            return _currentSliceType;
         }
 
         public int GetSelection(SliceType type)
         {
-            return selection[type];
+            return _selection[type];
         }
 
         public void SetVisible(bool visible)

@@ -4,7 +4,7 @@ using Cursor = HoloToolkit.Unity.InputModule.Cursor;
 
 public class TubeSlider : MonoBehaviour
 {
-    public Cursor Cursor;
+    private Cursor Cursor;
     public SliderChangedEvent SliderChangedEvent = new SliderChangedEvent();
 
     public string SliderName;
@@ -66,8 +66,8 @@ public class TubeSlider : MonoBehaviour
     public Color ButtonColorOffFocus;
     public Color ButtonColorOnFocus;
 
-    private GameObject leftHolder;
-    private GameObject rightHolder;
+    public Transform LeftPivot;
+    public Transform RightPivot;
     private GameObject button;
     private GameObject buttonPivot;
 
@@ -92,18 +92,11 @@ public class TubeSlider : MonoBehaviour
     void Awake()
     {
         isSliderManipulationTriggered = false;
-
         foreach (Transform child in transform)
         {
            
             switch(child.tag)
             {
-                case "LeftHolder":
-                    leftHolder = child.gameObject;
-                    break;
-                case "RightHolder":
-                    rightHolder = child.gameObject;
-                    break;
                 case "SliderButton":
                     button = child.gameObject;
                     break;
@@ -113,10 +106,17 @@ public class TubeSlider : MonoBehaviour
             }
         }
 
+        Cursor = GameObject.FindGameObjectWithTag("HoloCursor").GetComponent<Cursor>();
+
+        if (!Cursor)
+        {
+            Debug.LogWarning("No Cursor with Tag 'HoloCursor' present in scene.");
+        }
+
         SliderRange = SliderMaximumValue - SliderMinimumValue;
 
-        start = leftHolder.transform.position;
-        end = rightHolder.transform.position;
+        start = LeftPivot.position;
+        end = RightPivot.position;
 
         sliderVector = end - start;
 
@@ -255,8 +255,8 @@ public class TubeSlider : MonoBehaviour
     public void ShowLabels()
     {
 
-        leftHolder.transform.GetChild(0).GetComponent<TextMesh>().text = SliderMinimumLabel;
-        rightHolder.transform.GetChild(0).GetComponent<TextMesh>().text = SliderMaximumLabel;
+        LeftPivot.GetChild(0).GetComponent<TextMesh>().text = SliderMinimumLabel;
+        RightPivot.GetChild(0).GetComponent<TextMesh>().text = SliderMaximumLabel;
  
         button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();      
     }
@@ -268,8 +268,8 @@ public class TubeSlider : MonoBehaviour
 
     public void HideLabels()
     {
-        leftHolder.transform.GetChild(0).GetComponent<TextMesh>().text = "";
-        rightHolder.transform.GetChild(0).GetComponent<TextMesh>().text = "";
+        LeftPivot.GetChild(0).GetComponent<TextMesh>().text = "";
+        RightPivot.GetChild(0).GetComponent<TextMesh>().text = "";
     }
 
     float AngleDir(Vector3 fwd, Vector3 targetDir, Vector3 up)

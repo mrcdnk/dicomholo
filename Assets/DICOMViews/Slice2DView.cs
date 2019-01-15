@@ -46,7 +46,7 @@ namespace DICOMViews
 
         public void InitSlider()
         {
-            SliceSlider.SliderMaximumValue = ImageStack.GetMaxValue(_currentSliceType);
+            SliceSlider.MaximumValue = ImageStack.GetMaxValue(_currentSliceType);
             SliceSlider.CurrentInt = _selection[_currentSliceType];
         }
 
@@ -77,7 +77,7 @@ namespace DICOMViews
         public void Show(SliceType type)
         {
             _currentSliceType = type;
-            SliceSlider.SliderMaximumValue = ImageStack.GetMaxValue(_currentSliceType);
+            SliceSlider.MaximumValue = ImageStack.GetMaxValue(_currentSliceType);
             SliceSlider.CurrentInt = _selection[_currentSliceType];
             _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
         }

@@ -1,4 +1,5 @@
-﻿using HoloToolkit.Unity.InputModule;
+﻿using System;
+using HoloToolkit.Unity.InputModule;
 using UnityEngine;
 using Cursor = HoloToolkit.Unity.InputModule.Cursor;
 
@@ -10,51 +11,53 @@ public class TubeSlider : MonoBehaviour
     public string SliderName;
 
     [SerializeField]
-    private float _sliderMinValue = 0;
+    private double _minValue = 0;
 
-    public float SliderMinimumValue
+    public double MinimumValue
     {
-        get { return _sliderMinValue; }
+        get { return _minValue; }
         set
         {
-            _sliderMinValue = value;
-            SliderRange = SliderMaximumValue - SliderMinimumValue;
+            _minValue = value;
+            SliderRange = MaximumValue - MinimumValue;
         }
     }
-    public string SliderMinimumLabel;
+    public string MinimumLabel;
 
     [SerializeField]
-    private float _sliderMaxValue = 100;
+    private double _maxValue = 100;
 
-    public float SliderMaximumValue
+    public double MaximumValue
     {
-        get { return _sliderMaxValue; }
+        get { return _maxValue; }
         set
         {
-            _sliderMaxValue = value;
-            SliderRange = SliderMaximumValue - SliderMinimumValue;
+            _maxValue = value;
+            SliderRange = MaximumValue - MinimumValue;
         }
     }
-    public string SliderMaximumLabel;
+    public string MaximumLabel;
 
     [SerializeField]
-    private float _currentValue = 0.5f;
+    private double _currentValue = 0.5d;
 
     public int CurrentInt
     {
-        get { return Mathf.RoundToInt((SliderRange * _currentValue) + SliderMinimumValue); }
+        get { return Mathf.RoundToInt((float)((SliderRange * _currentValue) + MinimumValue)); }
         set
         {
-            _currentValue = (value - _sliderMinValue)/SliderRange;
-            button.transform.position = start + (-button.transform.up.normalized * _currentValue * sliderVector.magnitude);
+            _currentValue = (value - _minValue)/SliderRange;
+            button.transform.position = start + (-button.transform.up.normalized * (float)_currentValue * sliderVector.magnitude);
             button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
             SliderChangedEvent.Invoke(this);
         }
     }
 
-    public float CurrentFloat => (_currentValue * SliderRange) + SliderMinimumValue;
+    public float CurrentFloat => (float)((_currentValue * SliderRange) + MinimumValue);
 
-    public float CurrentPercentage
+    public double CurrentDouble => _currentValue;
+
+    public double CurrentPercentage
     {
         get { return _currentValue; }
         private set { _currentValue = value; SliderChangedEvent.Invoke(this); }
@@ -77,7 +80,7 @@ public class TubeSlider : MonoBehaviour
 
     private bool isSliderManipulationTriggered;
 
-    private float SliderRange;
+    private double SliderRange;
 
     private Vector3 start;
     private Vector3 end;
@@ -113,14 +116,14 @@ public class TubeSlider : MonoBehaviour
             Debug.LogWarning("No Cursor with Tag 'HoloCursor' present in scene.");
         }
 
-        SliderRange = SliderMaximumValue - SliderMinimumValue;
+        SliderRange = MaximumValue - MinimumValue;
 
         start = LeftPivot.position;
         end = RightPivot.position;
 
         sliderVector = end - start;
 
-        button.transform.position = start + (-button.transform.up.normalized * _currentValue * sliderVector.magnitude);
+        button.transform.position = start + (-button.transform.up.normalized * (float)_currentValue * sliderVector.magnitude);
 
         button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
         button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
@@ -255,8 +258,8 @@ public class TubeSlider : MonoBehaviour
     public void ShowLabels()
     {
 
-        LeftPivot.GetChild(0).GetComponent<TextMesh>().text = SliderMinimumLabel;
-        RightPivot.GetChild(0).GetComponent<TextMesh>().text = SliderMaximumLabel;
+        LeftPivot.GetChild(0).GetComponent<TextMesh>().text = MinimumLabel;
+        RightPivot.GetChild(0).GetComponent<TextMesh>().text = MaximumLabel;
  
         button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();      
     }

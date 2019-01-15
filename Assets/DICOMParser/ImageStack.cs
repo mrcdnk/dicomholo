@@ -21,7 +21,6 @@ namespace DICOMParser
         public Dropdown Selection;
         public ProgressHandler ProgressHandler;
         public RawImage PreviewImage;
-        public ViewManager ViewManager;
 
         public Button LoadVolumeButton;
         public Button Load2DButton;
@@ -69,7 +68,7 @@ namespace DICOMParser
             LoadVolumeButton.interactable = false;
             Load2DButton.interactable = false;
             Volume.SetActive(false);
-            Slice2DView.SetVisible(false);
+            Slice2DView.gameObject.SetActive(false);
 
             //Load first selected entry in dropdown
             StartInitFiles();
@@ -117,7 +116,7 @@ namespace DICOMParser
         /// </summary>
         public void StartCreatingTextures()
         {
-            Slice2DView.SetVisible(true);
+            Slice2DView.gameObject.SetActive(true);
             LoadVolumeButton.interactable = false;
             Load2DButton.interactable = false;
             StartCoroutine(nameof(CreateTextures));
@@ -420,12 +419,12 @@ namespace DICOMParser
         /// <param name="files">all the DICOM files.</param>
         /// <param name="target">1D array receiving the 3D data.</param>
         /// <param name="threadCount">Amount of Threads to use.</param>
-        private void StartPreProcessing(ThreadGroupState groupState, DiFile[] files, int[] target, int threadCount)
+        private void StartPreProcessing(ThreadGroupState groupState, IReadOnlyList<DiFile> files, int[] target, int threadCount)
         {
             windowCenter = Double.MinValue;
             windowWidth = Double.MinValue;
 
-            int spacing = files.Length / threadCount;
+            int spacing = files.Count / threadCount;
 
             for (var i = 0; i < threadCount; ++i)
             {
@@ -435,7 +434,7 @@ namespace DICOMParser
 
                 if (i + 1 == threadCount)
                 {
-                    endIndex = files.Length;
+                    endIndex = files.Count;
                 }
 
                 var t = new Thread(() => PreProcess(groupState, files, width, height, target, startIndex, endIndex));
@@ -453,17 +452,14 @@ namespace DICOMParser
         /// <param name="target">1D array receiving the 3D data.</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void PreProcess(ThreadGroupState groupState, DiFile[] files, int width, int height,
+        private static void PreProcess(ThreadGroupState groupState, IReadOnlyList<DiFile> files, int width, int height,
             int[] target, int start, int end)
         {
             DiFile currentDiFile = null;
-            var storedBytes = new byte[4];
-            int debug = start;
-           
+            var storedBytes = new byte[4];           
 
             for (int layer = start; layer < end; ++layer)
             {
-                debug = layer;
                 currentDiFile = files[layer];
                 DiDataElement pixelData = currentDiFile.RemoveElement(0x7FE0, 0x0010);
                 int mask = ~(~0 << currentDiFile.GetHighBit() + 1);
@@ -508,9 +504,9 @@ namespace DICOMParser
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingVolume(ThreadGroupState groupState, DiFile[] files, int[] data, Color[] target, double windowWidth, double windowCenter, int threadCount)
+        private void StartCreatingVolume(ThreadGroupState groupState, IReadOnlyList<DiFile> files, IReadOnlyList<int> data, Color[] target, double windowWidth, double windowCenter, int threadCount)
         {
-            int spacing = files.Length / threadCount;
+            int spacing = files.Count / threadCount;
 
             for (int i = 0; i < threadCount; ++i)
             {
@@ -520,7 +516,7 @@ namespace DICOMParser
 
                 if (i + 1 == threadCount)
                 {
-                    endIndex = files.Length;
+                    endIndex = files.Count;
                 }
 
                 var t = new Thread(() => createVolume(groupState, data, files, width, height, target, windowWidth, windowCenter, startIndex, endIndex));
@@ -541,12 +537,13 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void createVolume(ThreadGroupState groupState, int[] data, DiFile[] dicomFiles, int width, int height,
+        private static void createVolume(ThreadGroupState groupState, IReadOnlyList<int> data, IReadOnlyList<DiFile> dicomFiles, int width, int height,
             Color[] target, double windowWidth, double windowCenter, int start, int end)
         {
             int idx = start*width*height;
             int idxPartZ;
             int idxPart;
+
             for (int z = start; z < end; ++z)
             {
                 idxPartZ = z * width * height;

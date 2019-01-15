@@ -1,8 +1,12 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace DICOMViews
 {
+    /// <summary>
+    /// Can be used to manipulate the window Settings used for the textures or volumes
+    /// </summary>
     public class WindowSettingsPanel : MonoBehaviour
     {
         public Toggle DefaultToggle;
@@ -10,27 +14,25 @@ namespace DICOMViews
         public TubeSlider WidthSlider;
         public TubeSlider CenterSlider;
 
-        private int _valueRange;
+        private double _windowWidth = Double.MinValue;
 
-        private int _windowWidth = -1;
-
-        public int WindowWidth
+        public double WindowWidth
         {
-            get { return DefaultToggle.isOn ? -1 : _windowWidth; }
+            get { return DefaultToggle.isOn ? Double.MinValue : _windowWidth; }
         }
 
-        private int _windowCenter = -1;
+        private double _windowCenter = Double.MinValue;
 
-        public int WindowCenter
+        public double WindowCenter
         {
-            get { return DefaultToggle.isOn ? -1 : _windowCenter; }
+            get { return DefaultToggle.isOn ? Double.MinValue : _windowCenter; }
         }
 
         // Start is called before the first frame update
         void Start()
         {
-            WidthSlider.SliderChangedEvent.AddListener(TubeSlider => _windowWidth = TubeSlider.CurrentInt);
-            CenterSlider.SliderChangedEvent.AddListener(TubeSlider => _windowCenter = TubeSlider.CurrentInt);
+            WidthSlider.SliderChangedEvent.AddListener(tubeSlider => _windowWidth = tubeSlider.CurrentDouble);
+            CenterSlider.SliderChangedEvent.AddListener(tubeSlider => _windowCenter = tubeSlider.CurrentDouble);
         }
 
         // Update is called once per frame
@@ -38,12 +40,15 @@ namespace DICOMViews
         {
         }
 
+        /// <summary>
+        /// Use to configure the panel for the current DiFile
+        /// </summary>
+        /// <param name="min">minimum intensity value of the current DiFile</param>
+        /// <param name="max">maximum intensity value of the current DiFile</param>
         public void Configure(int min, int max)
         {
-            _valueRange = max - min;
-
             WidthSlider.MinimumValue = 0;
-            WidthSlider.MaximumValue = max/2;
+            WidthSlider.MaximumValue = max/2d;
 
             CenterSlider.MinimumValue = min;
             CenterSlider.MaximumValue = max;

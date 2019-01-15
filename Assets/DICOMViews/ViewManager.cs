@@ -1,36 +1,37 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using DICOMParser;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ViewManager : MonoBehaviour
+namespace DICOMViews
 {
-
-    public List<Button> disabledButtons;
-    private ImageStack stack;
-
-	// Use this for initialization
-	void Start () {
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
-
-    public void ready(ImageStack stack)
+    public class ViewManager : MonoBehaviour
     {
-        this.stack = stack;
-        /*foreach (Button button in disabledButtons)
+
+        public WindowSettingsPanel WindowSettingsPanel;
+
+        public List<Button> disabledButtons;
+
+        private ImageStack stack;
+
+        public Slice2DView Slice2DView;
+
+        public VolumeRendering.VolumeRendering VolumeRendering;
+        public GameObject Volume;
+
+
+        // Use this for initialization
+        void Start ()
         {
-            button.interactable = true;
-        }*/
-    }
-
-    public void createSimple2D()
-    {
+            stack = gameObject.AddComponent<ImageStack>();
+            Volume.SetActive(false);
+            Slice2DView.gameObject.SetActive(false);
+        }
+	
+        // Update is called once per frame
+        void Update () {
+		
+        }
 
     }
 }

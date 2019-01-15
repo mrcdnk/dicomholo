@@ -109,10 +109,5 @@ namespace DICOMViews
             return _selection[type];
         }
 
-        public void SetVisible(bool visible)
-        {
-            gameObject.SetActive(visible);
-        }
-
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DICOMParser;
+using ExtensionsMethods;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,31 +11,35 @@ namespace DICOMViews
 
     public class Slice2DView : MonoBehaviour
     {
-        public ImageStack ImageStack;
+        private ImageStack _imageStack;
         public TubeSlider SliceSlider;
         public Button TransButton;
         public Button FrontButton;
         public Button SagButton;
 
-        private RawImage _display;
+        public RawImage Display;
 
         private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
 
         private SliceType _currentSliceType = SliceType.Transversal;
 
+        public ImageStack ImageStack {
+            set
+            {
+                _imageStack = value;
+
+                Display.texture = value.GetTexture2D(_currentSliceType, _selection.GetValue(_currentSliceType, 0));
+            }
+        }
+
         // Use this for initialization
         void Start()
         {
-            _display = GetComponentInChildren<RawImage>();
+            Display = GetComponentInChildren<RawImage>();
 
             foreach (var type in Enum.GetValues(typeof(SliceType)).Cast<SliceType>())
             {
                 _selection[type] = 0;
-            }
-
-            if (ImageStack != null && ImageStack.HasData(_currentSliceType))
-            {
-                _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
             }
         }
 
@@ -46,8 +51,8 @@ namespace DICOMViews
 
         public void InitSlider()
         {
-            SliceSlider.MaximumValue = ImageStack.GetMaxValue(_currentSliceType);
-            SliceSlider.CurrentInt = _selection[_currentSliceType];
+            SliceSlider.MaximumValue = _imageStack.GetMaxValue(_currentSliceType);
+            SliceSlider.CurrentInt = _selection.GetValue(_currentSliceType, 0);
         }
 
         public void ShowTrans()
@@ -77,17 +82,17 @@ namespace DICOMViews
         public void Show(SliceType type)
         {
             _currentSliceType = type;
-            SliceSlider.MaximumValue = ImageStack.GetMaxValue(_currentSliceType);
+            SliceSlider.MaximumValue = _imageStack.GetMaxValue(_currentSliceType);
             SliceSlider.CurrentInt = _selection[_currentSliceType];
-            _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+            Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
         }
 
         public void SelectionChanged(TubeSlider slider)
         {
-            if (_selection != null && _display != null)
+            if (_selection.Count == Enum.GetNames(typeof(SliceType)).Length && Display != null && _imageStack != null)
             {
                 _selection[_currentSliceType] = slider.CurrentInt;
-                _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+                Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
             }
         }
 
@@ -95,7 +100,7 @@ namespace DICOMViews
         {
             if (_currentSliceType == type && _selection[_currentSliceType] == index)
             {
-                _display.texture = ImageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+                Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
             }
         }
 

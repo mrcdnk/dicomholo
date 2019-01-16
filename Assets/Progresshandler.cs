@@ -1,87 +1,113 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 public class ProgressHandler : MonoBehaviour {
 
-    private float max = 0;
+    public Image Foreground;
+    public Text Status;
 
-    public Image foreground;
-    public Text status;
-
-    private string task = "";
-
-    private float value = 0;
-
-    public float getProgress()
+    [SerializeField]
+    private float _value = 0;
+    public float Value
     {
-        if (foreground != null)
+        get { return _value; }
+        set
         {
-            return foreground.fillAmount * max;
+            _value = Mathf.Max(Mathf.Min(value, _max), 0);
+            UpdateProgress();
         }
-        else
+    }
+
+    private float _max = 0;
+    public float Max
+    {
+        get { return _max; }
+        set
         {
+            _max = value;
+            UpdateProgress();
+        }
+    }
+
+    private string _task = "";
+    public string TaskDescription
+    {
+        get { return _task; }
+        set
+        {
+            _task = value;
+            UpdateText();
+        }
+    }
+
+    public float Progress
+    {
+        get
+        {
+            if (Foreground != null)
+            {
+                return Foreground.fillAmount * _max;
+            }
+
             return 0;
         }
-}
-
-    public float increment(float add)
-    {
-        value += add;
-
-        
-        return update();
     }
 
-    public float update(float value)
+    /// <summary>
+    /// Increments the progress limited to the configured max value.
+    /// </summary>
+    /// <param name="add">The amount of progress to add.</param>
+    /// <returns></returns>
+    public float Increment(float add)
     {
-        this.value = value;
-
-        return update();
+        _value += add;
+        _value = Mathf.Min(_value, _max);
+        return UpdateProgress();
     }
 
-    private float update()
+    /// <summary>
+    /// Recalculates progress and updates the text afterwards.
+    /// </summary>
+    /// <returns>The current progress in percent between 0 and 1.</returns>
+    private float UpdateProgress()
     {
-        if (foreground != null)
+        if (Foreground != null)
         {
-            foreground.fillAmount = value / max;
-            updateText(value);
+            Foreground.fillAmount = _value / _max;
+            UpdateText();
 
-            return foreground.fillAmount;
+            return Foreground.fillAmount;
         }
 
         return 0;
     }
 
-    // Use this for initialization
-    void Start () {
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
-
-    public void init(float max, string task)
+    /// <summary>
+    /// Initializes the ProgressHandler with base value 0.
+    /// </summary>
+    /// <param name="max">Number of Steps to reach 100%, must be > 0.</param>
+    /// <param name="task">Short description of the current task.</param>
+    public void Init(float max, string task)
     {
-        this.max = max;
-        this.value = 0;
-        this.task = task;
-        foreground.fillAmount = 0f;
-        updateText(value);
+        _max = max;
+        _value = 0;
+        _task = task;
+        Foreground.fillAmount = 0f;
+        UpdateText();
     }
 
-    private void updateText(float value)
+    /// <summary>
+    /// Updates the displayed Text
+    /// </summary>
+    private void UpdateText()
     {
-        if (value / max < 1.0)
+        if (_value / _max < 1.0)
         {
-            status.text = task + " " + value + " / " + (int) max;
+            Status.text = _task + " " + _value + " / " + (int) _max;
         }
         else
         {
-            status.text = "Done";
+            Status.text = "Finished " + _task;
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿
+using UnityEngine;
 
 namespace Threads
 {
@@ -9,8 +10,14 @@ namespace Threads
     {
         private object wMutex = new object();
         private object pMutex = new object();
+
         public int progress;
         public int working;
+
+        /// <summary>
+        /// Set to the total amount of progress to be reached when the work is done. Not synchronized.
+        /// </summary>
+        public int TotalProgress { get; set; }
 
         /// <summary>
         /// Resets the state.

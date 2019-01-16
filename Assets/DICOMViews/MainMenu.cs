@@ -26,16 +26,21 @@ namespace DICOMViews
         
         }
 
-        private void DisableButtons()
+        public void SetPreviewImage(Texture2D texture2D)
+        {
+            PreviewImage.texture = texture2D;
+        }
+
+        public void DisableButtons()
         {
             LoadVolumeButton.enabled = false;
             Load2DButton.enabled = false;
         }
 
-        private void EnableButtons()
+        public void EnableButtons()
         {
             LoadVolumeButton.enabled = true;
-            LoadVolumeButton.enabled = true;
+            Load2DButton.enabled = true;
         }
     }
 }

@@ -20,9 +20,6 @@ namespace DICOMParser
     {
         public Dropdown Selection;
 
-        private ViewManager _viewManager;
-        public MainMenu MainMenu;
-
         public Text DebugText;
 
         private int[] _data;
@@ -34,6 +31,7 @@ namespace DICOMParser
         private Texture3D _volume;
         public Texture3D Texture3D => _volume;
 
+        private ViewManager _viewManager;
         public ViewManager ViewManager {
             set { _viewManager = value; }
         }
@@ -45,15 +43,19 @@ namespace DICOMParser
         private int _width;
         private int _height;
 
-        private double _windowCenter = Double.MinValue;
-        private double _windowWidth = Double.MinValue;
+        public double WindowCenter { get; set; } = double.MinValue;
 
-        private bool _expl = true;
+        public double WindowWidth { get; set; } = double.MinValue;
+
+        public int MinPixelIntensity { get; set; }
+        public int MaxPixelIntensity { get; set; }
+
+        private bool _explicit = true;
 
         /// <summary>
         /// Start coroutine for parsing of files.
         /// </summary>
-        public ThreadGroupState StartInitFiles()
+        public ThreadGroupState StartParsingFiles()
         {
             ThreadGroupState state = new ThreadGroupState();
             StartCoroutine(nameof(InitFiles), state);
@@ -95,10 +97,11 @@ namespace DICOMParser
         /// <summary>
         /// Allows a Unity coroutine to wait for every working thread to finish.
         /// </summary>
+        /// <param name="threadGroupState">Thread safe thread-state used to observe progress of one or multiple threads.</param>
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator WaitForThreads(ThreadGroupState threadGroupState)
         {
-            while (threadGroupState.working > 0)
+            while (threadGroupState.Working > 0)
             {
                 yield return null;
             }
@@ -107,6 +110,7 @@ namespace DICOMParser
         /// <summary>
         /// Unity coroutine for loading the selected folder of files.
         /// </summary>
+        /// <param name="threadGroupState">Thread safe thread-state used to observe progress of one or multiple threads.</param>
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator InitFiles(ThreadGroupState threadGroupState)
         {
@@ -127,16 +131,17 @@ namespace DICOMParser
             //filePaths = Array.FindAll(filePaths, HasNoExtension); 
             List<string> fileNames = new List<string>();
 
-            /*foreach (string file in Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text)))
+#if UNITY_EDITOR
+            foreach (string file in Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text)))
             {
                 if (UnityEngine.Windows.File.Exists(file) && (file.EndsWith(".dcm") || !file.Contains(".")))
                 {
                     fileNames.Add(file);
                 }
-            }*/
+            }
 
-            int pos = 0; //startfile
-
+#elif UNITY_WSA
+            var pos = 0; //startfile
 
             while (UnityEngine.Windows.File.Exists(Path.Combine(
                 Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
@@ -144,18 +149,18 @@ namespace DICOMParser
             {
                 fileNames.Add(Path.Combine(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
                     "CTHd" + pos.ToString("D3")));
-                pos++;
+                ++pos;
             }
-
+#endif
             _dicomFiles = new DiFile[fileNames.Count];
             threadGroupState.TotalProgress = fileNames.Count;
 
             yield return null;
-            _expl = new DiDataElement(fileNames[0]).quickscanExp();
+            _explicit = new DiDataElement(fileNames[0]).quickscanExp();
 
             foreach (var path in fileNames)
             {
-                DiFile diFile = new DiFile(_expl);
+                DiFile diFile = new DiFile(_explicit);
                 diFile.InitFromFile(path);
                 _dicomFiles[diFile.GetImageNumber()] = diFile;
                 
@@ -167,13 +172,20 @@ namespace DICOMParser
             _height = _dicomFiles[0].GetImageHeight();
 
             _data = new int[_dicomFiles.Length * _width * _height];
-            
+
+            WindowCenter = _dicomFiles[0].GetElement(0x0028, 0x1050)?.GetDouble() ?? double.MinValue;
+            WindowWidth = _dicomFiles[0].GetElement(0x0028, 0x1051)?.GetDouble() ?? double.MinValue;
+
+            MinPixelIntensity = (int)_dicomFiles[0].GetElement(0x0028, 0x1052).GetDouble();
+            MaxPixelIntensity = (int)(_dicomFiles[0].GetElement(0x0028, 0x1053).GetDouble()*(Math.Pow(2, _dicomFiles[0].GetBitsStored())-1)+MinPixelIntensity);
+
             threadGroupState.Done();
         }
 
         /// <summary>
         /// Unity coroutine used to preprocess the DICOM pixel data using multiple threads.
         /// </summary>
+        /// <param name="threadGroupState"></param>
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private void PreprocessData(ThreadGroupState threadGroupState)
         {
@@ -183,6 +195,7 @@ namespace DICOMParser
         /// <summary>
         /// Unity coroutine used to create the 3D texture using multiple threads.
         /// </summary>
+        /// <param name="threadGroupState">Thread safe thread-state used to observe progress of one or multiple threads.</param>
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateVolume(ThreadGroupState threadGroupState)
         {
@@ -190,7 +203,7 @@ namespace DICOMParser
 
             var cols = new Color[_width * _height * _dicomFiles.Length];
 
-            StartCreatingVolume(threadGroupState, _dicomFiles, _data, cols, _windowWidth, _windowCenter, 6);
+            StartCreatingVolume(threadGroupState, _dicomFiles, _data, cols, WindowWidth, WindowCenter, 6);
 
             yield return WaitForThreads(threadGroupState);
 
@@ -201,6 +214,7 @@ namespace DICOMParser
         /// <summary>
         /// Unity coroutine used to create all textures using multiple threads.
         /// </summary>
+        /// <param name="threadGroupState">Thread safe thread-state used to observe progress of one or multiple threads.</param>
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateTextures(ThreadGroupState threadGroupState)
         {
@@ -216,62 +230,53 @@ namespace DICOMParser
             ConcurrentQueue<int> frontProgress = new ConcurrentQueue<int>();
             ConcurrentQueue<int> sagProgress = new ConcurrentQueue<int>();
 
-            StartCreatingTransTextures(threadGroupState, transProgress, _data, _dicomFiles, transTextureColors, _windowCenter, _windowWidth, 2);
-            StartCreatingFrontTextures(threadGroupState, frontProgress, _data, _dicomFiles, frontTextureColors, _windowCenter, _windowWidth, 2);
-            StartCreatingSagTextures(threadGroupState, sagProgress, _data, _dicomFiles, sagTextureColors, _windowCenter, _windowWidth, 2);
-            
-            while (threadGroupState.working > 0 || !(transProgress.IsEmpty && frontProgress.IsEmpty && sagProgress.IsEmpty))
+            StartCreatingTransTextures(threadGroupState, transProgress, _data, _dicomFiles, transTextureColors, WindowCenter, WindowWidth, 2);
+            StartCreatingFrontTextures(threadGroupState, frontProgress, _data, _dicomFiles, frontTextureColors, WindowCenter, WindowWidth, 2);
+            StartCreatingSagTextures(threadGroupState, sagProgress, _data, _dicomFiles, sagTextureColors, WindowCenter, WindowWidth, 2);
+
+            while (threadGroupState.Working > 0 || !(transProgress.IsEmpty && frontProgress.IsEmpty && sagProgress.IsEmpty))
             {
                 int current;
-                Texture2D currentTexture2D;
-
-                while (transProgress.TryDequeue(out current))
+                if (transProgress.TryDequeue(out current))
                 {
-                    currentTexture2D = new Texture2D(_width, _height, TextureFormat.ARGB32, true);
-                    currentTexture2D.SetPixels32(transTextureColors[current]);
-                    currentTexture2D.filterMode = FilterMode.Point;
-                    currentTexture2D.Apply();
-                    _transversalTexture2Ds[current] = currentTexture2D;
-
-                    if (current == 50)
-                    {
-                        MainMenu.SetPreviewImage(_transversalTexture2Ds[current]);
-                    }
-
-                    _viewManager.TextureUpdated(SliceType.Transversal, current);
-                    threadGroupState.IncrementProgress();
-                    yield return null;
+                    CreateTexture2D(threadGroupState, _width, _height, SliceType.Transversal, transTextureColors, _transversalTexture2Ds, current);
                 }
 
-                while (frontProgress.TryDequeue(out current))
+                if (frontProgress.TryDequeue(out current))
                 {
-                    currentTexture2D = new Texture2D(_width, _dicomFiles.Length, TextureFormat.ARGB32, true);
-                    currentTexture2D.SetPixels32(frontTextureColors[current]);
-                    currentTexture2D.filterMode = FilterMode.Point;
-                    currentTexture2D.Apply();
-                    _frontalTexture2Ds[current] = currentTexture2D;
-
-                    _viewManager.TextureUpdated(SliceType.Frontal, current);
-                    threadGroupState.IncrementProgress();
-                    yield return null;
+                    CreateTexture2D(threadGroupState, _width, _dicomFiles.Length, SliceType.Frontal, frontTextureColors, _frontalTexture2Ds, current);
                 }
 
-                while (sagProgress.TryDequeue(out current))
+                if (sagProgress.TryDequeue(out current))
                 {
-                    currentTexture2D = new Texture2D(_height, _dicomFiles.Length, TextureFormat.ARGB32, true);
-                    currentTexture2D.SetPixels32(sagTextureColors[current]);
-                    currentTexture2D.filterMode = FilterMode.Point;
-                    currentTexture2D.Apply();
-                    _sagittalTexture2Ds[current] = currentTexture2D;
-
-                    _viewManager.TextureUpdated(SliceType.Sagittal, current);
-                    threadGroupState.IncrementProgress();
-                    yield return null;
+                    CreateTexture2D(threadGroupState, _height, _dicomFiles.Length, SliceType.Sagittal, sagTextureColors, _sagittalTexture2Ds, current);
                 }
 
                 yield return null;
             }
 
+        }
+
+        /// <summary>
+        /// Creates a new Texture 2D with given width, height and Colors and writes it to the target Texture2D array. Also notifies the viewmanager of the texture update.
+        /// </summary>
+        /// <param name="threadGroupState">Thread safe thread-state used to observe progress of one or multiple threads.</param>
+        /// <param name="width">Width of the to be created texture.</param>
+        /// <param name="height">Height of the to be created texture.</param>
+        /// <param name="type">Type of the Slice to be created.</param>
+        /// <param name="textureColors">Array of all colors for every slice of this slice type.</param>
+        /// <param name="target">Target array to write the texture2D to.</param>
+        /// <param name="current">Index of the Texture to be created.</param>
+        private void CreateTexture2D(ThreadGroupState threadGroupState, int width, int height, SliceType type, Color32[][] textureColors, Texture2D[] target, int current)
+        {
+            var currentTexture2D = new Texture2D(width, height, TextureFormat.ARGB32, true);
+            currentTexture2D.SetPixels32(textureColors[current]);
+            currentTexture2D.filterMode = FilterMode.Point;
+            currentTexture2D.Apply();
+            target[current] = currentTexture2D;
+
+            _viewManager.TextureUpdated(type, current);
+            threadGroupState.IncrementProgress();
         }
 
         /// <summary>
@@ -353,9 +358,6 @@ namespace DICOMParser
         /// <param name="threadCount">Amount of Threads to use.</param>
         private void StartPreProcessing(ThreadGroupState groupState, IReadOnlyList<DiFile> files, int[] target, int threadCount)
         {
-            _windowCenter = Double.MinValue;
-            _windowWidth = Double.MinValue;
-
             int spacing = files.Count / threadCount;
 
             for (var i = 0; i < threadCount; ++i)
@@ -392,11 +394,11 @@ namespace DICOMParser
             for (var layer = start; layer < end; ++layer)
             {
                 var currentDiFile = files[layer];
-                DiDataElement pixelData = currentDiFile.RemoveElement(0x7FE0, 0x0010);
+                var pixelData = currentDiFile.RemoveElement(0x7FE0, 0x0010);
                 int mask = ~(~0 << currentDiFile.GetHighBit() + 1);
                 int allocated = currentDiFile.GetBitsAllocated() / 8;
 
-                int indlwh = layer * width * height;
+                var baseOffset = layer * width * height;
 
                 using (var pixels = new MemoryStream(pixelData.GetValues()))
                 {
@@ -406,12 +408,9 @@ namespace DICOMParser
                         {
                             //get current Int value
                             pixels.Read(storedBytes, 0, allocated);
-
                             var value = BitConverter.ToInt32(storedBytes, 0);
-
                             var currentPix = GetPixelIntensity(value & mask, currentDiFile);
-
-                            target[indlwh + x * height + y] = currentPix;
+                            target[baseOffset + x * height + y] = currentPix;
                         }
                     }
 

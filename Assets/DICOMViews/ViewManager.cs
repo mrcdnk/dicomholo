@@ -25,15 +25,17 @@ namespace DICOMViews
         void Start ()
         {
             _stack = gameObject.AddComponent<ImageStack>();
-            _stack.MainMenu = MainMenu;
             _stack.Selection = MainMenu.Selection;
             _stack.ViewManager = this;
 
             Slice2DView.ImageStack = _stack;
+            WindowSettingsPanel.SettingsChangedEvent.AddListener(OnWindowSettingsChanged);
 
+            WindowSettingsPanel.gameObject.SetActive(false);
             Volume.SetActive(false);
             Slice2DView.gameObject.SetActive(false);
-            InitFiles();
+
+            ParseFiles();
         }
 	
         // Update is called once per frame
@@ -45,7 +47,7 @@ namespace DICOMViews
             while (_currentWorkloads.Count > 0 && index < _currentWorkloads.Count)
             {
                 var tuple = _currentWorkloads[index];
-                if (tuple.Item1.progress == tuple.Item1.TotalProgress && tuple.Item1.working == 0)
+                if (tuple.Item1.Progress == tuple.Item1.TotalProgress && tuple.Item1.Working == 0)
                 {
                     //Remove from list
                     RemoveWorkload(index);
@@ -57,27 +59,40 @@ namespace DICOMViews
                     break;
                 }
 
-                progress += tuple.Item1.progress;
+                progress += tuple.Item1.Progress;
                 index++;
             }
 
             MainMenu.ProgressHandler.Value = progress;
         }
 
-        public void InitFiles()
+        private void OnWindowSettingsChanged(double winWidth, double winCenter)
         {
+            _stack.WindowWidth = winWidth;
+            _stack.WindowCenter = winCenter;
+        }
+
+        public void ParseFiles()
+        {
+            WindowSettingsPanel.DisableButtons();
             MainMenu.DisableButtons();
-            AddWorkload(_stack.StartInitFiles(),"Loading Files", () =>
-            {
-                Slice2DView.InitSlider();
-                PreProcessData();
-            });
+            WindowSettingsPanel.gameObject.SetActive(false);
+            AddWorkload(_stack.StartParsingFiles(),"Loading Files", OnFilesParsed);
+        }
+
+        private void OnFilesParsed()
+        {
+            WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidth, _stack.WindowCenter);
+            WindowSettingsPanel.gameObject.SetActive(true);
+            Slice2DView.InitSlider();
+            PreProcessData();
         }
 
         public void PreProcessData()
         {
             AddWorkload(_stack.StartPreprocessData(), "Preprocessing Data", () =>
             {
+                WindowSettingsPanel.EnableButtons();
                 MainMenu.EnableButtons();
             });
         }
@@ -87,7 +102,7 @@ namespace DICOMViews
             MainMenu.LoadVolumeButton.enabled = false;
             AddWorkload(_stack.StartCreatingVolume(), "Creating Volume", () => {
                 VolumeRendering.SetVolume(_stack.Texture3D);
-                //RayMarching.initVolume(_stack.Texture3D);
+                RayMarching.initVolume(_stack.Texture3D);
 
                 Volume.SetActive(true);
                 MainMenu.LoadVolumeButton.enabled = true;
@@ -106,6 +121,11 @@ namespace DICOMViews
         public void TextureUpdated(SliceType type, int index)
         {
             Slice2DView.TextureUpdated(type, index);
+
+            if (type == SliceType.Transversal && index == 50)
+            {
+                MainMenu.SetPreviewImage(_stack.GetTexture2D(type, index));
+            }
         }
 
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)

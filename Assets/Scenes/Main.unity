@@ -190,7 +190,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 25853959}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1107293237}
+        m_MethodName: CreateTextures
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
 --- !u!114 &25853959
@@ -2323,7 +2334,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1107293237}
-        m_MethodName: InitFiles
+        m_MethodName: ParseFiles
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2560,7 +2571,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Apply Volume
+  m_Text: Load Volume
 --- !u!222 &1087958272
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2948,7 +2959,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1344208717}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1107293237}
+        m_MethodName: CreateVolume
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
 --- !u!114 &1344208717
@@ -3121,6 +3143,8 @@ MonoBehaviour:
   DefaultToggle: {fileID: 1731069990}
   WidthSlider: {fileID: 1080298311}
   CenterSlider: {fileID: 887384961}
+  LoadTextures: {fileID: 25853958}
+  LoadVolume: {fileID: 1344208716}
 --- !u!1 &1409829982
 GameObject:
   m_ObjectHideFlags: 0
@@ -4344,9 +4368,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Apply Textures
-
-'
+  m_Text: Load 2D View
 --- !u!222 &1810528451
 CanvasRenderer:
   m_ObjectHideFlags: 0

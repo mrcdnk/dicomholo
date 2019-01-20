@@ -1,4 +1,5 @@
 ﻿
+using System.Threading;
 using UnityEngine;
 
 namespace Threads
@@ -8,16 +9,15 @@ namespace Threads
     /// </summary>
     public class ThreadGroupState
     {
-        private object wMutex = new object();
-        private object pMutex = new object();
-
-        public int progress;
-        public int working;
+        private int progress;
+        private int working;
 
         /// <summary>
         /// Set to the total amount of progress to be reached when the work is done. Not synchronized.
         /// </summary>
         public int TotalProgress { get; set; }
+        public int Progress => progress;
+        public int Working => working;
 
         /// <summary>
         /// Resets the state.
@@ -33,10 +33,7 @@ namespace Threads
         /// </summary>
         public void IncrementProgress()
         {
-            lock (pMutex)
-            {
-                progress++;
-            }
+            Interlocked.Increment(ref progress);
         }
 
         /// <summary>
@@ -44,10 +41,7 @@ namespace Threads
         /// </summary>
         public void Register()
         {
-            lock (wMutex)
-            {
-                working++;
-            }
+            Interlocked.Increment(ref working);
         }
 
         /// <summary>
@@ -55,10 +49,7 @@ namespace Threads
         /// </summary>
         public void Done()
         {
-            lock (wMutex)
-            {
-                working--;
-            }
+            Interlocked.Decrement(ref working);
         }
     }
 

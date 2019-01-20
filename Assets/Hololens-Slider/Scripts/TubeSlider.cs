@@ -47,15 +47,29 @@ public class TubeSlider : MonoBehaviour
         set
         {
             _currentValue = (value - _minValue)/SliderRange;
-            button.transform.position = start + (-button.transform.up.normalized * (float)_currentValue * sliderVector.magnitude);
-            button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
-            SliderChangedEvent.Invoke(this);
+            UpdatePosition();
         }
     }
 
-    public float CurrentFloat => (float)((_currentValue * SliderRange) + MinimumValue);
+    public float CurrentFloat
+    {
+        get { return (float) (_currentValue*SliderRange + MinimumValue); }
+        set
+        {
+            _currentValue = (value - _minValue) / SliderRange;
+            UpdatePosition();
+        }
+    }
 
-    public double CurrentDouble => _currentValue;
+    public double CurrentDouble
+    {
+        get { return (_currentValue * SliderRange + MinimumValue); }
+        set
+        {
+            _currentValue = (value - _minValue) / SliderRange;
+            UpdatePosition();
+        }
+    }
 
     public double CurrentPercentage
     {
@@ -127,6 +141,13 @@ public class TubeSlider : MonoBehaviour
 
         button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
         button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
+        SliderChangedEvent.Invoke(this);
+    }
+
+    private void UpdatePosition()
+    {
+        button.transform.position = start + (-button.transform.up.normalized * (float)_currentValue * sliderVector.magnitude);
+        button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
         SliderChangedEvent.Invoke(this);
     }
 

@@ -273,6 +273,7 @@ namespace DICOMParser
             currentTexture2D.SetPixels32(textureColors[current]);
             currentTexture2D.filterMode = FilterMode.Point;
             currentTexture2D.Apply();
+            Destroy(target[current]);
             target[current] = currentTexture2D;
 
             _viewManager.TextureUpdated(type, current);

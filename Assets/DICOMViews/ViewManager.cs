@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using DICOMParser;
 using Threads;
 using UnityEngine;
@@ -24,6 +25,20 @@ namespace DICOMViews
         // Use this for initialization
         void Start ()
         {
+            MainMenu.Selection.ClearOptions();
+
+            var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
+
+            var names = new List<string>();
+
+            foreach (var fold in folders)
+            {
+                names.Add(fold.Split('\\')[1]);
+
+            }
+
+            MainMenu.Selection.AddOptions(names);
+
             _stack = gameObject.AddComponent<ImageStack>();
             _stack.Selection = MainMenu.Selection;
             _stack.ViewManager = this;

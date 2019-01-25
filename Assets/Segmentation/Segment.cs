@@ -12,11 +12,13 @@ namespace Segmentation
     /// <typeparam name="TP">Customizable type for the Parameter Object to pass any parameters to the Fit function</typeparam>
     public abstract class Segment<TP>
     {
-        private ulong[,] segmentData;
+        private ulong[,] _segmentData;
 
-        private int width = 0, height = 0, slices = 0;
+        public SegmentationColor Color { get; set; }
 
-        private readonly SegmentationColor color;
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public int Slices { get; set; }
 
         /// <summary>
         /// Creates an empty Segment with uninitialized data array.
@@ -24,7 +26,7 @@ namespace Segmentation
         /// <param name="color">Color Number used inside the shader.</param>
         public Segment(SegmentationColor color)
         {
-            this.color = color;
+            this.Color = color;
         }
 
         /// <summary>
@@ -35,11 +37,11 @@ namespace Segmentation
         /// <param name="slices"> number of slices</param>
         public void Allocate(int width, int height, int slices)
         {
-            this.width = width;
-            this.height = height;
-            this.slices = slices;
+            Width = width;
+            Height = height;
+            Slices = slices;
 
-            segmentData = new ulong[slices, ((width * height) / 64) + 1];
+            _segmentData = new ulong[slices, (width * height) / 64 + 1];
         }
 
         /// <summary>
@@ -47,7 +49,7 @@ namespace Segmentation
         /// </summary>
         /// <param name="data">Base data volume</param>
         /// <param name="parameters">Custom Parameter Object</param>
-        public abstract void Fit(uint[,,] data, TP parameters);
+        public abstract void Fit(int[] data, TP parameters);
 
         /// <summary>
         /// Use to check whether a given coordinate is inside the segment or not.
@@ -58,10 +60,10 @@ namespace Segmentation
         /// <returns>true if the given point is inside the segment.</returns>
         public bool Contains(int x, int y, int z)
         {
-            int longnum = (x + y * width) >> 6;
-            int bitnum = (x + y * width) % 64;
+            int longnum = (x + y * Width) >> 6;
+            int bitnum = (x + y * Width) % 64;
 
-            return (segmentData[z, longnum] & (ulong)1 << bitnum) != 0;
+            return (_segmentData[z, longnum] & (ulong)1 << bitnum) != 0;
         }
 
         /// <summary>
@@ -69,17 +71,14 @@ namespace Segmentation
         /// </summary>
         public void Clear()
         {
-           Array.Clear(segmentData, 0, segmentData.Length);
+           Array.Clear(_segmentData, 0, _segmentData.Length);
         }
 
         /// <summary>
         /// Returns true when there is no work left to do, only needs to be overridden when using multiple threads.
         /// </summary>
         /// <returns></returns>
-        public bool Done()
-        {
-            return true;
-        }
+        public abstract bool Done();
 
         /// <summary>
         /// Sets the given point to the given value.
@@ -88,18 +87,18 @@ namespace Segmentation
         /// <param name="y">y position</param>
         /// <param name="z">slice number</param>
         /// <param name="value">The boolean value to set the given point to.</param>
-        private void Set(int x, int y, int z, bool value)
+        protected void Set(int x, int y, int z, bool value)
         {
-            int longnum = (x + y * width) >> 6;
-            int bitnum = (x + y * width) % 64;
+            var longnum = (x + y * Width) >> 6;
+            var bitnum = (x + y * Width) % 64;
 
             if (value)
             {
-                segmentData[z, longnum] |= (ulong)1 << bitnum;
+                _segmentData[z, longnum] |= (ulong)1 << bitnum;
             }
             else
             {
-                segmentData[z, longnum] &= ~(ulong)1 << bitnum;
+                _segmentData[z, longnum] &= ~(ulong)1 << bitnum;
             }
         }
 
@@ -111,7 +110,7 @@ namespace Segmentation
         /// </returns>
         public SegmentationColor GetColor()
         {
-            return color;
+            return Color;
         }
 
         /// <summary>
@@ -122,7 +121,7 @@ namespace Segmentation
         /// </returns>
         public ulong[,] GetSegmentation()
         {
-            return segmentData;
+            return _segmentData;
         }
     }
 
@@ -132,9 +131,9 @@ namespace Segmentation
     /// </summary>
     public enum SegmentationColor : uint
     {
-        RED = 1,
-        BLUE = 2,
-        GREEN = 3
+        Red = 1,
+        Blue = 2,
+        Green = 3
     }
 
 }

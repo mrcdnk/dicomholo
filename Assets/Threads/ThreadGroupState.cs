@@ -26,6 +26,7 @@ namespace Threads
         {
             progress = 0;
             working = 0;
+            TotalProgress = 0;
         }
 
         /// <summary>

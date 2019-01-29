@@ -3,14 +3,11 @@
 
 #include "UnityCG.cginc"
 
-#ifndef ITERATIONS
-#define ITERATIONS 150
-#endif
-
 half4 _Color;
 sampler3D _Volume;
 half _Intensity;
 half _Opacity;
+half _StepCount;
 half3 _SliceMin, _SliceMax;
 float4x4 _AxisRotationMatrix;
 
@@ -118,14 +115,14 @@ fixed4 frag(v2f i) : SV_Target
   float3 start = ray.origin;
   float3 end = ray.origin + ray.dir * tfar;
   float dist = abs(tfar - tnear); // float dist = distance(start, end);
-  float step_size = dist / float(ITERATIONS);
+  float step_size = dist / float(_StepCount);
   float3 ds = normalize(end - start) * step_size;
 
   float4 dst = float4(0, 0, 0, 0);
   float3 p = start;
 
-  [unroll]
-  for (int iter = 0; iter < ITERATIONS; iter++)
+  //[unroll]
+  for (int iter = 0; iter < _StepCount; ++iter)
   {
     float3 uv = get_uv(p);
     float4 src = sample_volume(uv, p);

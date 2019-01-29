@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+using DICOMViews;
+using Threads;
 using UnityEngine;
 
 namespace Segmentation
@@ -14,7 +14,7 @@ namespace Segmentation
     {
         private ulong[,] _segmentData;
 
-        public SegmentationColor Color { get; set; }
+        public SegmentationColor SegmentColor { get; set; }
 
         public int Width { get; set; }
         public int Height { get; set; }
@@ -23,10 +23,10 @@ namespace Segmentation
         /// <summary>
         /// Creates an empty Segment with uninitialized data array.
         /// </summary>
-        /// <param name="color">Color Number used inside the shader.</param>
-        public Segment(SegmentationColor color)
+        /// <param name="segmentColor">Color Number used inside the shader.</param>
+        public Segment(SegmentationColor segmentColor)
         {
-            this.Color = color;
+            SegmentColor = segmentColor;
         }
 
         /// <summary>
@@ -49,7 +49,8 @@ namespace Segmentation
         /// </summary>
         /// <param name="data">Base data volume</param>
         /// <param name="parameters">Custom Parameter Object</param>
-        public abstract void Fit(int[] data, TP parameters);
+        /// <returns>The ThreadGroupState to enable progress monitoring and callback on finish.</returns>
+        public abstract ThreadGroupState Fit(int[] data, TP parameters);
 
         /// <summary>
         /// Use to check whether a given coordinate is inside the segment or not.
@@ -110,7 +111,7 @@ namespace Segmentation
         /// </returns>
         public SegmentationColor GetColor()
         {
-            return Color;
+            return SegmentColor;
         }
 
         /// <summary>
@@ -122,6 +123,111 @@ namespace Segmentation
         public ulong[,] GetSegmentation()
         {
             return _segmentData;
+        }
+
+        /// <summary>
+        /// Writes segmentation data of the slice type into the given texture.
+        /// </summary>
+        /// <param name="texture2D">target texture2D</param>
+        /// <param name="sliceType">type of slice to be displayed</param>
+        /// <param name="index">index of the slice</param>
+        public void WriteToTexture(Texture2D texture2D, SliceType sliceType, int index)
+        {
+            switch (sliceType)
+            {
+                case SliceType.Transversal:
+                    break;
+                case SliceType.Sagittal:
+                    break;
+                case SliceType.Frontal:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(sliceType), sliceType, "Invalid SliceType");
+            }
+        }
+
+        /// <summary>
+        /// Writes segmentation data into a transversal 2D texture
+        /// </summary>
+        /// <param name="texture2D">target Texture 2D</param>
+        /// <param name="id">the id of the slice</param>
+        public void WriteToTransversal(Texture2D texture2D, int id)
+        {
+            var colors = texture2D.GetPixels();
+
+            for (var y = 0; y < Height; ++y)
+            {
+                for (var x = 0; x < Width; ++x)
+                {
+                    var index = y * Width + x;
+
+                    colors[index] = GetColor(x, y, id);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes the segment into a texture 3D.
+        /// </summary>
+        /// <param name="texture3D">The target texture 3D to override</param>
+        public void WriteToTexture(Texture3D texture3D)
+        {
+            var pixelColors = texture3D.GetPixels();
+
+            var index = 0;
+
+            for (var z = 0; z < Slices; z++)
+            {
+                for (var y = 0; y < Height; y++)
+                {
+                    for (var x = 0; x < Width; x++)
+                    {
+                        pixelColors[index] = GetColor(x,y,z);
+                        index++;
+                    }
+                    index++;
+                }
+                index++;
+            }
+        }
+
+        /// <summary>
+        /// Returns the unity color representation of the given pixel
+        /// </summary>
+        /// <param name="x">x coordinate</param>
+        /// <param name="y">y coordinate</param>
+        /// <param name="z">index of the dicom image</param>
+        /// <returns></returns>
+        public Color GetColor(int x, int y, int z)
+        {
+            if (Contains(x, y, z))
+            {
+               return GetColor(SegmentColor);
+            }
+            else
+            {
+                return Color.clear;
+            }
+        }
+
+        /// <summary>
+        /// Converts the given Segmentation Color to the UnityColor to use.
+        /// </summary>
+        /// <param name="color">Segmentation color enum</param>
+        /// <returns>Unity color representation</returns>
+        public static Color GetColor(SegmentationColor color)
+        {
+            switch (color)
+            {
+                case SegmentationColor.Red:
+                    return Color.red;
+                case SegmentationColor.Blue:
+                    return Color.blue;
+                case SegmentationColor.Green:
+                    return Color.green;
+                default:
+                    return Color.clear;
+            }
         }
     }
 

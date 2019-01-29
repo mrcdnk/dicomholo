@@ -18,8 +18,6 @@ namespace DICOMParser
     /// </summary>
     public class ImageStack : MonoBehaviour
     {
-        public Dropdown Selection;
-
         public Text DebugText;
 
         private int[] _data;
@@ -55,10 +53,10 @@ namespace DICOMParser
         /// <summary>
         /// Start coroutine for parsing of files.
         /// </summary>
-        public ThreadGroupState StartParsingFiles()
+        public ThreadGroupState StartParsingFiles(string folderPath)
         {
             ThreadGroupState state = new ThreadGroupState();
-            StartCoroutine(nameof(InitFiles), state);
+            StartCoroutine(InitFiles(folderPath, state));
             return state;
         }
 
@@ -78,7 +76,7 @@ namespace DICOMParser
         public ThreadGroupState StartCreatingVolume()
         {
             ThreadGroupState state = new ThreadGroupState {TotalProgress = _dicomFiles.Length};
-            StartCoroutine(nameof(CreateVolume), state);
+            StartCoroutine(CreateVolume(state));
 
             return state;
         }
@@ -89,7 +87,7 @@ namespace DICOMParser
         public ThreadGroupState StartCreatingTextures()
         {
             ThreadGroupState state = new ThreadGroupState {TotalProgress = _dicomFiles.Length + _width + _height};
-            StartCoroutine(nameof(CreateTextures), state);
+            StartCoroutine(CreateTextures(state));
             return state;
         }
 
@@ -110,29 +108,19 @@ namespace DICOMParser
         /// <summary>
         /// Unity coroutine for loading the selected folder of files.
         /// </summary>
+        /// <param name="folderPath">Path of the folder containing the DICOM files</param>
         /// <param name="threadGroupState">Thread safe thread-state used to observe progress of one or multiple threads.</param>
         /// <returns>IEnumerator for usage as a coroutine</returns>
-        private IEnumerator InitFiles(ThreadGroupState threadGroupState)
+        private IEnumerator InitFiles(string folderPath, ThreadGroupState threadGroupState)
         {
             threadGroupState.Register();
-            //var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
-
-            /*foreach (var fold in folders)
-            {
-                if (fold.Contains(Selection.captionText.text))
-                {
-                    folderPath = fold;
-                }
-                break;
-            }*/
-
-            //string[] filePaths = Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text));
+            //string[] filePaths = Directory.GetFiles(folderPath);
 
             //filePaths = Array.FindAll(filePaths, HasNoExtension); 
             List<string> fileNames = new List<string>();
 
 #if UNITY_EDITOR
-            foreach (string file in Directory.GetFiles(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text)))
+            foreach (string file in Directory.GetFiles(folderPath))
             {
                 if (UnityEngine.Windows.File.Exists(file) && (file.EndsWith(".dcm") || !file.Contains(".")))
                 {
@@ -143,12 +131,9 @@ namespace DICOMParser
 #elif UNITY_WSA
             var pos = 0; //startfile
 
-            while (UnityEngine.Windows.File.Exists(Path.Combine(
-                Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
-                "CTHd" + pos.ToString("D3"))))
+            while (UnityEngine.Windows.File.Exists(folderPath, "CTHd" + pos.ToString("D3"))))
             {
-                fileNames.Add(Path.Combine(Path.Combine(Application.streamingAssetsPath, Selection.captionText.text),
-                    "CTHd" + pos.ToString("D3")));
+                fileNames.Add(Path.Combine(folderPath, "CTHd" + pos.ToString("D3")));
                 ++pos;
             }
 #endif
@@ -373,6 +358,7 @@ namespace DICOMParser
 
                 groupState.Register();
                 var t = new Thread(() => PreProcess(groupState, files, _width, _height, target, startIndex, endIndex));
+                t.IsBackground = true;
                 t.Start();
             }
         }
@@ -449,6 +435,7 @@ namespace DICOMParser
                 }
 
                 var t = new Thread(() => createVolume(groupState, data, files, _width, _height, target, windowWidth, windowCenter, startIndex, endIndex));
+                t.IsBackground = true;
                 t.Start();
             }
         }
@@ -518,6 +505,7 @@ namespace DICOMParser
 
                 var t = new Thread(() => CreateTransTextures(groupState, processed, data, _width, _height, files, target,
                     windowWidth, windowCenter, startIndex, endIndex));
+                t.IsBackground = true;
                 t.Start();
             }
         }
@@ -578,6 +566,7 @@ namespace DICOMParser
 
                 var t = new Thread(() => CreateFrontTextures(groupState, processed, data, _width, _height, files, target,
                     windowWidth, windowCenter, startIndex, endIndex));
+                t.IsBackground = true;
                 t.Start();
             }
         }
@@ -638,6 +627,7 @@ namespace DICOMParser
 
                 var t = new Thread(() => CreateSagTextures(groupState, processed, data, _width, _height, files, target,
                     windowWidth, windowCenter, startIndex, endIndex));
+                t.IsBackground = true;
                 t.Start();
             }
         }

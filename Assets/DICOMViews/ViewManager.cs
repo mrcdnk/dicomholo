@@ -25,7 +25,7 @@ namespace DICOMViews
         // Use this for initialization
         void Start ()
         {
-            MainMenu.Selection.ClearOptions();
+            MainMenu.ClearDropdown();
 
             var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
 
@@ -37,10 +37,9 @@ namespace DICOMViews
 
             }
 
-            MainMenu.Selection.AddOptions(names);
+            MainMenu.AddDropdownOptions(names);
 
             _stack = gameObject.AddComponent<ImageStack>();
-            _stack.Selection = MainMenu.Selection;
             _stack.ViewManager = this;
 
             Slice2DView.ImageStack = _stack;
@@ -92,7 +91,7 @@ namespace DICOMViews
             WindowSettingsPanel.DisableButtons();
             MainMenu.DisableButtons();
             WindowSettingsPanel.gameObject.SetActive(false);
-            AddWorkload(_stack.StartParsingFiles(),"Loading Files", OnFilesParsed);
+            AddWorkload(_stack.StartParsingFiles(Path.Combine(Application.streamingAssetsPath, MainMenu.GetSelectedFolder())),"Loading Files", OnFilesParsed);
         }
 
         private void OnFilesParsed()
@@ -115,13 +114,16 @@ namespace DICOMViews
         public void CreateVolume()
         {
             MainMenu.LoadVolumeButton.enabled = false;
-            AddWorkload(_stack.StartCreatingVolume(), "Creating Volume", () => {
-                VolumeRendering.SetVolume(_stack.Texture3D);
-                RayMarching.initVolume(_stack.Texture3D);
+            AddWorkload(_stack.StartCreatingVolume(), "Creating Volume", OnVolumeCreated);
+        }
 
-                Volume.SetActive(true);
-                MainMenu.LoadVolumeButton.enabled = true;
-            });
+        private void OnVolumeCreated()
+        {
+            VolumeRendering.SetVolume(_stack.Texture3D);
+            //RayMarching.initVolume(_stack.Texture3D);
+
+            //Volume.SetActive(true);
+            MainMenu.LoadVolumeButton.enabled = true;
         }
 
         public void CreateTextures()

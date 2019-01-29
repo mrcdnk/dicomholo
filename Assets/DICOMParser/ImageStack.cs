@@ -131,7 +131,7 @@ namespace DICOMParser
 #elif UNITY_WSA
             var pos = 0; //startfile
 
-            while (UnityEngine.Windows.File.Exists(folderPath, "CTHd" + pos.ToString("D3"))))
+            while (UnityEngine.Windows.File.Exists(folderPath+ "/CTHd" + pos.ToString("D3")))
             {
                 fileNames.Add(Path.Combine(folderPath, "CTHd" + pos.ToString("D3")));
                 ++pos;

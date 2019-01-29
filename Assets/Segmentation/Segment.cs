@@ -151,7 +151,7 @@ namespace Segmentation
         /// </summary>
         /// <param name="texture2D">target Texture 2D</param>
         /// <param name="id">the id of the slice</param>
-        public void WriteToTransversal(Texture2D texture2D, int id)
+        private void WriteToTransversal(Texture2D texture2D, int id)
         {
             var colors = texture2D.GetPixels();
 
@@ -162,6 +162,46 @@ namespace Segmentation
                     var index = y * Width + x;
 
                     colors[index] = GetColor(x, y, id);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes segmentation data into a sagittal 2D texture
+        /// </summary>
+        /// <param name="texture2D">target Texture 2D</param>
+        /// <param name="id">the id of the slice</param>
+        private void WriteToSagittal(Texture2D texture2D, int id)
+        {
+            var colors = texture2D.GetPixels();
+
+            for (var z = 0; z < Slices; ++z)
+            {
+                for (var y = 0; y < Height; ++y)
+                {
+                    var index = z * Width + y;
+
+                    colors[index] = GetColor(id, y, z);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes segmentation data into a frontal 2D texture
+        /// </summary>
+        /// <param name="texture2D">target Texture 2D</param>
+        /// <param name="id">the id of the slice</param>
+        private void WriteToFrontal(Texture2D texture2D, int id)
+        {
+            var colors = texture2D.GetPixels();
+
+            for (var z = 0; z < Slices; ++z)
+            {
+                for (var x = 0; x < Width; ++x)
+                {
+                    var index = z * Height + x;
+
+                    colors[index] = GetColor(x, id, z);
                 }
             }
         }

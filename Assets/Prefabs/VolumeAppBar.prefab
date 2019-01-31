@@ -88,7 +88,7 @@ GameObject:
   - component: {fileID: 4773597359991020}
   - component: {fileID: 114050950401502068}
   m_Layer: 0
-  m_Name: AppBar
+  m_Name: VolumeAppBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -134,9 +134,20 @@ MonoBehaviour:
   UseHide: 1
   DisplayType: 0
   State: 0
-  CustomButtonIconProfile: {fileID: 11400000, guid: a05b72560895bf146a8fcc7cdc391aae,
-    type: 2}
-  buttons: []
+  CustomButtonIconProfile: {fileID: 0}
+  buttons:
+  - DefaultPosition: 1
+    ManipulationPosition: 0
+    Type: 0
+    Name: Settings
+    Icon: ObjectCollectionPlane
+    Text: Settings
+    EventTarget: {fileID: 0}
+    OnTappedEvent:
+      m_PersistentCalls:
+        m_Calls: []
+      m_TypeName: UnityEngine.Events.UnityEvent, UnityEngine.CoreModule, Version=0.0.0.0,
+        Culture=neutral, PublicKeyToken=null
   buttonParent: {fileID: 4691479528535670}
   baseRenderer: {fileID: 1275815092924048}
   backgroundBar: {fileID: 1093294406509342}

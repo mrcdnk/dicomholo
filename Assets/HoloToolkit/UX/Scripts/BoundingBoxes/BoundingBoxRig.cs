@@ -174,25 +174,11 @@ namespace HoloToolkit.Unity.UX
             }
         }
 
-        [SerializeField]
-        [Tooltip("AppBar prefab.")]
-        private AppBar appBarPrefab = null;
-        public AppBar AppBarPrefab
-        {
-            get
-            {
-                return appBarPrefab;
-            }
-            set
-            {
-                appBarPrefab = value;
-            }
-        }
-
         private BoundingBox boxInstance;
 
         private GameObject objectToBound;
 
+        [SerializeField]
         private AppBar appBarInstance;
 
         private GameObject[] rotateHandles;
@@ -264,7 +250,6 @@ namespace HoloToolkit.Unity.UX
 
             BuildRig();
 
-            appBarInstance = Instantiate(appBarPrefab) as AppBar;
             appBarInstance.BoundingBox = boxInstance;
             appBarInstance.HoverOffsetZ = appBarHoverOffsetZ;
 

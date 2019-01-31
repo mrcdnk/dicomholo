@@ -230,7 +230,7 @@ Transform:
   m_GameObject: {fileID: 1298640672643642}
   m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.75, y: 1, z: 0.75}
+  m_LocalScale: {x: 0.75, y: 0.8, z: 0.75}
   m_Children:
   - {fileID: 4112852092093374}
   m_Father: {fileID: 4002252708272972}
@@ -704,7 +704,7 @@ Transform:
   m_GameObject: {fileID: 1457260290220860}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
+  m_LocalScale: {x: 180, y: 140, z: 140}
   m_Children:
   - {fileID: 4884058106642706}
   - {fileID: 4138342134008004}
@@ -724,17 +724,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01bd98c240abc564b9af957cf67a61dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Cursor: {fileID: 0}
   SliderChangedEvent:
     m_PersistentCalls:
       m_Calls: []
     m_TypeName: SliderChangedEvent, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
   SliderName: Hololens-Slider
-  _sliderMinValue: 0
-  SliderMinimumLabel: Low
-  _sliderMaxValue: 100
-  SliderMaximumLabel: High
+  _minValue: 0
+  MinimumLabel: 
+  _maxValue: 100
+  MaximumLabel: 
   _currentValue: 0.5
   DisplayInt: 1
   ButtonColor:

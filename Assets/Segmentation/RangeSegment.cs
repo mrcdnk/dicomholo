@@ -99,7 +99,7 @@ namespace Segmentation
 
         public override bool Done()
         {
-            return true;
+            return _currentWorkload.Working == 0;
         }
     }
 }

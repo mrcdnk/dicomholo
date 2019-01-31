@@ -13,6 +13,7 @@ namespace DICOMViews
         public WindowSettingsPanel WindowSettingsPanel;
         public Slice2DView Slice2DView;
 
+        public GameObject VolumeRenderingParent;
         public VolumeRendering.VolumeRendering VolumeRendering;
 
         public GameObject Volume;
@@ -47,6 +48,7 @@ namespace DICOMViews
 
             WindowSettingsPanel.gameObject.SetActive(false);
             Volume.SetActive(false);
+            VolumeRenderingParent.SetActive(false);
             Slice2DView.gameObject.SetActive(false);
 
             ParseFiles();
@@ -124,6 +126,8 @@ namespace DICOMViews
 
             //Volume.SetActive(true);
             MainMenu.LoadVolumeButton.enabled = true;
+            VolumeRenderingParent.SetActive(true);
+
         }
 
         public void CreateTextures()

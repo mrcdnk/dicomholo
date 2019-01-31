@@ -246,6 +246,16 @@ namespace HoloToolkit.Unity.UX
                     break;
 
                 default:
+
+                    foreach (var buttonTemplate in Buttons)
+                    {
+                        if (buttonTemplate.Name == obj.name)
+                        {
+                            buttonTemplate.OnTappedEvent.Invoke();
+                            break;
+                        }
+                    }
+
                     break;
             }
         }

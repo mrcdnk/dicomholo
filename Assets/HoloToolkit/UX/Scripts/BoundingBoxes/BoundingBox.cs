@@ -2,6 +2,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 //
+// Modified by Marco Deneke 31.01.2019 for better usability...
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -602,7 +603,7 @@ namespace HoloToolkit.Unity.UX
                     continue;
                 }
 
-                Bounds meshBounds = meshFilterObj.sharedMesh.bounds;
+                Bounds meshBounds = meshFilterObj.mesh.bounds;
                 meshBounds.GetCornerPositions(meshFilterObj.transform, ref corners);
                 boundsPoints.AddRange(corners);
             }

@@ -132,20 +132,16 @@ public class TubeSlider : MonoBehaviour
 
         SliderRange = MaximumValue - MinimumValue;
 
-        start = LeftPivot.position;
-        end = RightPivot.position;
-
-        sliderVector = end - start;
-
-        button.transform.position = start + (-button.transform.up.normalized * (float)_currentValue * sliderVector.magnitude);
-
-        button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
         button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
-        SliderChangedEvent.Invoke(this);
+        UpdatePosition();
     }
 
     private void UpdatePosition()
     {
+        start = LeftPivot.position;
+        end = RightPivot.position;
+        sliderVector = end - start;
+
         button.transform.position = start + (-button.transform.up.normalized * (float)_currentValue * sliderVector.magnitude);
         button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
         SliderChangedEvent.Invoke(this);
@@ -175,6 +171,10 @@ public class TubeSlider : MonoBehaviour
 
     public void CylinderClicked(InputClickedEventData eventData)
     {
+        start = LeftPivot.position;
+        end = RightPivot.position;
+        sliderVector = end - start;
+
         if (Cursor)
         {
             movementDistance = Vector3.Project(Cursor.transform.position - start, sliderVector.normalized);
@@ -212,6 +212,10 @@ public class TubeSlider : MonoBehaviour
 
     public void ManipulationUpdated(ManipulationEventData eventData)
     {
+        start = LeftPivot.position;
+        end = RightPivot.position;
+        sliderVector = end - start;
+
         if (!isSliderManipulationTriggered) return;
 
         button.GetComponent<Renderer>().material.color = ButtonColorOnFocus;

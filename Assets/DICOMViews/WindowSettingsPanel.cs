@@ -1,5 +1,4 @@
-﻿using System;
-using DICOMViews.Events;
+﻿using DICOMViews.Events;
 using UnityEngine;
 using UnityEngine.UI;
 

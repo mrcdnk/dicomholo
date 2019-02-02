@@ -46,7 +46,7 @@ namespace VolumeRendering
 
         public void OnIntensity(float v)
         {
-            volume.intensity = v;
+            volume.Intensity = v;
         }
 
     }

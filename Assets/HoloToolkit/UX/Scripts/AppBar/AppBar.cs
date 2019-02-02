@@ -6,6 +6,7 @@ using HoloToolkit.Unity.InputModule;
 using HoloToolkit.Unity.Receivers;
 using System;
 using System.Collections.Generic;
+using DICOMViews;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -17,6 +18,8 @@ namespace HoloToolkit.Unity.UX
     public class AppBar : InteractionReceiver
     {
         private float buttonWidth = 1.50f;
+
+        public bool Remove = false;
 
         /// <summary>
         /// How many custom buttons can be added to the toolbar
@@ -215,6 +218,21 @@ namespace HoloToolkit.Unity.UX
             {
                 case "Remove":
                     // Destroy the target object, Bounding Box, Bounding Box Rig and App Bar
+                    if (!Remove)
+                    {
+                        gameObject.SetActive(false);
+
+                        if (gameObject.transform.parent.gameObject)
+                        {
+                            VolumeSettingsPanel panel = GetComponentInChildren<VolumeSettingsPanel>();
+                            if (panel && panel.isActiveAndEnabled)
+                            {
+                                panel.Toggle();
+                            }
+                        }
+                        break;
+                    }
+
                     boundingBox.Target.GetComponent<BoundingBoxRig>().Deactivate();
                     Destroy(boundingBox.Target.GetComponent<BoundingBoxRig>());
                     Destroy(boundingBox.Target);

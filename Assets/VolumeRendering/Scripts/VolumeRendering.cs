@@ -18,8 +18,8 @@ namespace VolumeRendering
         protected Material material;
 
         [SerializeField] Color color = Color.white;
-        [Range(0.5f, 5f)] public float intensity = 1.5f;
-        [Range(0f, 2f)] public float opacity = 1f;
+        [Range(0.5f, 5f)] private float intensity = 1.5f;
+        [Range(0f, 2f)] private float opacity = 1f;
         [Range(1, 256)] public int StepCount = 128;
         [Range(0f, 1f)] public float sliceXMin = 0.0f, sliceXMax = 1.0f;
         [Range(0f, 1f)] public float sliceYMin = 0.0f, sliceYMax = 1.0f;
@@ -28,6 +28,30 @@ namespace VolumeRendering
 
         private Texture3D volume;
 
+        public float Opacity
+        {
+            get { return opacity; }
+            set
+            {
+                opacity = value;
+                
+                if(material)
+                    material.SetFloat("_Opacity", Opacity);
+            }
+        }
+
+        public float Intensity
+        {
+            get { return intensity; }
+            set
+            {
+                intensity = value;
+
+                if(material)
+                    material.SetFloat("_Intensity", Intensity);
+            }
+        }
+
         protected virtual void Start()
         {
             material = new Material(shader);
@@ -35,8 +59,8 @@ namespace VolumeRendering
             GetComponent<MeshRenderer>().sharedMaterial = material;
 
             material.SetColor("_Color", color);
-            material.SetFloat("_Intensity", intensity);
-            material.SetFloat("_Opacity", opacity);
+            material.SetFloat("_Intensity", Intensity);
+            material.SetFloat("_Opacity", Opacity);
             material.SetInt("_StepCount", StepCount);
             material.SetVector("_SliceMin", new Vector3(sliceXMin, sliceYMin, sliceZMin));
             material.SetVector("_SliceMax", new Vector3(sliceXMax, sliceYMax, sliceZMax));
@@ -86,8 +110,8 @@ namespace VolumeRendering
             if (material)
             {
                 material.SetColor("_Color", color);
-                material.SetFloat("_Intensity", intensity);
-                material.SetFloat("_Opacity", opacity);
+                material.SetFloat("_Intensity", Intensity);
+                material.SetFloat("_Opacity", Opacity);
                 material.SetInt("_StepCount", StepCount);
                 material.SetVector("_SliceMin", new Vector3(sliceXMin, sliceYMin, sliceZMin));
                 material.SetVector("_SliceMax", new Vector3(sliceXMax, sliceYMax, sliceZMax));
@@ -116,6 +140,8 @@ namespace VolumeRendering
         {
             material.SetTexture("_Volume", texture3D);
         }
+
+       
     }
 
 }

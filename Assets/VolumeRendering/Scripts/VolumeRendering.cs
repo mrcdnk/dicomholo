@@ -18,13 +18,15 @@ namespace VolumeRendering
         protected Material material;
 
         [SerializeField] Color color = Color.white;
-        [Range(0.5f, 5f)] private float intensity = 1.5f;
+        [Range(0.5f, 3f)] private float intensity = 1.5f;
         [Range(0f, 2f)] private float opacity = 1f;
-        [Range(1, 256)] public int StepCount = 128;
+        [Range(1, 256)] private int stepCount = 128;
         [Range(0f, 1f)] public float sliceXMin = 0.0f, sliceXMax = 1.0f;
         [Range(0f, 1f)] public float sliceYMin = 0.0f, sliceYMax = 1.0f;
         [Range(0f, 1f)] public float sliceZMin = 0.0f, sliceZMax = 1.0f;
-        public Quaternion axis = Quaternion.identity;
+        private Quaternion axis = Quaternion.identity;
+
+        public Transform AxisRoot;
 
         private Texture3D volume;
 
@@ -52,6 +54,17 @@ namespace VolumeRendering
             }
         }
 
+        public int StepCount
+        {
+            get { return stepCount; }
+            set
+            {
+                stepCount = value;
+                if (material)
+                    material.SetInt("_StepCount", stepCount);
+            }
+        }
+
         protected virtual void Start()
         {
             material = new Material(shader);
@@ -65,6 +78,20 @@ namespace VolumeRendering
             material.SetVector("_SliceMin", new Vector3(sliceXMin, sliceYMin, sliceZMin));
             material.SetVector("_SliceMax", new Vector3(sliceXMax, sliceYMax, sliceZMax));
             material.SetMatrix("_AxisRotationMatrix", Matrix4x4.Rotate(axis));
+        }
+
+        private void Update()
+        {
+            Quaternion correct = new Quaternion(-AxisRoot.transform.localRotation.x, -AxisRoot.transform.localRotation.z, AxisRoot.transform.localRotation.y, AxisRoot.transform.localRotation.w);
+
+            material.SetMatrix("_AxisRotationMatrix", Matrix4x4.Rotate(correct));
+        }
+
+        public void SliceMinMaxChanged()
+        {
+            if (!material) return;
+            material.SetVector("_SliceMin", new Vector3(sliceXMin, sliceYMin, sliceZMin));
+            material.SetVector("_SliceMax", new Vector3(sliceXMax, sliceYMax, sliceZMax));
         }
 
         private Mesh Build() {

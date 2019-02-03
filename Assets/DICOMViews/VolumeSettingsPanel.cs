@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
+using UnityEngine.UI;
 
 namespace DICOMViews
 {
@@ -8,19 +10,51 @@ namespace DICOMViews
 
         [SerializeField] private TubeSlider _intensitySlider;
         [SerializeField] private TubeSlider _opacitySlider;
+        [SerializeField] private TubeSlider _stepCountSlider;
 
+        [SerializeField] private GameObject _rotationObject;
+
+        [SerializeField] private TubeSlider _maxSlider;
+        [SerializeField] private TubeSlider _minSlider;
+
+        [SerializeField] private Button _x;
+        [SerializeField] private Button _y;
+        [SerializeField] private Button _z;
+
+        private CullAxis _currentConfig = CullAxis.X;
+
+        public void SetCullAxisX()
+        {
+            _currentConfig = CullAxis.X;
+            OnSelectCullAxis(_currentConfig);
+
+        }
+
+        public void SetCullAxisY()
+        {
+            _currentConfig = CullAxis.Y;
+            OnSelectCullAxis(_currentConfig);
+
+        }
+        public void SetCullAxisZ()
+        {
+            _currentConfig = CullAxis.Z;
+            OnSelectCullAxis(_currentConfig);
+
+        }
 
         // Start is called before the first frame update
-        void Start()
+        protected void Start()
         {
+            gameObject.SetActive(false);
             _intensitySlider.CurrentFloat = _volumeRendering.Intensity;
             _opacitySlider.CurrentFloat = _volumeRendering.Opacity;
+            _stepCountSlider.CurrentInt = _volumeRendering.StepCount;
         }
 
         // Update is called once per frame
         void Update()
         {
-        
         }
 
         public void Toggle()
@@ -36,6 +70,91 @@ namespace DICOMViews
         public void OpacityChanged(TubeSlider tubeSlider)
         {
             _volumeRendering.Opacity = tubeSlider.CurrentFloat;
+        }
+
+        public void StepCountChanged(TubeSlider tubeSlider)
+        {
+            _volumeRendering.StepCount = tubeSlider.CurrentInt;
+        }
+
+        private void OnSelectCullAxis(CullAxis axis)
+        {
+            switch (axis)
+            {
+                case CullAxis.X:
+                    _x.interactable = false;
+                    _y.interactable = true;
+                    _z.interactable = true;
+                    _minSlider.CurrentFloat = _volumeRendering.sliceXMin;
+                    _maxSlider.CurrentFloat = _volumeRendering.sliceXMax;
+
+                    break;
+                case CullAxis.Y:
+                    _x.interactable = true;
+                    _y.interactable = false;
+                    _z.interactable = true;
+                    _minSlider.CurrentFloat = _volumeRendering.sliceYMin;
+                    _maxSlider.CurrentFloat = _volumeRendering.sliceYMax;
+                    break;
+                case CullAxis.Z:
+                    _x.interactable = true;
+                    _y.interactable = true;
+                    _z.interactable = false;
+                    _minSlider.CurrentFloat = _volumeRendering.sliceZMin;
+                    _maxSlider.CurrentFloat = _volumeRendering.sliceZMax;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(axis), axis, null);
+            }
+
+        }
+
+        public void OnMinChanged(TubeSlider tubeSlider)
+        {
+            switch (_currentConfig)
+            {
+                case CullAxis.X:
+                    _volumeRendering.sliceXMin = (float) tubeSlider.CurrentPercentage;
+                    break;
+                case CullAxis.Y:
+                    _volumeRendering.sliceYMin = (float) tubeSlider.CurrentPercentage;
+                    break;
+                case CullAxis.Z:
+                    _volumeRendering.sliceZMin = (float) tubeSlider.CurrentPercentage;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            _volumeRendering.SliceMinMaxChanged();
+        }
+
+        public void OnMaxChanged(TubeSlider tubeSlider)
+        {
+            switch (_currentConfig)
+            {
+                case CullAxis.X:
+                    _volumeRendering.sliceXMax = (float) tubeSlider.CurrentPercentage;
+                    break;
+                case CullAxis.Y:
+                    _volumeRendering.sliceYMax = (float) tubeSlider.CurrentPercentage;
+                    break;
+                case CullAxis.Z:
+                    _volumeRendering.sliceZMax = (float) tubeSlider.CurrentPercentage;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            _volumeRendering.SliceMinMaxChanged();
+        }
+
+        [Serializable]
+        public enum CullAxis
+        {
+            X,
+            Y,
+            Z
         }
     }
 }

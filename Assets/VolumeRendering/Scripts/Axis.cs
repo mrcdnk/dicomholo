@@ -14,14 +14,16 @@ namespace VolumeRendering
         {
             Gizmos.matrix = Matrix4x4.Rotate(root.rotation) * Matrix4x4.Rotate(transform.rotation).inverse;
 
+            Vector3 pos = transform.position;
+
             Gizmos.color = Color.red;
-            Gizmos.DrawLine(Vector3.zero, Vector3.right * length);
+            Gizmos.DrawLine(pos, pos+ Vector3.right * length);
 
             Gizmos.color = Color.green;
-            Gizmos.DrawLine(Vector3.zero, Vector3.up * length);
+            Gizmos.DrawLine(pos, pos+Vector3.up * length);
 
             Gizmos.color = Color.blue;
-            Gizmos.DrawLine(Vector3.zero, Vector3.forward * length);
+            Gizmos.DrawLine(pos, pos+Vector3.forward * length);
         }
 
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using DICOMViews;
 using Threads;
 using UnityEngine;
@@ -9,16 +10,17 @@ namespace Segmentation
     /// Contains an Array of arrays with a 1D Array for each slice of the volume.
     /// Implemented for speed & low mem usage
     /// </summary>
-    /// <typeparam name="TP">Customizable type for the Parameter Object to pass any parameters to the Fit function</typeparam>
-    public abstract class Segment<TP>
+    public abstract class Segment
     {
         private ulong[,] _segmentData;
 
+        internal readonly ThreadGroupState _currentWorkload;
+
         public SegmentationColor SegmentColor { get; set; }
 
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public int Slices { get; set; }
+        public int Width { get; private set; }
+        public int Height { get; private set; }
+        public int Slices { get; private set; }
 
         /// <summary>
         /// Creates an empty Segment with uninitialized data array.
@@ -27,6 +29,7 @@ namespace Segmentation
         public Segment(SegmentationColor segmentColor)
         {
             SegmentColor = segmentColor;
+            _currentWorkload = new ThreadGroupState();
         }
 
         /// <summary>
@@ -43,14 +46,6 @@ namespace Segmentation
 
             _segmentData = new ulong[slices, (width * height) / 64 + 1];
         }
-
-        /// <summary>
-        /// Iterates over the given data, which has to match the allocated size, to check whether data points are inside the segment or not.
-        /// </summary>
-        /// <param name="data">Base data volume</param>
-        /// <param name="parameters">Custom Parameter Object</param>
-        /// <returns>The ThreadGroupState to enable progress monitoring and callback on finish.</returns>
-        public abstract ThreadGroupState Fit(int[] data, TP parameters);
 
         /// <summary>
         /// Use to check whether a given coordinate is inside the segment or not.
@@ -79,7 +74,10 @@ namespace Segmentation
         /// Returns true when there is no work left to do, only needs to be overridden when using multiple threads.
         /// </summary>
         /// <returns></returns>
-        public abstract bool Done();
+        public bool Done()
+        {
+            return _currentWorkload.Working == 0;
+        }
 
         /// <summary>
         /// Sets the given point to the given value.
@@ -88,7 +86,7 @@ namespace Segmentation
         /// <param name="y">y position</param>
         /// <param name="z">slice number</param>
         /// <param name="value">The boolean value to set the given point to.</param>
-        protected void Set(int x, int y, int z, bool value)
+        internal void Set(int x, int y, int z, bool value = true)
         {
             var longnum = (x + y * Width) >> 6;
             var bitnum = (x + y * Width) % 64;
@@ -268,6 +266,23 @@ namespace Segmentation
                 default:
                     return Color.clear;
             }
+        }
+    }
+
+    public sealed class RangeParameter
+    {
+
+        public int Lower { get; set; }
+
+        public int Upper { get; set; }
+
+        public int ThreadCount { get; set; }
+
+        public RangeParameter(int lower, int upper, int threadCount)
+        {
+            Lower = lower;
+            Upper = upper;
+            ThreadCount = threadCount;
         }
     }
 

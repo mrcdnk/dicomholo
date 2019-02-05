@@ -18,7 +18,6 @@ namespace DICOMViews
 
         public GameObject Volume;
         public RayMarching RayMarching;
-
         private ImageStack _stack;
         private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
 
@@ -45,7 +44,6 @@ namespace DICOMViews
 
             Slice2DView.ImageStack = _stack;
             WindowSettingsPanel.SettingsChangedEvent.AddListener(OnWindowSettingsChanged);
-
             WindowSettingsPanel.gameObject.SetActive(false);
             Volume.SetActive(false);
             VolumeRenderingParent.SetActive(false);
@@ -100,7 +98,7 @@ namespace DICOMViews
         {
             WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidth, _stack.WindowCenter);
             WindowSettingsPanel.gameObject.SetActive(true);
-            Slice2DView.InitSlider();
+            Slice2DView.Initialize();
             PreProcessData();
         }
 

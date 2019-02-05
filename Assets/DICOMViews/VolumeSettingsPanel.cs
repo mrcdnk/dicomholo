@@ -6,20 +6,20 @@ namespace DICOMViews
 {
     public class VolumeSettingsPanel : MonoBehaviour
     {
-        [SerializeField] private VolumeRendering.VolumeRendering _volumeRendering;
+        [SerializeField] private VolumeRendering.VolumeRendering _volumeRendering = null;
 
-        [SerializeField] private TubeSlider _intensitySlider;
-        [SerializeField] private TubeSlider _opacitySlider;
-        [SerializeField] private TubeSlider _stepCountSlider;
+        [SerializeField] private TubeSlider _intensitySlider = null;
+        [SerializeField] private TubeSlider _opacitySlider = null;
+        [SerializeField] private TubeSlider _stepCountSlider = null;
 
-        [SerializeField] private GameObject _rotationObject;
+        [SerializeField] private GameObject _rotationObject = null;
 
-        [SerializeField] private TubeSlider _maxSlider;
-        [SerializeField] private TubeSlider _minSlider;
+        [SerializeField] private TubeSlider _maxSlider = null;
+        [SerializeField] private TubeSlider _minSlider = null;
 
-        [SerializeField] private Button _x;
-        [SerializeField] private Button _y;
-        [SerializeField] private Button _z;
+        [SerializeField] private Button _x = null;
+        [SerializeField] private Button _y = null;
+        [SerializeField] private Button _z = null;
 
         private CullAxis _currentConfig = CullAxis.X;
 

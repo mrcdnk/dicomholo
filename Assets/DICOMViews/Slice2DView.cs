@@ -18,8 +18,13 @@ namespace DICOMViews
         public Button SagButton;
 
         public RawImage Display;
+        public RawImage SegmentImage;
+
+        private PixelClickHandler[] _pixelClickHandlers;
 
         private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
+
+        private readonly Dictionary<SliceType, Texture> _segmentTextures = new Dictionary<SliceType, Texture>(3);
 
         private SliceType _currentSliceType = SliceType.Transversal;
 
@@ -28,7 +33,7 @@ namespace DICOMViews
             {
                 _imageStack = value;
 
-                Display.texture = value.GetTexture2D(_currentSliceType, _selection.GetValue(_currentSliceType, 0));
+                Display.texture = value.GetTexture2D(_currentSliceType, _selection.GetValue(_currentSliceType));
             }
         }
 
@@ -41,6 +46,8 @@ namespace DICOMViews
             {
                 _selection[type] = 0;
             }
+
+            SegmentImage.texture = new Texture2D(Display.texture.width, Display.texture.height);
         }
 
         // Update is called once per frame
@@ -49,10 +56,20 @@ namespace DICOMViews
 
         }
 
-        public void InitSlider()
+        public void Initialize()
         {
+            if (_pixelClickHandlers == null)
+            {
+                _pixelClickHandlers = gameObject.GetComponentsInChildren<PixelClickHandler>();
+            }
+
             SliceSlider.MaximumValue = _imageStack.GetMaxValue(_currentSliceType);
             SliceSlider.CurrentInt = _selection.GetValue(_currentSliceType, 0);
+
+            foreach (var pixelClickHandler in _pixelClickHandlers)
+            {
+                pixelClickHandler.PixelClick.AddListener(OnPixelClicked);
+            }
         }
 
         public void ShowTrans()
@@ -85,6 +102,7 @@ namespace DICOMViews
             SliceSlider.MaximumValue = _imageStack.GetMaxValue(_currentSliceType);
             SliceSlider.CurrentInt = _selection[_currentSliceType];
             Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+            SegmentImage.texture = _segmentTextures[type];
         }
 
         public void SelectionChanged(TubeSlider slider)
@@ -102,6 +120,34 @@ namespace DICOMViews
             {
                 Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
             }
+        }
+
+        private void OnPixelClicked(float x, float y)
+        {
+            Texture2D tex = SegmentImage.texture as Texture2D;
+
+            int xCoord, yCoord;
+
+            switch (_currentSliceType)
+            {
+                case SliceType.Transversal:
+                    xCoord = Mathf.RoundToInt(x * _imageStack.Width);
+                    yCoord = Mathf.RoundToInt(y * _imageStack.Height);
+                    break;
+                case SliceType.Sagittal:
+                    xCoord = Mathf.RoundToInt(x * _imageStack.Height);
+                    yCoord = Mathf.RoundToInt(y * _imageStack.Slices);
+                    break;
+                case SliceType.Frontal:     
+                    xCoord = Mathf.RoundToInt(x * _imageStack.Width);
+                    yCoord = Mathf.RoundToInt(y * _imageStack.Slices);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            tex.SetPixel(xCoord, yCoord, Color.red);
+            tex.Apply();
         }
 
         public SliceType GetCurrentSliceType()

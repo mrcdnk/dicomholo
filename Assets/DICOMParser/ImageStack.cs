@@ -50,6 +50,11 @@ namespace DICOMParser
 
         private bool _explicit = true;
 
+        public int Width => _width;
+
+        public int Height => _height;
+        public int Slices => _dicomFiles?.Length ?? 0;
+
         /// <summary>
         /// Start coroutine for parsing of files.
         /// </summary>

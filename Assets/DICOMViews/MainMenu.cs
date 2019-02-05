@@ -9,7 +9,7 @@ namespace DICOMViews
     public class MainMenu : MonoBehaviour
     {
         [SerializeField]
-        private Dropdown _selection;
+        private Dropdown _selection = null;
 
         public ProgressHandler ProgressHandler;
         public RawImage PreviewImage;
@@ -39,14 +39,14 @@ namespace DICOMViews
 
         public void DisableButtons()
         {
-            LoadVolumeButton.enabled = false;
-            Load2DButton.enabled = false;
+            LoadVolumeButton.interactable = false;
+            Load2DButton.interactable = false;
         }
 
         public void EnableButtons()
         {
-            LoadVolumeButton.enabled = true;
-            Load2DButton.enabled = true;
+            LoadVolumeButton.interactable = true;
+            Load2DButton.interactable = true;
         }
     }
 }

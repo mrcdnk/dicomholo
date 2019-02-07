@@ -31,9 +31,9 @@ namespace Segmentation
         // Start is called before the first frame update
         void Start()
         {
-            _segments[0] = new Segment(SegmentationColor.Red);
+            _segments[0] = new Segment(SegmentationColor.Green);
             _segments[1] = new Segment(SegmentationColor.Blue);
-            _segments[2] = new Segment(SegmentationColor.Green);
+            _segments[2] = new Segment(SegmentationColor.Red);
 
             _imageStack = FindObjectOfType<ImageStack>();
         }

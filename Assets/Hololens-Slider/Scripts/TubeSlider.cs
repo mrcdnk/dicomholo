@@ -136,6 +136,15 @@ public class TubeSlider : MonoBehaviour
         UpdatePosition();
     }
 
+    private void OnValidate()
+    {
+        if (button && LeftPivot && RightPivot)
+        {
+            _currentValue = Math.Max(0.0, Math.Min(_currentValue, 1.0));
+            UpdatePosition();
+        }
+    }
+
     private void UpdatePosition()
     {
         start = LeftPivot.position;

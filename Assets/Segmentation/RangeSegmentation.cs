@@ -47,7 +47,7 @@ namespace Segmentation
         /// <summary>
         /// Starts the worker threads
         /// </summary>
-        /// <param name="state"></param>
+        /// <param name="segment"></param>
         /// <param name="data"></param>
         /// <param name="rangeParameter"></param>
         /// <param name="threadCount"></param>
@@ -77,7 +77,7 @@ namespace Segmentation
         /// <summary>
         /// Possible memory corruption with multiple threads if two threads try to access the same long. Needs array of locks...
         /// </summary>
-        /// <param name="state"></param>
+        /// <param name="segment"></param>
         /// <param name="data"></param>
         /// <param name="rangeParameter"></param>
         /// <param name="startIndex"></param>

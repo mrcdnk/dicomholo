@@ -47,8 +47,11 @@ namespace DICOMViews
             _stack.ViewManager = this;
 
             _segmentCache = gameObject.AddComponent<SegmentCache>();
+            _segmentCache.TextureReady.AddListener(SegmentTextureUpdated);
+            _segmentCache.VolumeReady.AddListener(SegmentVolumeUpdated);
 
             Slice2DView.ImageStack = _stack;
+            Slice2DView.SegmentCache = _segmentCache;
             WindowSettingsPanel.SettingsChangedEvent.AddListener(OnWindowSettingsChanged);
             WindowSettingsPanel.gameObject.SetActive(false);
             Volume.SetActive(false);
@@ -104,6 +107,7 @@ namespace DICOMViews
         {
             WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidth, _stack.WindowCenter);
             WindowSettingsPanel.gameObject.SetActive(true);
+            _segmentCache.InitializeSize(_stack.Width, _stack.Height, _stack.Slices);
             Slice2DView.Initialize();
             PreProcessData();
         }
@@ -125,7 +129,7 @@ namespace DICOMViews
 
         private void OnVolumeCreated()
         {
-            _segmentCache.InitializeVolume(_stack.Width, _stack.Height, _stack.Slices);
+            _segmentCache.InitializeVolume();
             VolumeRendering.SetVolume(_stack.VolumeTexture);
             //RayMarching.initVolume(_stack.VolumeTexture);
 
@@ -144,7 +148,9 @@ namespace DICOMViews
         private void OnTexturesCreated()
         {
             MainMenu.Load2DButton.enabled = true;
-            _segmentCache.InitializeTextures(_stack.Width, _stack.Height, _stack.Slices);
+            _segmentCache.InitializeTextures();
+
+            _segmentCache.CreateSegment(0, new RangeSegmentation(), new RangeSegmentation.RangeParameter(0, 500, 1));
         }
 
         public void TextureUpdated(SliceType type, int index)
@@ -155,6 +161,16 @@ namespace DICOMViews
             {
                 MainMenu.SetPreviewImage(_stack.GetTexture2D(type, index));
             }
+        }
+
+        private void SegmentTextureUpdated(Texture2D tex, SliceType type, int index)
+        {
+            Slice2DView.SegmentUpdated(tex, type, index);
+        }
+
+        private void SegmentVolumeUpdated(Texture3D volume)
+        {
+
         }
 
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)

@@ -44,7 +44,8 @@ namespace Segmentation
             Height = height;
             Slices = slices;
 
-            _segmentData = new ulong[slices, (width * height) / 64 + 1];
+            _segmentData = new ulong[slices, ((width * height) / 64) + 1];
+            Clear();
         }
 
         /// <summary>
@@ -97,7 +98,7 @@ namespace Segmentation
             }
             else
             {
-                _segmentData[z, longnum] &= ~(ulong)1 << bitnum;
+                _segmentData[z, longnum] &= ~((ulong)1 << bitnum);
             }
         }
 
@@ -149,9 +150,9 @@ namespace Segmentation
         /// </summary>
         /// <param name="texture2D">target Texture 2D</param>
         /// <param name="id">the id of the slice</param>
-        private void WriteToTransversal(Texture2D texture2D, int id)
+        public void WriteToTransversal(Texture2D texture2D, int id)
         {
-            var colors = texture2D.GetPixels();
+            var colors = texture2D.GetPixels32();
 
             for (var y = 0; y < Height; ++y)
             {
@@ -162,6 +163,8 @@ namespace Segmentation
                     colors[index] = GetColor(x, y, id);
                 }
             }
+
+            texture2D.SetPixels32(colors);
         }
 
         /// <summary>
@@ -169,9 +172,9 @@ namespace Segmentation
         /// </summary>
         /// <param name="texture2D">target Texture 2D</param>
         /// <param name="id">the id of the slice</param>
-        private void WriteToSagittal(Texture2D texture2D, int id)
+        public void WriteToSagittal(Texture2D texture2D, int id)
         {
-            var colors = texture2D.GetPixels();
+            var colors = texture2D.GetPixels32();
 
             for (var z = 0; z < Slices; ++z)
             {
@@ -182,6 +185,8 @@ namespace Segmentation
                     colors[index] = GetColor(id, y, z);
                 }
             }
+
+            texture2D.SetPixels32(colors);
         }
 
         /// <summary>
@@ -189,9 +194,9 @@ namespace Segmentation
         /// </summary>
         /// <param name="texture2D">target Texture 2D</param>
         /// <param name="id">the id of the slice</param>
-        private void WriteToFrontal(Texture2D texture2D, int id)
+        public void WriteToFrontal(Texture2D texture2D, int id)
         {
-            var colors = texture2D.GetPixels();
+            var colors = texture2D.GetPixels32();
 
             for (var z = 0; z < Slices; ++z)
             {
@@ -202,6 +207,8 @@ namespace Segmentation
                     colors[index] = GetColor(x, id, z);
                 }
             }
+
+            texture2D.SetPixels32(colors);
         }
 
         /// <summary>
@@ -210,7 +217,12 @@ namespace Segmentation
         /// <param name="texture3D">The target texture 3D to override</param>
         public void WriteToTexture(Texture3D texture3D)
         {
-            var pixelColors = texture3D.GetPixels();
+            if (!texture3D)
+            {
+                return;
+            }
+
+            var pixelColors = texture3D.GetPixels32();
 
             var index = 0;
 
@@ -227,6 +239,8 @@ namespace Segmentation
                 }
                 index++;
             }
+
+            texture3D.SetPixels32(pixelColors);
         }
 
         /// <summary>
@@ -236,7 +250,7 @@ namespace Segmentation
         /// <param name="y">y coordinate</param>
         /// <param name="z">index of the dicom image</param>
         /// <returns></returns>
-        public Color GetColor(int x, int y, int z)
+        public Color32 GetColor(int x, int y, int z)
         {
             if (Contains(x, y, z))
             {
@@ -248,12 +262,17 @@ namespace Segmentation
             }
         }
 
-        private static Color CombineColors(Color target, Color other)
+        /// <summary>
+        /// Combines multiple colors to the same
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="other"></param>
+        private static void CombineColors(Color32 target, Color32 other)
         {
             target.r += other.r;
             target.b += other.b;
             target.g += other.g;
-            return target;
+            target.a = 255;
         }
 
         /// <summary>
@@ -261,7 +280,7 @@ namespace Segmentation
         /// </summary>
         /// <param name="color">Segmentation color enum</param>
         /// <returns>Unity color representation</returns>
-        public static Color GetColor(SegmentationColor color)
+        public static Color32 GetColor(SegmentationColor color)
         {
             switch (color)
             {

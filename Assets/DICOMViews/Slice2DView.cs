@@ -21,6 +21,9 @@ namespace DICOMViews
 
         public RawImage Display;
         public RawImage SegmentImage;
+        public RawImage ClickDisplay;
+
+        public SegmentCache SegmentCache;
 
         public Color SelectionColor = Color.yellow;
 
@@ -34,6 +37,8 @@ namespace DICOMViews
         private int lastClickY = -1;
         private Color lastClicked;
         private bool hasBeenClicked = false;
+
+        private Color32 imageTransparency = new Color32(255, 255, 255, 70);
 
         public ImageStack ImageStack {
             set
@@ -125,6 +130,7 @@ namespace DICOMViews
             {
                 _selection[_currentSliceType] = slider.CurrentInt;
                 Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+                SegmentImage.texture = SegmentCache.GetSegment(_currentSliceType, _selection[_currentSliceType]);
             }
         }
 
@@ -138,7 +144,21 @@ namespace DICOMViews
             if (_currentSliceType == type && _selection[_currentSliceType] == index)
             {
                 Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
-                SegmentImage.texture = new Texture2D(Display.texture.width, Display.texture.height);
+            }
+        }
+
+        /// <summary>
+        /// Handles Segment update events
+        /// </summary>
+        /// <param name="tex">actual texture that was updated</param>
+        /// <param name="type">SliceType of the texture</param>
+        /// <param name="index">index of the updated texture</param>
+        public void SegmentUpdated(Texture2D tex, SliceType type, int index)
+        {
+            if (_currentSliceType == type && _selection[_currentSliceType] == index)
+            {
+                SegmentImage.texture = tex;
+                SegmentImage.color = imageTransparency;
             }
         }
 
@@ -149,7 +169,7 @@ namespace DICOMViews
         /// <param name="y">percentage of the height</param>
         private void OnPixelClicked(float x, float y)
         {
-            Texture2D tex = SegmentImage.texture as Texture2D;
+            Texture2D tex = ClickDisplay.texture as Texture2D;
 
             int xCoord, yCoord;
 

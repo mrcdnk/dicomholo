@@ -5619,6 +5619,11 @@ PrefabInstance:
       propertyPath: SegmentImage
       value: 
       objectReference: {fileID: 989467291}
+    - target: {fileID: 114055041680442520, guid: 7ccc00bbdafbf6d4190f4d3f9636fdf6,
+        type: 3}
+      propertyPath: ClickDisplay
+      value: 
+      objectReference: {fileID: 183103901}
     - target: {fileID: 1457259113917890, guid: 7ccc00bbdafbf6d4190f4d3f9636fdf6, type: 3}
       propertyPath: m_Name
       value: Image Selector

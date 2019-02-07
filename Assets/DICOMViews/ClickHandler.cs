@@ -1,12 +1,20 @@
 ﻿using HoloToolkit.Unity.InputModule;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class ClickHandler : MonoBehaviour, IInputClickHandler
+namespace DICOMViews
 {
-
-    public void OnInputClicked(InputClickedEventData eventData)
+    public class ClickHandler : MonoBehaviour, IInputClickHandler, IPointerClickHandler
     {
-        SendMessageUpwards("CylinderClicked", eventData);
+
+        public void OnInputClicked(InputClickedEventData eventData)
+        {
+            SendMessageUpwards("CylinderClicked", eventData);
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            SendMessageUpwards("CylinderClicked", null);
+        }
     }
 }

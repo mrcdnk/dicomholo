@@ -13,6 +13,7 @@ namespace Segmentation
     public class Segment
     {
         private ulong[,] _segmentData;
+        private object[] _locks;
 
         internal readonly ThreadGroupState _currentWorkload;
 
@@ -45,6 +46,13 @@ namespace Segmentation
             Slices = slices;
 
             _segmentData = new ulong[slices, ((width * height) / 64) + 1];
+            _locks = new object[slices];
+
+            for (var index = 0; index < _locks.Length; index++)
+            {
+                _locks[index] = new object();
+            }
+
             Clear();
         }
 
@@ -92,13 +100,21 @@ namespace Segmentation
             var longnum = (x + y * Width) >> 6;
             var bitnum = (x + y * Width) % 64;
 
+            ulong a = 1;
+
             if (value)
             {
-                _segmentData[z, longnum] |= (ulong)1 << bitnum;
+                lock (_locks[z])
+                {
+                    _segmentData[z, longnum] |= (ulong)1 << bitnum;
+                }
             }
             else
             {
-                _segmentData[z, longnum] &= ~((ulong)1 << bitnum);
+                lock (_locks[z])
+                {
+                    _segmentData[z, longnum] &= ~((ulong)1 << bitnum);
+                }
             }
         }
 

@@ -150,7 +150,7 @@ namespace DICOMViews
             MainMenu.Load2DButton.enabled = true;
             _segmentCache.InitializeTextures();
 
-            _segmentCache.CreateSegment(0, new RangeSegmentation(), new RangeSegmentation.RangeParameter(0, 500, 1));
+            _segmentCache.CreateSegment(0, new RangeSegmentation(), new RangeSegmentation.RangeParameter(0, 500, 2));
         }
 
         public void TextureUpdated(SliceType type, int index)

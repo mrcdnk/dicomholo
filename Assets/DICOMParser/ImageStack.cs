@@ -27,7 +27,7 @@ namespace DICOMParser
         private Texture2D[] _sagittalTexture2Ds;
 
         private Texture3D _volume;
-        public Texture3D Texture3D => _volume;
+        public Texture3D VolumeTexture => _volume;
 
         private ViewManager _viewManager;
         public ViewManager ViewManager {

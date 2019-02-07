@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using DICOMParser;
 using ExtensionsMethods;
+using Segmentation;
+using Threads;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,13 +22,18 @@ namespace DICOMViews
         public RawImage Display;
         public RawImage SegmentImage;
 
+        public Color SelectionColor = Color.yellow;
+
         private PixelClickHandler[] _pixelClickHandlers;
 
         private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
 
-        private readonly Dictionary<SliceType, Texture> _segmentTextures = new Dictionary<SliceType, Texture>(3);
-
         private SliceType _currentSliceType = SliceType.Transversal;
+
+        private int lastClickX = -1;
+        private int lastClickY = -1;
+        private Color lastClicked;
+        private bool hasBeenClicked = false;
 
         public ImageStack ImageStack {
             set
@@ -40,20 +47,16 @@ namespace DICOMViews
         // Use this for initialization
         void Start()
         {
-            Display = GetComponentInChildren<RawImage>();
-
             foreach (var type in Enum.GetValues(typeof(SliceType)).Cast<SliceType>())
             {
                 _selection[type] = 0;
             }
-
-            SegmentImage.texture = new Texture2D(Display.texture.width, Display.texture.height);
         }
 
         // Update is called once per frame
         void Update()
         {
-
+          
         }
 
         public void Initialize()
@@ -96,15 +99,26 @@ namespace DICOMViews
             Show(SliceType.Sagittal);
         }
 
+        /// <summary>
+        /// Swaps the displayed SliceType for the given SliceType
+        /// </summary>
+        /// <param name="type">SliceType to display.</param>
         public void Show(SliceType type)
         {
             _currentSliceType = type;
             SliceSlider.MaximumValue = _imageStack.GetMaxValue(_currentSliceType);
             SliceSlider.CurrentInt = _selection[_currentSliceType];
             Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
-            SegmentImage.texture = _segmentTextures[type];
+
+            lastClickY = -1;
+            lastClickX = -1;
+            hasBeenClicked = false;
         }
 
+        /// <summary>
+        /// Handles the change of the currently selected slice
+        /// </summary>
+        /// <param name="slider">Slider that was changed</param>
         public void SelectionChanged(TubeSlider slider)
         {
             if (_selection.Count == Enum.GetNames(typeof(SliceType)).Length && Display != null && _imageStack != null)
@@ -114,14 +128,25 @@ namespace DICOMViews
             }
         }
 
+        /// <summary>
+        /// Handles texture update events.
+        /// </summary>
+        /// <param name="type">type of texture that was updated</param>
+        /// <param name="index">index of the updated texture</param>
         public void TextureUpdated(SliceType type, int index)
         {
             if (_currentSliceType == type && _selection[_currentSliceType] == index)
             {
                 Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+                SegmentImage.texture = new Texture2D(Display.texture.width, Display.texture.height);
             }
         }
 
+        /// <summary>
+        /// Handles a click on the display texture
+        /// </summary>
+        /// <param name="x">percentage of the width</param>
+        /// <param name="y">percentage of the height</param>
         private void OnPixelClicked(float x, float y)
         {
             Texture2D tex = SegmentImage.texture as Texture2D;
@@ -146,7 +171,18 @@ namespace DICOMViews
                     throw new ArgumentOutOfRangeException();
             }
 
-            tex.SetPixel(xCoord, yCoord, Color.red);
+            if (hasBeenClicked && lastClickX > -1 && lastClickY > -1)
+            {
+                tex.SetPixel(lastClickX, lastClickY, lastClicked);
+            }
+
+            lastClickX = xCoord;
+            lastClickY = yCoord;
+            lastClicked = tex.GetPixel(xCoord, yCoord);
+            hasBeenClicked = true;
+
+            tex.SetPixel(xCoord, yCoord, SelectionColor);
+
             tex.Apply();
         }
 

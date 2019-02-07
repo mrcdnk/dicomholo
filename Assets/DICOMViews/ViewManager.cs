@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using DICOMParser;
+using GLTF.Schema;
+using Segmentation;
 using Threads;
 using UnityEngine;
 
@@ -19,6 +21,8 @@ namespace DICOMViews
         public GameObject Volume;
         public RayMarching RayMarching;
         private ImageStack _stack;
+        private SegmentCache _segmentCache;
+
         private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
 
 
@@ -41,6 +45,8 @@ namespace DICOMViews
 
             _stack = gameObject.AddComponent<ImageStack>();
             _stack.ViewManager = this;
+
+            _segmentCache = gameObject.AddComponent<SegmentCache>();
 
             Slice2DView.ImageStack = _stack;
             WindowSettingsPanel.SettingsChangedEvent.AddListener(OnWindowSettingsChanged);
@@ -119,22 +125,26 @@ namespace DICOMViews
 
         private void OnVolumeCreated()
         {
-            VolumeRendering.SetVolume(_stack.Texture3D);
-            //RayMarching.initVolume(_stack.Texture3D);
+            _segmentCache.InitializeVolume(_stack.Width, _stack.Height, _stack.Slices);
+            VolumeRendering.SetVolume(_stack.VolumeTexture);
+            //RayMarching.initVolume(_stack.VolumeTexture);
 
             //Volume.SetActive(true);
             MainMenu.LoadVolumeButton.enabled = true;
             VolumeRenderingParent.SetActive(true);
-
         }
 
         public void CreateTextures()
         {
             MainMenu.Load2DButton.enabled = false;
             Slice2DView.gameObject.SetActive(true);
-            AddWorkload(_stack.StartCreatingTextures(), "Creating Textures", () => {
-                MainMenu.Load2DButton.enabled = true;
-            });
+            AddWorkload(_stack.StartCreatingTextures(), "Creating Textures", OnTexturesCreated);
+        }
+
+        private void OnTexturesCreated()
+        {
+            MainMenu.Load2DButton.enabled = true;
+            _segmentCache.InitializeTextures(_stack.Width, _stack.Height, _stack.Slices);
         }
 
         public void TextureUpdated(SliceType type, int index)

@@ -10,7 +10,7 @@ namespace Segmentation
     /// Contains an Array of arrays with a 1D Array for each slice of the volume.
     /// Implemented for speed & low mem usage
     /// </summary>
-    public abstract class Segment
+    public class Segment
     {
         private ulong[,] _segmentData;
 
@@ -220,7 +220,7 @@ namespace Segmentation
                 {
                     for (var x = 0; x < Width; x++)
                     {
-                        pixelColors[index] = GetColor(x,y,z);
+                        CombineColors(pixelColors[index], GetColor(x,y,z));
                         index++;
                     }
                     index++;
@@ -248,6 +248,14 @@ namespace Segmentation
             }
         }
 
+        private static Color CombineColors(Color target, Color other)
+        {
+            target.r += other.r;
+            target.b += other.b;
+            target.g += other.g;
+            return target;
+        }
+
         /// <summary>
         /// Converts the given Segmentation Color to the UnityColor to use.
         /// </summary>
@@ -266,23 +274,6 @@ namespace Segmentation
                 default:
                     return Color.clear;
             }
-        }
-    }
-
-    public sealed class RangeParameter
-    {
-
-        public int Lower { get; set; }
-
-        public int Upper { get; set; }
-
-        public int ThreadCount { get; set; }
-
-        public RangeParameter(int lower, int upper, int threadCount)
-        {
-            Lower = lower;
-            Upper = upper;
-            ThreadCount = threadCount;
         }
     }
 

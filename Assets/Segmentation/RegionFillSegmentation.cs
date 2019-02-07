@@ -52,7 +52,7 @@ namespace Segmentation
             pending.Enqueue(regionFillParameter.Seed);
             var intensityBase = data[GetIndex(pending.Peek(), segment.Width, segment.Height)];
 
-            var intensityLower = data[intensityBase - regionFillParameter.Threshold];
+            var intensityLower = intensityBase - regionFillParameter.Threshold;
             var intensityUpper = intensityBase + regionFillParameter.Threshold;
 
             while (pending.Count > 0)

@@ -3,8 +3,26 @@ using Threads;
 
 namespace Segmentation
 {
-    public class RangeSegmentation : SegmentationStrategy<RangeParameter>
+    public class RangeSegmentation : SegmentationStrategy<RangeSegmentation.RangeParameter>
     {
+
+        public sealed class RangeParameter
+        {
+
+            public int Lower { get; set; }
+
+            public int Upper { get; set; }
+
+            public int ThreadCount { get; set; }
+
+            public RangeParameter(int lower, int upper, int threadCount)
+            {
+                Lower = lower;
+                Upper = upper;
+                ThreadCount = threadCount;
+            }
+        }
+
         /// <summary>
         /// Iterates over the given data, which has to match the allocated size, to check whether data points are inside the segment or not.
         /// </summary>

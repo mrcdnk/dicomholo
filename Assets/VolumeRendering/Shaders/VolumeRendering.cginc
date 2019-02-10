@@ -4,11 +4,7 @@
 #include "UnityCG.cginc"
 
 half4 _Color;
-half4 _FirstSegmentColor;
-half4 _SecondSegmentColor;
-half4 _ThirdSegmentColor;
 sampler3D _Volume;
-sampler3D _Segments;
 half _Intensity;
 half _Opacity;
 half _StepCount;

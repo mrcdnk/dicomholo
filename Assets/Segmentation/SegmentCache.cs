@@ -159,11 +159,11 @@ namespace Segmentation
         private void OnSegmentCreated(int index)
         {
             Debug.Log("Created Segment: "+index);
-            ApplyVolume(index);
+            Apply(index);
             StartCoroutine(ApplyTextures(index));
         }
 
-        public void ApplyVolume(int index)
+        public void Apply(int index)
         {
             if (!_imageStack.VolumeTexture)
             {
@@ -174,15 +174,15 @@ namespace Segmentation
            _imageStack.VolumeTexture.Apply();
         }
 
-        public void ApplyVolumes()
+        public void Apply(Texture3D texture3D)
         {
             foreach (var segment in _segments)
             {
                 if(segment.IsClear)
                     continue;
 
-                segment.WriteToTexture(_imageStack.VolumeTexture);
-                _imageStack.VolumeTexture.Apply();
+                segment.WriteToTexture(texture3D);
+                texture3D.Apply();
             }
         }
 

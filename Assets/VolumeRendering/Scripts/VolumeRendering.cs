@@ -167,12 +167,6 @@ namespace VolumeRendering
         {
             material.SetTexture("_Volume", texture3D);
         }
-
-        public void SetSegments(Texture3D texture3D)
-        {
-            material.SetTexture("_Segments", texture3D);
-        }
-
        
     }
 

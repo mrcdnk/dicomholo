@@ -130,7 +130,7 @@ namespace DICOMViews
         private void OnVolumeCreated()
         {
             VolumeRendering.SetVolume(_stack.VolumeTexture);
-            _segmentCache.ApplyVolumes();
+            _segmentCache.Apply(_stack.VolumeTexture);
             //RayMarching.initVolume(_stack.VolumeTexture);
 
             //Volume.SetActive(true);
@@ -170,7 +170,7 @@ namespace DICOMViews
 
         private void SegmentVolumeUpdated(Texture3D volume)
         {
-            VolumeRendering.SetSegments(volume);
+
         }
 
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)

@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Threads;
 using UnityEngine;
 
@@ -14,7 +15,6 @@ namespace Segmentation
     {
         private Segment[] _segments = new Segment[3];
         private readonly Dictionary<SliceType, Texture2D[]> _sliceSegments = new Dictionary<SliceType, Texture2D[]>(3);
-        private Texture3D _volumeSegments;
 
         private int _width;
         private int _height;
@@ -31,9 +31,9 @@ namespace Segmentation
         // Start is called before the first frame update
         void Start()
         {
-            _segments[0] = new Segment(SegmentationColor.Green);
-            _segments[1] = new Segment(SegmentationColor.Blue);
-            _segments[2] = new Segment(SegmentationColor.Red);
+            _segments[0] = new Segment(SegmentationColor.Red);
+            _segments[1] = new Segment(SegmentationColor.Green);
+            _segments[2] = new Segment(SegmentationColor.Blue);
 
             _imageStack = FindObjectOfType<ImageStack>();
         }
@@ -85,28 +85,6 @@ namespace Segmentation
             {
                 segment.Allocate(width, height, slices);
             }
-        }
-
-        /// <summary>
-        /// Creates a new Texture3D if necessary and initializes its color to clear.
-        /// </summary>
-        public void InitializeVolume()
-        {
-
-            if (_volumeInvalid)
-            {
-                Destroy(_volumeSegments);
-                _volumeSegments = new Texture3D(_width, _height, _slices, TextureFormat.RGB24, true);
-            }
-
-            var pixels = new Color32[_width*_height*_slices];
-
-            _volumeSegments.SetPixels32(pixels);
-            _volumeSegments.Apply();
-
-            _volumeInvalid = false;
-
-            VolumeReady.Invoke(_volumeSegments);
         }
 
         /// <summary>
@@ -185,10 +163,27 @@ namespace Segmentation
             StartCoroutine(ApplyTextures(index));
         }
 
-        private void ApplyVolume(int index)
+        public void ApplyVolume(int index)
         {
-           _segments[index].WriteToTexture(_volumeSegments);
-            VolumeReady.Invoke(_volumeSegments);
+            if (!_imageStack.VolumeTexture)
+            {
+                return;
+            }
+
+           _segments[index].WriteToTexture(_imageStack.VolumeTexture);
+           _imageStack.VolumeTexture.Apply();
+        }
+
+        public void ApplyVolumes()
+        {
+            foreach (var segment in _segments)
+            {
+                if(segment.IsClear)
+                    continue;
+
+                segment.WriteToTexture(_imageStack.VolumeTexture);
+                _imageStack.VolumeTexture.Apply();
+            }
         }
 
         private IEnumerator ApplyTextures(int index)
@@ -222,11 +217,6 @@ namespace Segmentation
         public Texture2D GetSegment(SliceType type, int index)
         {
             return _sliceSegments[type][index];
-        }
-
-        public Texture3D GetVolume()
-        {
-            return _volumeSegments;
         }
     }
 }

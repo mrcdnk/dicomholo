@@ -15,6 +15,8 @@ namespace Segmentation
         private ulong[,] _segmentData;
         private object[] _locks;
 
+        private bool isClear = true;
+
         internal readonly ThreadGroupState _currentWorkload;
 
         public SegmentationColor SegmentColor { get; set; }
@@ -22,6 +24,7 @@ namespace Segmentation
         public int Width { get; private set; }
         public int Height { get; private set; }
         public int Slices { get; private set; }
+        public bool IsClear => isClear;
 
         /// <summary>
         /// Creates an empty Segment with uninitialized data array.
@@ -76,7 +79,8 @@ namespace Segmentation
         /// </summary>
         public void Clear()
         {
-           Array.Clear(_segmentData, 0, _segmentData.Length);
+            Array.Clear(_segmentData, 0, _segmentData.Length);
+            isClear = true;
         }
 
         /// <summary>
@@ -101,6 +105,11 @@ namespace Segmentation
             var bitnum = (x + y * Width) % 64;
 
             ulong a = 1;
+
+            if (value)
+            {
+                isClear = false;
+            }
 
             if (value)
             {
@@ -235,28 +244,29 @@ namespace Segmentation
         {
             if (!texture3D)
             {
+                Debug.Log("Segment volume Texture wasn't initialized.");
                 return;
             }
 
             var pixelColors = texture3D.GetPixels32();
 
-            var index = 0;
+            var idx = 0;
 
             for (var z = 0; z < Slices; z++)
             {
                 for (var y = 0; y < Height; y++)
                 {
-                    for (var x = 0; x < Width; x++)
+                    for (var x = 0; x < Width; x++, ++idx)
                     {
-                        CombineColors(pixelColors[index], GetColor(x,y,z));
-                        index++;
-                    }
-                    index++;
-                }
-                index++;
-            }
+                        if (Contains(x, y, z)) { 
+                            pixelColors[idx] = AddColor(pixelColors[idx]);
+                        }
 
+                    }
+                }
+            }
             texture3D.SetPixels32(pixelColors);
+            texture3D.Apply();
         }
 
         /// <summary>
@@ -283,12 +293,22 @@ namespace Segmentation
         /// </summary>
         /// <param name="target"></param>
         /// <param name="other"></param>
-        private static void CombineColors(Color32 target, Color32 other)
+        private Color32 AddColor(Color32 target)
         {
-            target.r += other.r;
-            target.b += other.b;
-            target.g += other.g;
-            target.a = 255;
+            switch (SegmentColor)
+            {
+                case SegmentationColor.Red:
+                    return new Color32(255, target.g, target.b, target.a);
+                    break;
+                case SegmentationColor.Blue:
+                    return new Color32(target.r, 255, target.b, target.a);
+                    break;
+                case SegmentationColor.Green:
+                    return new Color32(target.r, target.g, 255, target.a);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         /// <summary>

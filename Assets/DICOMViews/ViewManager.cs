@@ -129,8 +129,8 @@ namespace DICOMViews
 
         private void OnVolumeCreated()
         {
-            _segmentCache.InitializeVolume();
             VolumeRendering.SetVolume(_stack.VolumeTexture);
+            _segmentCache.ApplyVolumes();
             //RayMarching.initVolume(_stack.VolumeTexture);
 
             //Volume.SetActive(true);
@@ -150,7 +150,7 @@ namespace DICOMViews
             MainMenu.Load2DButton.enabled = true;
             _segmentCache.InitializeTextures();
 
-            _segmentCache.CreateSegment(0, new RangeSegmentation(), new RangeSegmentation.RangeParameter(0, 500, 2));
+            _segmentCache.CreateSegment(0, new RangeSegmentation(), new RangeSegmentation.RangeParameter(700, 3000, 2));
         }
 
         public void TextureUpdated(SliceType type, int index)
@@ -170,7 +170,7 @@ namespace DICOMViews
 
         private void SegmentVolumeUpdated(Texture3D volume)
         {
-
+            VolumeRendering.SetSegments(volume);
         }
 
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)

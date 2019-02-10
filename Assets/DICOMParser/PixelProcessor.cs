@@ -17,7 +17,7 @@ namespace DICOMParser
         /// <returns>input color with calculated alpha value</returns>
         public static Color32 DYN_ALPHA(Color32 argb)
         {
-            double dynAlpha = 210 * (Math.Max(argb.r - 10, 0)) / 255d;
+            double dynAlpha = 210 * (Math.Max(argb.r - 5, 0)) / 255d;
             argb.a = (byte)dynAlpha;
             return argb;
         }

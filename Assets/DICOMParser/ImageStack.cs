@@ -189,15 +189,15 @@ namespace DICOMParser
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateVolume(ThreadGroupState threadGroupState)
         {
-            _volume = new Texture3D(_width, _height, _dicomFiles.Length, TextureFormat.ARGB32, true);
+            _volume = new Texture3D(_width, _height, _dicomFiles.Length, TextureFormat.ARGB32, false);
 
-            var cols = new Color[_width * _height * _dicomFiles.Length];
+            var cols = new Color32[_width * _height * _dicomFiles.Length];
 
             StartCreatingVolume(threadGroupState, _dicomFiles, _data, cols, WindowWidth, WindowCenter, 6);
 
             yield return WaitForThreads(threadGroupState);
 
-            _volume.SetPixels(cols);
+            _volume.SetPixels32(cols);
             _volume.Apply();
         }
 
@@ -424,7 +424,7 @@ namespace DICOMParser
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingVolume(ThreadGroupState groupState, IReadOnlyList<DiFile> files, int[] data, Color[] target, double windowWidth, double windowCenter, int threadCount)
+        private void StartCreatingVolume(ThreadGroupState groupState, IReadOnlyList<DiFile> files, int[] data, Color32[] target, double windowWidth, double windowCenter, int threadCount)
         {
             var spacing = files.Count / threadCount;
 
@@ -459,17 +459,17 @@ namespace DICOMParser
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
         private static void createVolume(ThreadGroupState groupState, int[] data, IReadOnlyList<DiFile> dicomFiles, int width, int height,
-            Color[] target, double windowWidth, double windowCenter, int start, int end)
+            Color32[] target, double windowWidth, double windowCenter, int start, int end)
         {
             var idx = start*width*height;
 
-            for (int z = start; z < end; ++z)
+            for (var z = start; z < end; ++z)
             {
                 var idxPartZ = z * width * height;
-                for (int y = 0; y < height; ++y)
+                for (var y = 0; y < height; ++y)
                 {
                     var idxPart = idxPartZ + y;
-                    for (int x = 0; x < width; ++x, ++idx)
+                    for (var x = 0; x < width; ++x, ++idx)
                     {
                         target[idx] = PixelProcessor.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z], windowWidth, windowCenter));
                     }

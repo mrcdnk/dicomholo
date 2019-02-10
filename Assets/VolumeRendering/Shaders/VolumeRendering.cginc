@@ -4,7 +4,11 @@
 #include "UnityCG.cginc"
 
 half4 _Color;
+half4 _FirstSegmentColor;
+half4 _SecondSegmentColor;
+half4 _ThirdSegmentColor;
 sampler3D _Volume;
+sampler3D _Segments;
 half _Intensity;
 half _Opacity;
 half _StepCount;
@@ -44,9 +48,9 @@ float3 get_uv(float3 p) {
   return (p + 0.5);
 }
 
-float4 sample_volume(float3 uv, float3 p)
+float4 sample_volume(sampler3D vol, float3 uv, float3 p)
 {
-  float4 v = tex3D(_Volume, uv) * _Intensity;
+  float4 v = tex3D(vol, uv) * _Intensity;
 
   float3 axis = mul(_AxisRotationMatrix, float4(p, 0)).xyz;
   axis = get_uv(axis);
@@ -125,18 +129,18 @@ fixed4 frag(v2f i) : SV_Target
   for (int iter = 0; iter < _StepCount; ++iter)
   {
     float3 uv = get_uv(p);
-    float4 src = sample_volume(uv, p);
+    float4 src = sample_volume(_Volume, uv, p);
 
-    src.a *= saturate(_Opacity*src.r);
-    src.rgb *= src.a;
+	src.a *= saturate(((src.r+src.g+src.b)/3) *_Opacity);
+
+	src.rgb *= src.a;
 
     // blend
     dst = (1.0 - dst.a) * src + dst;
     p += ds;
-
   }
 
-  return saturate(dst) * _Color;
+  return saturate(dst) ;
 }
 
 #endif 

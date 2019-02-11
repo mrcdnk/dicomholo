@@ -270,7 +270,7 @@ namespace Segmentation
                     }
                 }
 
-                yield return new WaitForEndOfFrame();
+                yield return null;
             }
             texture3D.SetPixels32(pixelColors);
             texture3D.Apply();

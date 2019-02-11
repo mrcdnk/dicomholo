@@ -327,7 +327,7 @@ namespace Segmentation
         {
             while (_textureLock)
             {
-                yield return new WaitForEndOfFrame();
+                yield return null;
             }
 
             _textureLock = true;

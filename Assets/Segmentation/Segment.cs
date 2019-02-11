@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 using DICOMViews;
 using Threads;
@@ -15,7 +17,7 @@ namespace Segmentation
         private ulong[,] _segmentData;
         private object[] _locks;
 
-        private bool isClear = true;
+        private bool _isClear = true;
 
         internal readonly ThreadGroupState _currentWorkload;
 
@@ -24,7 +26,7 @@ namespace Segmentation
         public int Width { get; private set; }
         public int Height { get; private set; }
         public int Slices { get; private set; }
-        public bool IsClear => isClear;
+        public bool IsClear => _isClear;
 
         /// <summary>
         /// Creates an empty Segment with uninitialized data array.
@@ -80,7 +82,7 @@ namespace Segmentation
         public void Clear()
         {
             Array.Clear(_segmentData, 0, _segmentData.Length);
-            isClear = true;
+            _isClear = true;
         }
 
         /// <summary>
@@ -108,11 +110,8 @@ namespace Segmentation
 
             if (value)
             {
-                isClear = false;
-            }
+                _isClear = false;
 
-            if (value)
-            {
                 lock (_locks[z])
                 {
                     _segmentData[z, longnum] |= (ulong)1 << bitnum;
@@ -160,10 +159,13 @@ namespace Segmentation
             switch (sliceType)
             {
                 case SliceType.Transversal:
+                    WriteToTransversal(texture2D, index);
                     break;
                 case SliceType.Sagittal:
+                    WriteToSagittal(texture2D, index);
                     break;
                 case SliceType.Frontal:
+                    WriteToFrontal(texture2D, index);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(sliceType), sliceType, "Invalid SliceType");
@@ -190,6 +192,7 @@ namespace Segmentation
             }
 
             texture2D.SetPixels32(colors);
+            texture2D.Apply();
         }
 
         /// <summary>
@@ -212,6 +215,7 @@ namespace Segmentation
             }
 
             texture2D.SetPixels32(colors);
+            texture2D.Apply();
         }
 
         /// <summary>
@@ -234,18 +238,19 @@ namespace Segmentation
             }
 
             texture2D.SetPixels32(colors);
+            texture2D.Apply();
         }
 
         /// <summary>
         /// Writes the segment into a texture 3D.
         /// </summary>
         /// <param name="texture3D">The target texture 3D to override</param>
-        public void WriteToTexture(Texture3D texture3D)
+        public IEnumerator WriteToTexture(Texture3D texture3D)
         {
             if (!texture3D)
             {
                 Debug.Log("Segment volume Texture wasn't initialized.");
-                return;
+                yield break;
             }
 
             var pixelColors = texture3D.GetPixels32();
@@ -264,6 +269,8 @@ namespace Segmentation
 
                     }
                 }
+
+                yield return new WaitForEndOfFrame();
             }
             texture3D.SetPixels32(pixelColors);
             texture3D.Apply();

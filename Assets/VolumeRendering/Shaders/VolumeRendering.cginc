@@ -6,6 +6,7 @@
 half4 _Color;
 sampler3D _Volume;
 half _Intensity;
+half _AlphaCutoff;
 half _Opacity;
 half _StepCount;
 half3 _SliceMin, _SliceMax;
@@ -46,7 +47,7 @@ float3 get_uv(float3 p) {
 
 float4 sample_volume(sampler3D vol, float3 uv, float3 p)
 {
-  float4 v = tex3D(vol, uv) * _Intensity;
+  float4 v = tex3Dlod(vol, float4(uv, 0)) * _Intensity;
 
   float3 axis = mul(_AxisRotationMatrix, float4(p, 0)).xyz;
   axis = get_uv(axis);
@@ -121,7 +122,7 @@ fixed4 frag(v2f i) : SV_Target
   float4 dst = float4(0, 0, 0, 0);
   float3 p = start;
 
-  //[unroll]
+  //[unroll(256)]
   for (int iter = 0; iter < _StepCount; ++iter)
   {
     float3 uv = get_uv(p);
@@ -133,6 +134,10 @@ fixed4 frag(v2f i) : SV_Target
 
     // blend
     dst = (1.0 - dst.a) * src + dst;
+	if (dst.a > _AlphaCutoff) {
+		break;
+	}
+
     p += ds;
   }
 

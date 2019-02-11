@@ -9,6 +9,9 @@ using UnityEngine;
 
 namespace DICOMViews
 {
+    /// <summary>
+    /// Manages dependencies between all views and relays events to interested views.
+    /// </summary>
     public class ViewManager : MonoBehaviour
     {
         public MainMenu MainMenu;
@@ -48,10 +51,11 @@ namespace DICOMViews
 
             _segmentCache = gameObject.AddComponent<SegmentCache>();
             _segmentCache.TextureReady.AddListener(SegmentTextureUpdated);
-            _segmentCache.VolumeReady.AddListener(SegmentVolumeUpdated);
+            _segmentCache.SegmentChanged.AddListener(SegmentChanged);
 
             Slice2DView.ImageStack = _stack;
             Slice2DView.SegmentCache = _segmentCache;
+
             WindowSettingsPanel.SettingsChangedEvent.AddListener(OnWindowSettingsChanged);
             WindowSettingsPanel.gameObject.SetActive(false);
             Volume.SetActive(false);
@@ -123,34 +127,34 @@ namespace DICOMViews
 
         public void CreateVolume()
         {
-            MainMenu.LoadVolumeButton.enabled = false;
+            MainMenu.DisableButtons();
             AddWorkload(_stack.StartCreatingVolume(), "Creating Volume", OnVolumeCreated);
         }
 
         private void OnVolumeCreated()
         {
             VolumeRendering.SetVolume(_stack.VolumeTexture);
-            _segmentCache.Apply(_stack.VolumeTexture);
+            StartCoroutine(_segmentCache.Apply(_stack.VolumeTexture, SegmentCache.One));
             //RayMarching.initVolume(_stack.VolumeTexture);
 
             //Volume.SetActive(true);
-            MainMenu.LoadVolumeButton.enabled = true;
+            MainMenu.EnableButtons();
             VolumeRenderingParent.SetActive(true);
         }
 
         public void CreateTextures()
         {
-            MainMenu.Load2DButton.enabled = false;
+            MainMenu.DisableButtons();
             Slice2DView.gameObject.SetActive(true);
             AddWorkload(_stack.StartCreatingTextures(), "Creating Textures", OnTexturesCreated);
         }
 
         private void OnTexturesCreated()
         {
-            MainMenu.Load2DButton.enabled = true;
+            MainMenu.EnableButtons();
             _segmentCache.InitializeTextures();
 
-            _segmentCache.CreateSegment(0, new RangeSegmentation(), new RangeSegmentation.RangeParameter(700, 3000, 2));
+            _segmentCache.CreateSegment(SegmentCache.One, new RangeSegmentation(), new RangeSegmentation.RangeParameter(700, 3000, 2));
         }
 
         public void TextureUpdated(SliceType type, int index)
@@ -163,14 +167,19 @@ namespace DICOMViews
             }
         }
 
-        private void SegmentTextureUpdated(Texture2D tex, SliceType type, int index)
+        private void SegmentChanged(uint selector)
         {
-            Slice2DView.SegmentUpdated(tex, type, index);
+           //combine selector with user selection and apply it to the cache.
+            StartCoroutine(_segmentCache.ApplyTextures(SegmentCache.One, clearFlag: true));
+            if (_stack.VolumeTexture)
+            {
+                StartCoroutine(_segmentCache.Apply(_stack.VolumeTexture));
+            }
         }
 
-        private void SegmentVolumeUpdated(Texture3D volume)
+        private void SegmentTextureUpdated(Texture2D tex, SliceType type, int index)
         {
-
+            Slice2DView.SegmentTextureUpdated(tex, type, index);
         }
 
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)

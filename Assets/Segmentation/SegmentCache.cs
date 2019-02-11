@@ -20,13 +20,22 @@ namespace Segmentation
         private int _height;
         private int _slices;
         private bool _texturesInvalid = true;
-        private bool _volumeInvalid = true;
+        private bool _textureLock = false;
+
         private ImageStack _imageStack;
 
-        private readonly List<Tuple<ThreadGroupState, int, Action<int>>> _currentWorkloads = new List<Tuple<ThreadGroupState, int, Action<int>>>(5);
+        private readonly List<Tuple<ThreadGroupState, uint, Action<uint>>> _currentWorkloads =
+            new List<Tuple<ThreadGroupState, uint, Action<uint>>>(5);
 
-        public SegmentVolumeReady VolumeReady = new SegmentVolumeReady();
+        public const uint All = 0xFFFFFFFF;
+        public const uint One = 0 | ((uint) 1 << 31);
+        public const uint Two = 0 | ((uint) 1 << 30);
+        public const uint Three = 0 | ((uint) 1 << 29);
+
+        public const int MaxSegmentCount = 3;
+
         public SegmentTextureReady TextureReady = new SegmentTextureReady();
+        public SegmentChanged SegmentChanged = new SegmentChanged();
 
         // Start is called before the first frame update
         void Start()
@@ -52,6 +61,7 @@ namespace Segmentation
                     RemoveWorkload(index);
                     break;
                 }
+
                 index++;
             }
         }
@@ -60,7 +70,7 @@ namespace Segmentation
         {
             var tuple = _currentWorkloads[index];
             tuple.Item3.Invoke(tuple.Item2);
-          
+
             _currentWorkloads.RemoveAt(index);
         }
 
@@ -75,7 +85,6 @@ namespace Segmentation
             var anyChanges = width != _width || height != _height || slices != _slices;
 
             _texturesInvalid = anyChanges;
-            _volumeInvalid = anyChanges;
 
             _width = width;
             _height = height;
@@ -91,7 +100,7 @@ namespace Segmentation
         /// Creates new Textures if necessary and initializes their colors to clear.
         /// </summary>
         public void InitializeTextures()
-        { 
+        {
             if (_texturesInvalid)
             {
                 _sliceSegments[SliceType.Transversal] = new Texture2D[_slices];
@@ -108,23 +117,24 @@ namespace Segmentation
                         switch (type)
                         {
                             case SliceType.Transversal:
-                                _sliceSegments[type][index] = new Texture2D(_width, _height, TextureFormat.ARGB32, false);
+                                _sliceSegments[type][index] =
+                                    new Texture2D(_width, _height, TextureFormat.ARGB32, false);
                                 break;
                             case SliceType.Sagittal:
-                                _sliceSegments[type][index] = new Texture2D(_height, _slices, TextureFormat.ARGB32, false);
+                                _sliceSegments[type][index] =
+                                    new Texture2D(_height, _slices, TextureFormat.ARGB32, false);
                                 break;
                             case SliceType.Frontal:
-                                _sliceSegments[type][index] = new Texture2D(_width, _slices, TextureFormat.ARGB32, false);
+                                _sliceSegments[type][index] =
+                                    new Texture2D(_width, _slices, TextureFormat.ARGB32, false);
                                 break;
                             default:
                                 throw new ArgumentOutOfRangeException();
                         }
                     }
                 }
-
             }
 
-            ClearTextures();
         }
 
         private void ClearTextures()
@@ -151,72 +161,181 @@ namespace Segmentation
         /// <param name="index">Index of the segment to create, range ist limited from 0 to 2</param>
         /// <param name="segmentationStrategy">Strategy for creating a Segmentation</param>
         /// <param name="parameters">Parameters used by the segmentation strategy</param>
-        public void CreateSegment<TP>(int index, SegmentationStrategy<TP> segmentationStrategy, TP parameters)
+        public void CreateSegment<TP>(uint index, SegmentationStrategy<TP> segmentationStrategy, TP parameters)
         {
-            _currentWorkloads.Add(new Tuple<ThreadGroupState, int, Action<int>>(segmentationStrategy.Fit(_segments[index], _imageStack.GetData(), parameters), index, OnSegmentCreated));
+            _currentWorkloads.Add(new Tuple<ThreadGroupState, uint, Action<uint>>(
+                segmentationStrategy.Fit(_segments[GetIndex(index)], _imageStack.GetData(), parameters), index, OnSegmentChange));
         }
 
-        private void OnSegmentCreated(int index)
+        /// <summary>
+        /// Called when a segmentation has been completed.
+        /// </summary>
+        /// <param name="index">selector for the created segment.</param>
+        private void OnSegmentChange(uint index)
         {
-            Debug.Log("Created Segment: "+index);
-            Apply(index);
-            StartCoroutine(ApplyTextures(index));
+            SegmentChanged.Invoke(index);
         }
 
-        public void Apply(int index)
+        /// <summary>
+        /// Coroutine used to apply the given segments to the given texture3D
+        /// </summary>
+        /// <param name="texture3D">texture to write to.</param>
+        /// <param name="segments">selection of segments that are going to be written to the texture.</param>
+        /// <returns></returns>
+        public IEnumerator Apply(Texture3D texture3D, uint segments = 0xFFFFFFFF)
         {
-            if (!_imageStack.VolumeTexture)
+            for (var shift = 0; shift < MaxSegmentCount; shift++)
             {
-                return;
+                if ((segments & ((uint)1 << (31 - shift))) == 0)
+                {
+                    continue;
+                }
+
+                if (_segments[shift].IsClear)
+                {
+                    continue;
+                }
+
+                yield return _segments[shift].WriteToTexture(texture3D);
             }
 
-           _segments[index].WriteToTexture(_imageStack.VolumeTexture);
-           _imageStack.VolumeTexture.Apply();
+            texture3D.Apply();
         }
 
-        public void Apply(Texture3D texture3D)
+        /// <summary>
+        /// Coroutine used to apply the given segments to the cached textures.
+        /// </summary>
+        /// <param name="segments">Selection of segments that should be written to the texture.</param>
+        /// <param name="clearFlag">If set to true, the segments will be cleared before writing to them.</param>
+        /// <returns></returns>
+        public IEnumerator ApplyTextures(uint segments = 0xFFFFFFFF, bool clearFlag = false)
         {
+            var alreadyClear = true;
+
             foreach (var segment in _segments)
             {
-                if(segment.IsClear)
-                    continue;
-
-                segment.WriteToTexture(texture3D);
-                texture3D.Apply();
+                alreadyClear &= segment.IsClear;
             }
-        }
 
-        private IEnumerator ApplyTextures(int index)
-        {
+            if (!alreadyClear && clearFlag)
+            {
+                ClearTextures();
+            }
+
+            yield return AccessTextures();
+
+            Texture2D currentTexture;
+
             for (var i = 0; i < _slices; ++i)
             {
-                _segments[index].WriteToTransversal(_sliceSegments[SliceType.Transversal][i], i);
-                _sliceSegments[SliceType.Transversal][i].Apply();
-                TextureReady.Invoke(_sliceSegments[SliceType.Transversal][i], SliceType.Transversal, i);
+                currentTexture = _sliceSegments[SliceType.Transversal][i];
+
+                for (var shift = 0; shift < MaxSegmentCount; shift++)
+                {
+                    if ((segments & ((uint)1 << (31 - shift))) == 0)
+                    {
+                        continue;
+                    }
+
+                    _segments[shift].WriteToTransversal(currentTexture, i);
+                    yield return null;
+                }
+
+                currentTexture.Apply();
+                TextureReady.Invoke(currentTexture, SliceType.Transversal, i);
             }
 
             yield return null;
 
             for (var i = 0; i < _width; ++i)
             {
-                _segments[index].WriteToFrontal(_sliceSegments[SliceType.Sagittal][i], i);
-                _sliceSegments[SliceType.Sagittal][i].Apply();
-                TextureReady.Invoke(_sliceSegments[SliceType.Sagittal][i], SliceType.Sagittal, i);
+                currentTexture = _sliceSegments[SliceType.Sagittal][i];
+
+                for (var shift = 0; shift < MaxSegmentCount; shift++)
+                {
+                    if ((segments & ((uint)1 << (31 - shift))) == 0)
+                    {
+                        continue;
+                    }
+
+                    _segments[shift].WriteToFrontal(currentTexture, i);
+                    yield return null;
+                }
+
+                currentTexture.Apply();
+                TextureReady.Invoke(currentTexture, SliceType.Sagittal, i);
             }
 
             yield return null;
 
             for (var i = 0; i < _height; ++i)
             {
-                _segments[index].WriteToFrontal(_sliceSegments[SliceType.Frontal][i], i);
-                _sliceSegments[SliceType.Frontal][i].Apply();
-                TextureReady.Invoke(_sliceSegments[SliceType.Frontal][i], SliceType.Frontal, i);
+                currentTexture = _sliceSegments[SliceType.Frontal][i];
+
+                for (var shift = 0; shift < MaxSegmentCount; shift++)
+                {
+                    if ((segments & ((uint)1 << (31 - shift))) == 0)
+                    {
+                        continue;
+                    }
+
+                    _segments[shift].WriteToFrontal(currentTexture, i);
+                    yield return null;
+                }
+
+                currentTexture.Apply();
+                TextureReady.Invoke(currentTexture, SliceType.Frontal, i);
             }
+
+            FreeTextures();
         }
 
         public Texture2D GetSegment(SliceType type, int index)
         {
             return _sliceSegments[type][index];
+        }
+
+        /// <summary>
+        /// Returns the selector for a given index
+        /// </summary>
+        /// <param name="index">the actual index of a segment, smaller than MaxSegmentCount.</param>
+        /// <returns></returns>
+        public uint GetSelector(int index)
+        {
+            return (uint)1 << (31 - index);
+        }
+
+        /// <summary>
+        /// Returns the segment index for the first segment in the given selector.
+        /// </summary>
+        /// <param name="selector">the selector for segments.</param>
+        /// <returns>Actual index for the segments array.</returns>
+        public int GetIndex(uint selector)
+        {
+            for (int shift = 0; shift < MaxSegmentCount; shift++)
+            {
+                if ((selector & ((uint)1 << (31 - shift))) > 0)
+                {
+                    return shift;
+                }
+            }
+
+            return -1;
+        }
+
+        private IEnumerator AccessTextures()
+        {
+            while (_textureLock)
+            {
+                yield return new WaitForEndOfFrame();
+            }
+
+            _textureLock = true;
+        }
+
+        private void FreeTextures()
+        {
+            _textureLock = false;
         }
     }
 }

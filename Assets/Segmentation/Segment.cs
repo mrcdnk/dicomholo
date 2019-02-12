@@ -106,8 +106,6 @@ namespace Segmentation
             var longnum = (x + y * Width) >> 6;
             var bitnum = (x + y * Width) % 64;
 
-            ulong a = 1;
-
             if (value)
             {
                 _isClear = false;
@@ -187,7 +185,7 @@ namespace Segmentation
                 {
                     var index = y * Width + x;
 
-                    colors[index] = GetColor(x, y, id);
+                    colors[index] = OverlapColors(colors[index], GetColor(x, y, id));
                 }
             }
 
@@ -210,7 +208,12 @@ namespace Segmentation
                 {
                     var index = z * Width + y;
 
-                    colors[index] = GetColor(id, y, z);
+                    Color32 color = GetColor(id, y, z);
+
+                    if (color != Color.clear)
+                    {
+                        colors[index] = OverlapColors(colors[index], GetColor(id, y, z));
+                    }
                 }
             }
 
@@ -233,7 +236,7 @@ namespace Segmentation
                 {
                     var index = z * Height + x;
 
-                    colors[index] = GetColor(x, id, z);
+                    colors[index] = OverlapColors(colors[index], GetColor(x, id, z));
                 }
             }
 
@@ -308,16 +311,34 @@ namespace Segmentation
                     target.r = 255;
                     break;
                 case SegmentationColor.Blue:
-                    target.g = 255;
+                    target.b = 255;
                     break;
                 case SegmentationColor.Green:
-                    target.b = 255;
+                    target.g = 255;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
 
             return target;
+        }
+
+        private Color32 OverlapColors(Color32 c1, Color32 c2)
+        {
+            Color32 color = new Color32();
+
+            color.a = (byte) ((1 - c1.a) * c2.a + c1.a);
+
+            if (color.a == 0)
+            {
+                return c1;
+            }
+
+            color.r = (byte) (((1 - c1.a) * c2.a * c2.r + c1.a * c1.r) / color.a);
+            color.g = (byte) (((1 - c1.a) * c2.a * c2.g + c1.a * c1.g) / color.a);
+            color.b = (byte) (((1 - c1.a) * c2.a * c2.b + c1.a * c1.b) / color.a);
+
+            return color;
         }
 
         /// <summary>
@@ -330,11 +351,11 @@ namespace Segmentation
             switch (color)
             {
                 case SegmentationColor.Red:
-                    return Color.red;
+                    return new Color32(255, 0, 0, 255);
                 case SegmentationColor.Blue:
-                    return Color.blue;
+                    return new Color32(0, 0, 255, 255); ;
                 case SegmentationColor.Green:
-                    return Color.green;
+                    return new Color32(0, 255, 0, 255); ;
                 default:
                     return Color.clear;
             }

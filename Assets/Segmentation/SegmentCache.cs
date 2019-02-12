@@ -30,9 +30,9 @@ namespace Segmentation
             new List<Tuple<ThreadGroupState, uint, Action<uint>>>(5);
 
         public const uint All = 0xFFFFFFFF;
-        public const uint One = 0 | ((uint) 1 << 31);
-        public const uint Two = 0 | ((uint) 1 << 30);
-        public const uint Three = 0 | ((uint) 1 << 29);
+        public static readonly uint One = GetSelector(0);
+        public static readonly uint Two = GetSelector(1);
+        public static readonly uint Three = GetSelector(2);
 
         public const int MaxSegmentCount = 3;
 
@@ -174,7 +174,6 @@ namespace Segmentation
         /// <param name="index">selector for the created segment.</param>
         private void OnSegmentChange(uint index)
         {
-            Debug.Log(_segments[0].Contains(20, 20, 0));
             SegmentChanged.Invoke(index);
         }
 
@@ -182,14 +181,14 @@ namespace Segmentation
         /// Coroutine used to apply the given segments to the given texture3D. Waits until previous Coroutine writing to same texture is done.
         /// </summary>
         /// <param name="texture3D">texture to write to.</param>
-        /// <param name="segments">selection of segments that are going to be written to the texture.</param>
+        /// <param name="selector">selection of segments that are going to be written to the texture.</param>
         /// <returns></returns>
-        public IEnumerator ApplySegments(Texture3D texture3D, uint segments = 0xFFFFFFFF)
+        public IEnumerator ApplySegments(Texture3D texture3D, uint selector = 0xFFFFFFFF)
         {
             yield return AccessVolume(texture3D);
             for (var shift = 0; shift < MaxSegmentCount; shift++)
             {
-                if ((segments & ((uint)1 << (31 - shift))) == 0)
+                if (!ContainsIndex(selector, shift))
                 {
                     continue;
                 }
@@ -210,10 +209,10 @@ namespace Segmentation
         /// <summary>
         /// Coroutine used to apply the given segments to the cached textures.
         /// </summary>
-        /// <param name="segments">Selection of segments that should be written to the texture.</param>
+        /// <param name="selector">Selection of segments that should be written to the texture.</param>
         /// <param name="clearFlag">If set to true, the segments will be cleared before writing to them.</param>
         /// <returns></returns>
-        public IEnumerator ApplyTextures(uint segments = 0xFFFFFFFF, bool clearFlag = false)
+        public IEnumerator ApplyTextures(uint selector = 0xFFFFFFFF, bool clearFlag = false)
         {
             var alreadyClear = true;
 
@@ -223,7 +222,7 @@ namespace Segmentation
 
                 if (segment.IsClear)
                 {
-                    segments = segments & ~((uint) 1 << (31 - index));
+                    selector = selector & ~GetSelector(index);
                 }
 
                 alreadyClear = alreadyClear && segment.IsClear;
@@ -244,7 +243,7 @@ namespace Segmentation
 
                 for (var shift = 0; shift < MaxSegmentCount; shift++)
                 {
-                    if ((segments & ((uint)1 << (31 - shift))) == 0)
+                    if (!ContainsIndex(selector, shift))
                     {
                         continue;
                     }
@@ -265,7 +264,7 @@ namespace Segmentation
 
                 for (var shift = 0; shift < MaxSegmentCount; shift++)
                 {
-                    if ((segments & ((uint)1 << (31 - shift))) == 0)
+                    if (!ContainsIndex(selector, shift))
                     {
                         continue;
                     }
@@ -286,7 +285,7 @@ namespace Segmentation
 
                 for (var shift = 0; shift < MaxSegmentCount; shift++)
                 {
-                    if ((segments & ((uint)1 << (31 - shift))) == 0)
+                    if (!ContainsIndex(selector, shift))
                     {
                         continue;
                     }
@@ -312,7 +311,7 @@ namespace Segmentation
         /// </summary>
         /// <param name="index">the actual index of a segment, smaller than MaxSegmentCount.</param>
         /// <returns></returns>
-        public uint GetSelector(int index)
+        public static uint GetSelector(int index)
         {
             return (uint)1 << (31 - index);
         }
@@ -322,17 +321,28 @@ namespace Segmentation
         /// </summary>
         /// <param name="selector">the selector for segments.</param>
         /// <returns>Actual index for the segments array.</returns>
-        public int GetIndex(uint selector)
+        public static int GetIndex(uint selector)
         {
             for (int shift = 0; shift < MaxSegmentCount; shift++)
             {
-                if ((selector & ((uint)1 << (31 - shift))) > 0)
+                if (ContainsIndex(selector, shift))
                 {
                     return shift;
                 }
             }
 
             return -1;
+        }
+
+        /// <summary>
+        /// Checks if the given selector contains the given index.
+        /// </summary>
+        /// <param name="selector">Segment selector</param>
+        /// <param name="index">index of the segment</param>
+        /// <returns>true if the bit at the index is set to 1</returns>
+        public static bool ContainsIndex(uint selector, int index)
+        {
+            return (selector & GetSelector(index)) > 0;
         }
 
         private IEnumerator AccessTextures()

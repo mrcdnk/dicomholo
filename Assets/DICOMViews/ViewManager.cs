@@ -154,8 +154,8 @@ namespace DICOMViews
             MainMenu.EnableButtons();
 
             _segmentCache.InitializeTextures();
-            //_segmentCache.CreateSegment(SegmentCache.One, new RangeSegmentation(), new RangeSegmentation.RangeParameter(700, 3000, 2));
-            _segmentCache.CreateSegment(SegmentCache.One, new RegionFillSegmentation(), new RegionFillSegmentation.RegionFillParameter(20, 20, 0));
+            _segmentCache.CreateSegment(SegmentCache.One, new RangeSegmentation(), new RangeSegmentation.RangeParameter(700, 3000, 2));
+            _segmentCache.CreateSegment(SegmentCache.Two, new RegionFillSegmentation(), new RegionFillSegmentation.RegionFillParameter(20, 20, 0));
         }
 
         public void TextureUpdated(SliceType type, int index)

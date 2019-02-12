@@ -22,6 +22,8 @@ namespace Segmentation
         private bool _texturesInvalid = true;
         private bool _textureLock = false;
 
+        private List<Texture3D> _volumeLocks = new List<Texture3D>();
+
         private ImageStack _imageStack;
 
         private readonly List<Tuple<ThreadGroupState, uint, Action<uint>>> _currentWorkloads =
@@ -146,7 +148,6 @@ namespace Segmentation
                     var current = _sliceSegments[type][index];
 
                     current.SetPixels32(new Color32[current.GetPixels32().Length]);
-
                     current.Apply();
 
                     TextureReady.Invoke(current, type, index);
@@ -173,17 +174,19 @@ namespace Segmentation
         /// <param name="index">selector for the created segment.</param>
         private void OnSegmentChange(uint index)
         {
+            Debug.Log(_segments[0].Contains(20, 20, 0));
             SegmentChanged.Invoke(index);
         }
 
         /// <summary>
-        /// Coroutine used to apply the given segments to the given texture3D
+        /// Coroutine used to apply the given segments to the given texture3D. Waits until previous Coroutine writing to same texture is done.
         /// </summary>
         /// <param name="texture3D">texture to write to.</param>
         /// <param name="segments">selection of segments that are going to be written to the texture.</param>
         /// <returns></returns>
-        public IEnumerator Apply(Texture3D texture3D, uint segments = 0xFFFFFFFF)
+        public IEnumerator ApplySegments(Texture3D texture3D, uint segments = 0xFFFFFFFF)
         {
+            yield return AccessVolume(texture3D);
             for (var shift = 0; shift < MaxSegmentCount; shift++)
             {
                 if ((segments & ((uint)1 << (31 - shift))) == 0)
@@ -200,6 +203,8 @@ namespace Segmentation
             }
 
             texture3D.Apply();
+
+            FreeVolume(texture3D);
         }
 
         /// <summary>
@@ -212,9 +217,16 @@ namespace Segmentation
         {
             var alreadyClear = true;
 
-            foreach (var segment in _segments)
+            for (var index = 0; index < _segments.Length; index++)
             {
-                alreadyClear &= segment.IsClear;
+                var segment = _segments[index];
+
+                if (segment.IsClear)
+                {
+                    segments = segments & ~((uint) 1 << (31 - index));
+                }
+
+                alreadyClear = alreadyClear && segment.IsClear;
             }
 
             if (!alreadyClear && clearFlag)
@@ -258,7 +270,7 @@ namespace Segmentation
                         continue;
                     }
 
-                    _segments[shift].WriteToFrontal(currentTexture, i);
+                    _segments[shift].WriteToSagittal(currentTexture, i);
                     yield return null;
                 }
 
@@ -332,10 +344,26 @@ namespace Segmentation
 
             _textureLock = true;
         }
-
+        
         private void FreeTextures()
         {
             _textureLock = false;
         }
+
+        private IEnumerator AccessVolume(Texture3D texture3D)
+        {
+            while (_volumeLocks.Contains(texture3D))
+            {
+                yield return null;
+            }
+
+            _volumeLocks.Add(texture3D);
+        }
+
+        private void FreeVolume(Texture3D texture3D)
+        {
+            _volumeLocks.Remove(texture3D);
+        }
+
     }
 }

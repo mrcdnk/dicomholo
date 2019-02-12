@@ -8,16 +8,30 @@ namespace Segmentation
 {
     public class RegionFillSegmentation : SegmentationStrategy<RegionFillSegmentation.RegionFillParameter>
     {
+        private readonly List<Thread> _runningThreads = new List<Thread>(1); 
+
         public sealed class RegionFillParameter
         {
-            public Vector3Int Seed { get; set; }
+            public int X { get; }
+            public int Y { get; }
+            public int Z { get; }
 
-            public int Threshold { get; set; }
+            public int Threshold { get; }
 
-            public RegionFillParameter(Vector3Int seed, int threshold = 0)
+            public RegionFillParameter(int x, int y, int z, int threshold = 0)
             {
-                Seed = seed;
+                X = x;
+                Y = y;
+                Z = z;
                 Threshold = threshold;
+            }
+        }
+
+        ~RegionFillSegmentation()
+        {
+            foreach (var runningThread in _runningThreads)
+            {
+                runningThread.Abort();
             }
         }
 
@@ -30,13 +44,13 @@ namespace Segmentation
 
             segment._currentWorkload.Reset();
             segment._currentWorkload.TotalProgress = 1;
-
             segment._currentWorkload.Register();
 
             var t = new Thread(() => StartRegionFill(segment, data, parameters))
             {
                 IsBackground = true
             };
+            _runningThreads.Add(t);
 
             t.Start();
 
@@ -46,92 +60,170 @@ namespace Segmentation
         private void StartRegionFill(Segment segment, IReadOnlyList<int> data,
             RegionFillParameter regionFillParameter)
         {
-            var pending = new Queue<Vector3Int>(100);
-            var visited = new HashSet<Vector3Int>();
+            var pending = new Queue<Voxel>(20000);
+            var visited = new HashSet<Voxel>();
 
-            pending.Enqueue(regionFillParameter.Seed);
-            var intensityBase = data[GetIndex(pending.Peek(), segment.Width, segment.Height)];
+            var seedVoxel = new Voxel(regionFillParameter.X, regionFillParameter.Y, regionFillParameter.Z);
+
+            pending.Enqueue(seedVoxel);
+            visited.Add(seedVoxel);
+            segment.Set(seedVoxel.X, seedVoxel.Y, seedVoxel.Z);
+
+            var intensityBase = data[GetIndex(seedVoxel, segment.Width, segment.Height)];
 
             var intensityLower = intensityBase - regionFillParameter.Threshold;
             var intensityUpper = intensityBase + regionFillParameter.Threshold;
 
+            long processed = 0;
+
             while (pending.Count > 0)
             {
                 var currentVec = pending.Dequeue();
+
                 var currentIdx = GetIndex(currentVec, segment.Width, segment.Height);
 
-
-                if (!(data[currentIdx] >= intensityLower && data[currentIdx] <= intensityUpper))
+                if (data[currentIdx] < intensityLower || data[currentIdx] > intensityUpper)
                 {
                     continue;
                 }
 
-                segment.Set(currentVec.x, currentVec.y, currentVec.z);
-                visited.Add(currentVec);
+                segment.Set(currentVec.X, currentVec.Y, currentVec.Z);
 
-                Vector3Int neighbor;
+                Voxel neighbor;
 
-                if (currentVec.x > 0)
+                if (currentVec.X > 0)
                 {
-                    neighbor = new Vector3Int(currentVec.x - 1, currentVec.y, currentVec.z);
-
-                    if (!visited.Contains(neighbor))
-                    {
-                        pending.Enqueue(neighbor);
-                    }
-                }
-                if (currentVec.x < segment.Width - 1)
-                {
-                    neighbor = new Vector3Int(currentVec.x + 1, currentVec.y, currentVec.z);
-                    if (!visited.Contains(neighbor))
-                    {
-                        pending.Enqueue(neighbor);
-                    }
-                }
-                if (currentVec.y > 0)
-                {
-                    neighbor = new Vector3Int(currentVec.x, currentVec.y - 1, currentVec.z);
+                    neighbor = new Voxel(currentVec.X - 1, currentVec.Y, currentVec.Z);
 
                     if (!visited.Contains(neighbor))
                     {
                         pending.Enqueue(neighbor);
+                        visited.Add(neighbor);
                     }
                 }
-                if (currentVec.y < segment.Height - 1)
+
+                if (currentVec.X < segment.Width - 1)
                 {
-                    neighbor = new Vector3Int(currentVec.x, currentVec.y + 1, currentVec.z);
+                    neighbor = new Voxel(currentVec.X + 1, currentVec.Y, currentVec.Z);
+
                     if (!visited.Contains(neighbor))
                     {
                         pending.Enqueue(neighbor);
+                        visited.Add(neighbor);
                     }
                 }
-                if (currentVec.z > 0)
+
+                if (currentVec.Y > 0)
                 {
-                    neighbor = new Vector3Int(currentVec.x, currentVec.y, currentVec.z - 1);
+                    neighbor = new Voxel(currentVec.X, currentVec.Y - 1, currentVec.Z);
+
                     if (!visited.Contains(neighbor))
                     {
                         pending.Enqueue(neighbor);
+                        visited.Add(neighbor);
                     }
                 }
-                if (currentVec.z < segment.Slices - 1)
+
+                if (currentVec.Y < segment.Height - 1)
                 {
-                    neighbor = new Vector3Int(currentVec.x, currentVec.y, currentVec.z + 1);
+                    neighbor = new Voxel(currentVec.X, currentVec.Y + 1, currentVec.Z);
+
                     if (!visited.Contains(neighbor))
                     {
                         pending.Enqueue(neighbor);
+                        visited.Add(neighbor);
                     }
                 }
-                
+                if (currentVec.Z > 0)
+                {
+                    neighbor = new Voxel(currentVec.X, currentVec.Y, currentVec.Z - 1);
+
+                    if (!visited.Contains(neighbor))
+                    {
+                        pending.Enqueue(neighbor);
+                        visited.Add(neighbor);
+                    }
+                }
+                if (currentVec.Z < segment.Slices - 1)
+                {
+                    neighbor = new Voxel(currentVec.X, currentVec.Y, currentVec.Z + 1);
+
+                    if (!visited.Contains(neighbor))
+                    {
+                        pending.Enqueue(neighbor);
+                        visited.Add(neighbor);
+                    }
+                }
+
+                if (processed % 40000 == 0)
+                {
+                    Thread.Sleep(60);
+                }
+
+                processed++;
             }
+
             segment._currentWorkload.IncrementProgress();
             segment._currentWorkload.Done();
+            _runningThreads.Remove(Thread.CurrentThread);
         }
 
-        private int GetIndex(Vector3Int coordinates, int width, int height)
+        private int GetIndex(Voxel coordinates, int width, int height)
         {
-            return coordinates.z * width * height
-                   + coordinates.x * height
-                   + coordinates.y;
+            return coordinates.Z * width * height
+                   + coordinates.X * height
+                   + coordinates.Y;
+        }
+
+        private class Voxel : IEquatable<Voxel>
+        {
+            public readonly int X;
+            public readonly int Y;
+            public readonly int Z;
+
+            public Voxel(int x, int y, int z)
+            {
+                X = x;
+                Y = y;
+                Z = z;
+            }
+
+            public override bool Equals(System.Object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != GetType()) return false;
+                return Equals((Voxel) obj);
+            }
+
+            
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = X;
+                    hashCode = (hashCode * 397) ^ Y;
+                    hashCode = (hashCode * 397) ^ Z;
+                    return hashCode;
+                }
+            }
+
+            public bool Equals(Voxel other)
+            {
+                if (ReferenceEquals(null, other)) return false;
+                if (ReferenceEquals(this, other)) return true;
+                return X == other.X && Y == other.Y && Z == other.Z;
+            }
+
+            public static bool operator ==(Voxel left, Voxel right)
+            {
+                return Equals(left, right);
+            }
+
+            public static bool operator !=(Voxel left, Voxel right)
+            {
+                return !Equals(left, right);
+            }
         }
     }
 }

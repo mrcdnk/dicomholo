@@ -409,6 +409,7 @@ namespace DICOMParser
                 }
 
                 groupState.IncrementProgress();
+                Thread.Sleep(10);
             }
          
             groupState.Done();
@@ -474,7 +475,7 @@ namespace DICOMParser
                         target[idx] = PixelProcessor.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z], windowWidth, windowCenter));
                     }
                 }
-
+                Thread.Sleep(10);
                 groupState.IncrementProgress();
             }
 
@@ -537,6 +538,7 @@ namespace DICOMParser
                 target[layer] = new Color32[width*height];
                 FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelProcessor.Identity, windowWidth, windowCenter);
                 processed.Enqueue(layer);
+                Thread.Sleep(10);
             }
 
             groupState.Done();
@@ -598,6 +600,7 @@ namespace DICOMParser
                 target[y] = new Color32[width * files.Length];
                 FillPixelsFrontal(y, data, width, height, files, target[y], PixelProcessor.Identity, windowWidth, windowCenter);
                 processed.Enqueue(y);
+                Thread.Sleep(10);
             }
 
             groupState.Done();
@@ -659,6 +662,7 @@ namespace DICOMParser
                 target[x] = new Color32[height * files.Length];
                 FillPixelsSagittal(x, data, width, height, files, target[x], PixelProcessor.Identity, windowWidth, windowCenter);
                 processed.Enqueue(x);
+                Thread.Sleep(10);
             }
 
             groupState.Done();

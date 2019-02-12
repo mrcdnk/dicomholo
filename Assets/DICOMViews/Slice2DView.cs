@@ -38,7 +38,7 @@ namespace DICOMViews
         private Color lastClicked;
         private bool hasBeenClicked = false;
 
-        private Color32 imageTransparency = new Color32(255, 255, 255, 70);
+        [SerializeField] private Color32 segmentTransparency = new Color32(255, 255, 255, 70);
 
         public ImageStack ImageStack {
             set
@@ -155,11 +155,13 @@ namespace DICOMViews
         /// <param name="index">index of the updated texture</param>
         public void SegmentTextureUpdated(Texture2D tex, SliceType type, int index)
         {
-            if (_currentSliceType == type && _selection[_currentSliceType] == index)
+            if (_currentSliceType != type || _selection[_currentSliceType] != index)
             {
-                SegmentImage.texture = tex;
-                SegmentImage.color = imageTransparency;
+                return;
             }
+
+            SegmentImage.texture = tex;
+            SegmentImage.color = segmentTransparency;
         }
 
         /// <summary>

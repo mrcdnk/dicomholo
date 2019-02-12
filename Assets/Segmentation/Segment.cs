@@ -305,17 +305,19 @@ namespace Segmentation
             switch (SegmentColor)
             {
                 case SegmentationColor.Red:
-                    return new Color32(255, target.g, target.b, target.a);
+                    target.r = 255;
                     break;
                 case SegmentationColor.Blue:
-                    return new Color32(target.r, 255, target.b, target.a);
+                    target.g = 255;
                     break;
                 case SegmentationColor.Green:
-                    return new Color32(target.r, target.g, 255, target.a);
+                    target.b = 255;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            return target;
         }
 
         /// <summary>

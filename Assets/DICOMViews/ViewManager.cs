@@ -134,7 +134,7 @@ namespace DICOMViews
         private void OnVolumeCreated()
         {
             VolumeRendering.SetVolume(_stack.VolumeTexture);
-            StartCoroutine(_segmentCache.Apply(_stack.VolumeTexture, SegmentCache.One));
+            StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture));
             //RayMarching.initVolume(_stack.VolumeTexture);
 
             //Volume.SetActive(true);
@@ -152,9 +152,10 @@ namespace DICOMViews
         private void OnTexturesCreated()
         {
             MainMenu.EnableButtons();
-            _segmentCache.InitializeTextures();
 
-            _segmentCache.CreateSegment(SegmentCache.One, new RangeSegmentation(), new RangeSegmentation.RangeParameter(700, 3000, 2));
+            _segmentCache.InitializeTextures();
+            //_segmentCache.CreateSegment(SegmentCache.One, new RangeSegmentation(), new RangeSegmentation.RangeParameter(700, 3000, 2));
+            _segmentCache.CreateSegment(SegmentCache.One, new RegionFillSegmentation(), new RegionFillSegmentation.RegionFillParameter(20, 20, 0));
         }
 
         public void TextureUpdated(SliceType type, int index)
@@ -169,11 +170,11 @@ namespace DICOMViews
 
         private void SegmentChanged(uint selector)
         {
-           //combine selector with user selection and apply it to the cache.
-            StartCoroutine(_segmentCache.ApplyTextures(SegmentCache.One, clearFlag: true));
+            //combine selector with user selection and apply it to the cache.
+            StartCoroutine(_segmentCache.ApplyTextures(clearFlag: true));
             if (_stack.VolumeTexture)
             {
-                StartCoroutine(_segmentCache.Apply(_stack.VolumeTexture));
+                StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture));
             }
         }
 

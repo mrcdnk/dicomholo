@@ -4,6 +4,11 @@ using UnityEngine;
 public class ButtonHandler : MonoBehaviour, IFocusable, IManipulationHandler
 {
 
+    private void Awake()
+    {
+        GetComponent<Rigidbody>().detectCollisions = false;
+    }
+
 	public void OnFocusEnter() 
 	{
 

@@ -145,7 +145,7 @@ public class TubeSlider : MonoBehaviour
         }
     }
 
-    private void UpdatePosition()
+    private void UpdatePosition(bool invokeEvent = true)
     {
         start = LeftPivot.position;
         end = RightPivot.position;
@@ -153,7 +153,11 @@ public class TubeSlider : MonoBehaviour
 
         button.transform.position = start + (-button.transform.up.normalized * (float)_currentValue * sliderVector.magnitude);
         button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
-        SliderChangedEvent.Invoke(this);
+
+        if (invokeEvent)
+        {
+            SliderChangedEvent.Invoke(this);
+        }
     }
 
     public Color buttonColorOffFocus
@@ -176,6 +180,11 @@ public class TubeSlider : MonoBehaviour
             for (int i = 0; i < 4; ++i)
                 ButtonColor.ButtonColorOnFocusArr[i] = ButtonColorOnFocus[i];
         }
+    }
+
+    public void CylinderClicked()
+    {
+        CylinderClicked(null);
     }
 
     public void CylinderClicked(InputClickedEventData eventData)

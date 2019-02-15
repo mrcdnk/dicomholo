@@ -125,17 +125,6 @@ namespace Segmentation
         }
 
         /// <summary>
-        /// Use to check which color number will be used for this segment.
-        /// </summary>
-        /// <returns>
-        /// The SegmentationColor of this segment.
-        /// </returns>
-        public SegmentationColor GetColor()
-        {
-            return SegmentColor;
-        }
-
-        /// <summary>
         /// Returns the segment array.
         /// </summary>
         /// <returns>
@@ -296,6 +285,11 @@ namespace Segmentation
             {
                 return Color.clear;
             }
+        }
+
+        public Color32 GetColor()
+        {
+            return GetColor(SegmentColor);
         }
 
         /// <summary>

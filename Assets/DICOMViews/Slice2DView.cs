@@ -130,7 +130,7 @@ namespace DICOMViews
             {
                 _selection[_currentSliceType] = slider.CurrentInt;
                 Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
-                SegmentImage.texture = SegmentCache.GetSegment(_currentSliceType, _selection[_currentSliceType]);
+                SegmentImage.texture = SegmentCache.GetSegmentTexture(_currentSliceType, _selection[_currentSliceType]);
             }
         }
 

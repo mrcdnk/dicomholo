@@ -301,10 +301,16 @@ namespace Segmentation
             FreeTextures();
         }
 
-        public Texture2D GetSegment(SliceType type, int index)
+        public Texture2D GetSegmentTexture(SliceType type, int index)
         {
             return _sliceSegments[type][index];
         }
+
+        public Segment GetSegment(int index)
+        {
+            return _segments[index];
+        }
+
 
         /// <summary>
         /// Returns the selector for a given index

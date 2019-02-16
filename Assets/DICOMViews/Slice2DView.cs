@@ -187,7 +187,7 @@ namespace DICOMViews
         /// <param name="index">index of the updated texture</param>
         public void SegmentTextureUpdated(Texture2D tex, SliceType type, int index)
         {
-            if (_currentSliceType != type || _selection[_currentSliceType] != index)
+            if (_currentSliceType != type || !_selection.ContainsKey(_currentSliceType) || _selection[_currentSliceType] != index)
             {
                 return;
             }

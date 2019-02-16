@@ -65,6 +65,8 @@ namespace DICOMViews
             VolumeRenderingParent.SetActive(false);
             Slice2DView.gameObject.SetActive(false);
             SegmentConfiguration.transform.gameObject.SetActive(false);
+            SegmentConfiguration.OnSelectionChanged2D.AddListener(SelectionChanged2D);
+            SegmentConfiguration.OnSelectionChanged3D.AddListener(SelectionChanged3D);
 
             Slice2DView.OnPointSelected.AddListener(SegmentConfiguration.UpdateRegionSeed);
 
@@ -146,7 +148,7 @@ namespace DICOMViews
         private void OnVolumeCreated()
         {
             VolumeRendering.SetVolume(_stack.VolumeTexture);
-            StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture));
+            StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture, SegmentConfiguration.Display3Ds));
             //RayMarching.initVolume(_stack.VolumeTexture);
 
             //Volume.SetActive(true);
@@ -164,6 +166,7 @@ namespace DICOMViews
         private void OnTexturesCreated()
         {
             MainMenu.EnableButtons();
+            StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));
         }
 
         public void TextureUpdated(SliceType type, int index)
@@ -179,17 +182,25 @@ namespace DICOMViews
         private void SegmentChanged(uint selector)
         {
             //combine selector with user selection and apply it to the cache.
-            StartCoroutine(_segmentCache.ApplyTextures(clearFlag: true));
-            if (_stack.VolumeTexture)
-            {
-                StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture));
-            }
+            StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));
+            CreateVolume();
         }
 
         private void SegmentTextureUpdated(Texture2D tex, SliceType type, int index)
         {
             Slice2DView.SegmentTextureUpdated(tex, type, index);
         }
+
+        private void SelectionChanged2D(uint selector)
+        {
+            StartCoroutine(_segmentCache.ApplyTextures(selector, true));
+        }
+
+        private void SelectionChanged3D(uint selector)
+        {
+            CreateVolume();
+        }
+
 
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)
         {

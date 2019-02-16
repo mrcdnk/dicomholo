@@ -1,15 +1,16 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using Segmentation;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class SegmentConfiguration : MonoBehaviour
 {
     [SerializeField] private Button[] _segmentButtons;
-    private RangeSegmentation.RangeParameter[] _rangeParameters = new RangeSegmentation.RangeParameter[SegmentCache.MaxSegmentCount];
-    private RegionFillSegmentation.RegionFillParameter[] _regionFillParameters = new RegionFillSegmentation.RegionFillParameter[SegmentCache.MaxSegmentCount];
+    private readonly RangeSegmentation.RangeParameter[] _rangeParameters = new RangeSegmentation.RangeParameter[SegmentCache.MaxSegmentCount];
+    private readonly RegionFillSegmentation.RegionFillParameter[] _regionFillParameters = new RegionFillSegmentation.RegionFillParameter[SegmentCache.MaxSegmentCount];
+    public uint Display2Ds = 0xFFFFFFFF;
+    public uint Display3Ds = 0xFFFFFFFF;
 
     [SerializeField] private Button _clear;
     [SerializeField] private Button _create;
@@ -28,6 +29,9 @@ public class SegmentConfiguration : MonoBehaviour
     [SerializeField] private Text _seedZRegion;
     [SerializeField] private TubeSlider _thresholdRegion;
 
+    [SerializeField] private Toggle _display2D;
+    [SerializeField] private Toggle _display3D;
+
     private readonly RegionFillSegmentation _regionFillSegmentation = new RegionFillSegmentation();
     private readonly RangeSegmentation _rangeSegmentation = new RangeSegmentation();
 
@@ -35,6 +39,9 @@ public class SegmentConfiguration : MonoBehaviour
     private readonly SegmentationType[] _selectedType = new SegmentationType[SegmentCache.MaxSegmentCount];
 
     private SegmentCache _segmentCache;
+
+    public SelectionChanged2D OnSelectionChanged2D = new SelectionChanged2D();
+    public SelectionChanged3D OnSelectionChanged3D = new SelectionChanged3D();
 
     // Start is called before the first frame update
     void Start()
@@ -52,6 +59,8 @@ public class SegmentConfiguration : MonoBehaviour
 
         _create.onClick.AddListener(CreateSelection);
         _clear.onClick.AddListener(() => _segmentCache.GetSegment(_selectedSegment).Clear());
+        _display2D.onValueChanged.AddListener(Toggle2D);
+        _display3D.onValueChanged.AddListener(Toggle3D);
     }
 
     // Update is called once per frame
@@ -80,6 +89,7 @@ public class SegmentConfiguration : MonoBehaviour
 
         UpdateRegionSeed(-1, -1, -1);
         ValidateCurrentParameters();
+        UpdateToggles();
     }
 
     private void ValidateCurrentParameters()
@@ -112,6 +122,24 @@ public class SegmentConfiguration : MonoBehaviour
         }
     }
 
+    private void Toggle2D(bool b)
+    {
+        Display2Ds = SegmentCache.ToggleIndex(Display2Ds, _selectedSegment);
+        OnSelectionChanged2D.Invoke(Display2Ds);
+    }
+
+    private void Toggle3D(bool b)
+    {
+        Display3Ds = SegmentCache.ToggleIndex(Display3Ds, _selectedSegment);
+        OnSelectionChanged3D.Invoke(Display3Ds);
+    }
+
+    private void UpdateToggles()
+    {
+        _display2D.isOn = SegmentCache.ContainsIndex(Display2Ds, _selectedSegment);
+        _display3D.isOn = SegmentCache.ContainsIndex(Display3Ds, _selectedSegment);
+    }
+
     public void UpdateRegionSeed(int x, int y, int z)
     {
         _regionFillParameters[_selectedSegment].X = x;
@@ -135,6 +163,7 @@ public class SegmentConfiguration : MonoBehaviour
         _selectedSegment = index;
         _selectedColor.color = _segmentCache.GetSegment(_selectedSegment).GetColor();
         ValidateCurrentParameters();
+        UpdateToggles();
     }
 
     private void SelectedType(int index)
@@ -154,6 +183,16 @@ public class SegmentConfiguration : MonoBehaviour
         }
 
         ValidateCurrentParameters();
+    }
+
+    public class SelectionChanged2D : UnityEvent<uint>
+    {
+
+    }
+
+    public class SelectionChanged3D : UnityEvent<uint>
+    {
+
     }
 
     private enum SegmentationType

@@ -135,6 +135,8 @@ namespace Segmentation
                         }
                     }
                 }
+
+                StartCoroutine(ClearTextures());
             }
 
         }
@@ -218,8 +220,6 @@ namespace Segmentation
         /// <returns></returns>
         public IEnumerator ApplyTextures(uint selector = 0xFFFFFFFF, bool clearFlag = false)
         {
-            var alreadyClear = true;
-
             for (var index = 0; index < _segments.Length; index++)
             {
                 var segment = _segments[index];
@@ -228,11 +228,9 @@ namespace Segmentation
                 {
                     selector = selector & ~GetSelector(index);
                 }
-
-                alreadyClear = alreadyClear && segment.IsClear;
             }
 
-            if (!alreadyClear && clearFlag)
+            if (clearFlag)
             {
                 yield return ClearTextures();
             }
@@ -349,6 +347,25 @@ namespace Segmentation
         public static bool ContainsIndex(uint selector, int index)
         {
             return (selector & GetSelector(index)) > 0;
+        }
+
+        /// <summary>
+        /// Toggles the bit of the segment with index i.
+        /// </summary>
+        /// <param name="selector">The source selector</param>
+        /// <param name="index">Index of the bit.</param>
+        /// <returns>Modified selector.</returns>
+        public static uint ToggleIndex(uint selector, int index)
+        {            
+            var sel = GetSelector(index);
+            var temp = sel & selector;
+
+            if (temp == 0)
+            {
+                return selector | sel;
+            }
+
+            return selector & (~sel);
         }
 
         private IEnumerator AccessTextures()

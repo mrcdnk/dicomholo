@@ -358,9 +358,8 @@ namespace Segmentation
         public static uint ToggleIndex(uint selector, int index)
         {            
             var sel = GetSelector(index);
-            var temp = sel & selector;
 
-            if (temp == 0)
+            if ((sel & selector) == 0)
             {
                 return selector | sel;
             }

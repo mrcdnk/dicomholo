@@ -9,17 +9,22 @@ namespace Segmentation
         public sealed class RangeParameter
         {
 
-            public int Lower { get; }
+            public int Lower { get; set; }
 
-            public int Upper { get; }
+            public int Upper { get; set; }
 
-            public int ThreadCount { get; }
+            public int ThreadCount { get; set; }
 
             public RangeParameter(int lower, int upper, int threadCount)
             {
                 Lower = lower;
                 Upper = upper;
                 ThreadCount = threadCount;
+            }
+
+            public bool IsValid()
+            {
+                return Lower <= Upper && ThreadCount >= 1;
             }
         }
 

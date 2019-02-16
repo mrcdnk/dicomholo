@@ -20,6 +20,7 @@ public class TubeSlider : MonoBehaviour
         {
             _minValue = value;
             SliderRange = MaximumValue - MinimumValue;
+            UpdatePosition();
         }
     }
     public string MinimumLabel;
@@ -34,6 +35,7 @@ public class TubeSlider : MonoBehaviour
         {
             _maxValue = value;
             SliderRange = MaximumValue - MinimumValue;
+            UpdatePosition();
         }
     }
     public string MaximumLabel;

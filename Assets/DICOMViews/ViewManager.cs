@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using DICOMParser;
 using GLTF.Schema;
+using HoloToolkit.UX.Progress;
 using Segmentation;
 using Threads;
 using UnityEngine;
@@ -20,6 +21,8 @@ namespace DICOMViews
 
         public GameObject VolumeRenderingParent;
         public VolumeRendering.VolumeRendering VolumeRendering;
+
+        public SegmentConfiguration SegmentConfiguration;
 
         public GameObject Volume;
         public RayMarching RayMarching;
@@ -61,6 +64,9 @@ namespace DICOMViews
             Volume.SetActive(false);
             VolumeRenderingParent.SetActive(false);
             Slice2DView.gameObject.SetActive(false);
+            SegmentConfiguration.transform.gameObject.SetActive(false);
+
+            Slice2DView.OnPointSelected.AddListener(SegmentConfiguration.UpdateRegionSeed);
 
             ParseFiles();
         }
@@ -104,6 +110,7 @@ namespace DICOMViews
             WindowSettingsPanel.DisableButtons();
             MainMenu.DisableButtons();
             WindowSettingsPanel.gameObject.SetActive(false);
+            SegmentConfiguration.transform.gameObject.SetActive(false);
             AddWorkload(_stack.StartParsingFiles(Path.Combine(Application.streamingAssetsPath, MainMenu.GetSelectedFolder())),"Loading Files", OnFilesParsed);
         }
 
@@ -112,17 +119,22 @@ namespace DICOMViews
             WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidth, _stack.WindowCenter);
             WindowSettingsPanel.gameObject.SetActive(true);
             _segmentCache.InitializeSize(_stack.Width, _stack.Height, _stack.Slices);
+            SegmentConfiguration.Initialize(_segmentCache, _stack.MinPixelIntensity, _stack.MaxPixelIntensity);
             Slice2DView.Initialize();
             PreProcessData();
         }
 
         public void PreProcessData()
         {
-            AddWorkload(_stack.StartPreprocessData(), "Preprocessing Data", () =>
-            {
-                WindowSettingsPanel.EnableButtons();
-                MainMenu.EnableButtons();
-            });
+            AddWorkload(_stack.StartPreprocessData(), "Preprocessing Data", OnPreProcessDone);
+        }
+
+        private void OnPreProcessDone()
+        {
+            WindowSettingsPanel.EnableButtons();
+            MainMenu.EnableButtons();
+            _segmentCache.InitializeTextures();
+            SegmentConfiguration.transform.gameObject.SetActive(true);
         }
 
         public void CreateVolume()
@@ -152,10 +164,6 @@ namespace DICOMViews
         private void OnTexturesCreated()
         {
             MainMenu.EnableButtons();
-
-            _segmentCache.InitializeTextures();
-            _segmentCache.CreateSegment(SegmentCache.One, new RangeSegmentation(), new RangeSegmentation.RangeParameter(700, 3000, 2));
-            _segmentCache.CreateSegment(SegmentCache.Two, new RegionFillSegmentation(), new RegionFillSegmentation.RegionFillParameter(20, 20, 0));
         }
 
         public void TextureUpdated(SliceType type, int index)

@@ -139,8 +139,9 @@ namespace Segmentation
 
         }
 
-        private void ClearTextures()
+        private IEnumerator ClearTextures()
         {
+            yield return AccessTextures();
             foreach (var type in Enum.GetValues(typeof(SliceType)).Cast<SliceType>())
             {
                 for (var index = 0; index < _sliceSegments[type].Length; index++)
@@ -152,7 +153,10 @@ namespace Segmentation
 
                     TextureReady.Invoke(current, type, index);
                 }
+
+                yield return null;
             }
+            FreeTextures();
         }
 
         /// <summary>
@@ -230,7 +234,7 @@ namespace Segmentation
 
             if (!alreadyClear && clearFlag)
             {
-                ClearTextures();
+                yield return ClearTextures();
             }
 
             yield return AccessTextures();
@@ -249,14 +253,12 @@ namespace Segmentation
                     }
 
                     _segments[shift].WriteToTransversal(currentTexture, i);
-                    yield return null;
                 }
+                yield return null;
 
                 currentTexture.Apply();
                 TextureReady.Invoke(currentTexture, SliceType.Transversal, i);
             }
-
-            yield return null;
 
             for (var i = 0; i < _width; ++i)
             {
@@ -270,14 +272,12 @@ namespace Segmentation
                     }
 
                     _segments[shift].WriteToSagittal(currentTexture, i);
-                    yield return null;
                 }
+                yield return null;
 
                 currentTexture.Apply();
                 TextureReady.Invoke(currentTexture, SliceType.Sagittal, i);
             }
-
-            yield return null;
 
             for (var i = 0; i < _height; ++i)
             {
@@ -291,8 +291,8 @@ namespace Segmentation
                     }
 
                     _segments[shift].WriteToFrontal(currentTexture, i);
-                    yield return null;
                 }
+                yield return null;
 
                 currentTexture.Apply();
                 TextureReady.Invoke(currentTexture, SliceType.Frontal, i);

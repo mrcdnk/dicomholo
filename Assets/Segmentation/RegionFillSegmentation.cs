@@ -12,11 +12,11 @@ namespace Segmentation
 
         public sealed class RegionFillParameter
         {
-            public int X { get; }
-            public int Y { get; }
-            public int Z { get; }
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Z { get; set; }
 
-            public int Threshold { get; }
+            public int Threshold { get; set; }
 
             public RegionFillParameter(int x, int y, int z, int threshold = 0)
             {
@@ -24,6 +24,11 @@ namespace Segmentation
                 Y = y;
                 Z = z;
                 Threshold = threshold;
+            }
+
+            public bool IsValid()
+            {
+                return X >= 0 && Y >= 0 && Z >= 0 && Threshold >= 0;
             }
         }
 

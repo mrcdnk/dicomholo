@@ -14,6 +14,8 @@ namespace Segmentation
     /// </summary>
     public class Segment
     {
+        const int SegmentTransparency = 180;
+
         private ulong[,] _segmentData;
         private object[] _locks;
 
@@ -345,11 +347,11 @@ namespace Segmentation
             switch (color)
             {
                 case SegmentationColor.Red:
-                    return new Color32(255, 0, 0, 255);
+                    return new Color32(255, 0, 0, SegmentTransparency);
                 case SegmentationColor.Blue:
-                    return new Color32(0, 0, 255, 255); ;
+                    return new Color32(0, 0, 255, SegmentTransparency); ;
                 case SegmentationColor.Green:
-                    return new Color32(0, 255, 0, 255); ;
+                    return new Color32(0, 255, 0, SegmentTransparency); ;
                 default:
                     return Color.clear;
             }

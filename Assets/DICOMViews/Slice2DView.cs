@@ -6,6 +6,7 @@ using ExtensionsMethods;
 using Segmentation;
 using Threads;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace DICOMViews
@@ -24,10 +25,11 @@ namespace DICOMViews
         public RawImage ClickDisplay;
 
         public SegmentCache SegmentCache;
-
+        public PointSelected OnPointSelected = new PointSelected();
+        
         public Color SelectionColor = Color.yellow;
 
-        private PixelClickHandler[] _pixelClickHandlers;
+        private PixelClickHandler _pixelClickHandler;
 
         private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
 
@@ -35,7 +37,7 @@ namespace DICOMViews
 
         private int lastClickX = -1;
         private int lastClickY = -1;
-        private Color lastClicked;
+
         private bool hasBeenClicked = false;
 
         [SerializeField] private Color32 segmentTransparency = new Color32(255, 255, 255, 70);
@@ -66,18 +68,27 @@ namespace DICOMViews
 
         public void Initialize()
         {
-            if (_pixelClickHandlers == null)
+            if (_pixelClickHandler == null)
             {
-                _pixelClickHandlers = gameObject.GetComponentsInChildren<PixelClickHandler>();
+                _pixelClickHandler = gameObject.GetComponentInChildren<PixelClickHandler>();
             }
 
             SliceSlider.MaximumValue = _imageStack.GetMaxValue(_currentSliceType);
             SliceSlider.CurrentInt = _selection.GetValue(_currentSliceType, 0);
 
-            foreach (var pixelClickHandler in _pixelClickHandlers)
-            {
-                pixelClickHandler.PixelClick.AddListener(OnPixelClicked);
-            }
+            _pixelClickHandler.PixelClick.AddListener(OnPixelClicked); 
+    
+            ResetClickDisplay(_imageStack.Width, _imageStack.Height);
+            ClickDisplay.color = new Color32(255, 255, 255, 255);
+        }
+
+        private void ResetClickDisplay(int width, int height)
+        {
+            Texture2D other = new Texture2D(width, height, TextureFormat.ARGB32, false);
+
+            other.SetPixels32(new Color32[width * height]);
+            ClickDisplay.texture = other;
+            other.Apply();
         }
 
         public void ShowTrans()
@@ -115,6 +126,18 @@ namespace DICOMViews
             SliceSlider.CurrentInt = _selection[_currentSliceType];
             Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
 
+            if (ClickDisplay.texture.width != Display.texture.width ||
+                ClickDisplay.texture.height != Display.texture.height)
+            {
+                ResetClickDisplay(Display.texture.width, Display.texture.height);
+            }
+            else
+            {
+                Texture2D tex = ClickDisplay.texture as Texture2D;
+                tex.SetPixel(lastClickX, lastClickY, Color.clear);
+                tex.Apply();
+            }
+
             lastClickY = -1;
             lastClickX = -1;
             hasBeenClicked = false;
@@ -131,6 +154,15 @@ namespace DICOMViews
                 _selection[_currentSliceType] = slider.CurrentInt;
                 Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
                 SegmentImage.texture = SegmentCache.GetSegmentTexture(_currentSliceType, _selection[_currentSliceType]);
+
+                Texture2D tex = ClickDisplay.texture as Texture2D;
+
+                tex.SetPixel(lastClickX, lastClickY, Color.clear);
+                tex.Apply();
+
+                lastClickX = -1;
+                lastClickY = -1;
+                hasBeenClicked = false;
             }
         }
 
@@ -195,17 +227,35 @@ namespace DICOMViews
 
             if (hasBeenClicked && lastClickX > -1 && lastClickY > -1)
             {
-                tex.SetPixel(lastClickX, lastClickY, lastClicked);
+                tex.SetPixel(lastClickX, lastClickY, Color.clear);
             }
 
             lastClickX = xCoord;
             lastClickY = yCoord;
-            lastClicked = tex.GetPixel(xCoord, yCoord);
             hasBeenClicked = true;
 
             tex.SetPixel(xCoord, yCoord, SelectionColor);
-
             tex.Apply();
+
+            InvokePointSelected();
+        }
+
+        private void InvokePointSelected()
+        {
+            switch (_currentSliceType)
+            {
+                case SliceType.Transversal:
+                    OnPointSelected.Invoke(lastClickX, lastClickY, _selection[_currentSliceType]);
+                    break;
+                case SliceType.Sagittal:
+                    OnPointSelected.Invoke(_selection[_currentSliceType], lastClickX, lastClickY);
+                    break;
+                case SliceType.Frontal:
+                    OnPointSelected.Invoke(lastClickX, _selection[_currentSliceType], lastClickY);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         public SliceType GetCurrentSliceType()
@@ -218,5 +268,10 @@ namespace DICOMViews
             return _selection[type];
         }
 
+
+        public class PointSelected : UnityEvent<int, int, int>
+        {
+
+        }
     }
 }

@@ -13,6 +13,7 @@ namespace Segmentation
 {
     public class SegmentCache : MonoBehaviour
     {
+        private GlobalWorkIndicator _workIndicator;
         private Segment[] _segments = new Segment[3];
         private readonly Dictionary<SliceType, Texture2D[]> _sliceSegments = new Dictionary<SliceType, Texture2D[]>(3);
 
@@ -42,6 +43,8 @@ namespace Segmentation
         // Start is called before the first frame update
         void Start()
         {
+            _workIndicator = FindObjectOfType<GlobalWorkIndicator>();
+
             _segments[0] = new Segment(SegmentationColor.Red);
             _segments[1] = new Segment(SegmentationColor.Green);
             _segments[2] = new Segment(SegmentationColor.Blue);
@@ -74,6 +77,7 @@ namespace Segmentation
             tuple.Item3.Invoke(tuple.Item2);
 
             _currentWorkloads.RemoveAt(index);
+            _workIndicator.FinishedWork();
         }
 
         /// <summary>
@@ -172,6 +176,7 @@ namespace Segmentation
         {
             _currentWorkloads.Add(new Tuple<ThreadGroupState, uint, Action<uint>>(
                 segmentationStrategy.Fit(_segments[GetIndex(index)], _imageStack.GetData(), parameters), index, OnSegmentChange));
+            _workIndicator.StartedWork();
         }
 
         /// <summary>
@@ -191,6 +196,7 @@ namespace Segmentation
         /// <returns></returns>
         public IEnumerator ApplySegments(Texture3D texture3D, uint selector = 0xFFFFFFFF)
         {
+            _workIndicator.StartedWork();
             yield return AccessVolume(texture3D);
             for (var shift = 0; shift < MaxSegmentCount; shift++)
             {
@@ -210,6 +216,7 @@ namespace Segmentation
             texture3D.Apply();
 
             FreeVolume(texture3D);
+            _workIndicator.FinishedWork();
         }
 
         /// <summary>
@@ -220,6 +227,7 @@ namespace Segmentation
         /// <returns></returns>
         public IEnumerator ApplyTextures(uint selector = 0xFFFFFFFF, bool clearFlag = false)
         {
+            _workIndicator.StartedWork();
             for (var index = 0; index < _segments.Length; index++)
             {
                 var segment = _segments[index];
@@ -297,6 +305,7 @@ namespace Segmentation
             }
 
             FreeTextures();
+            _workIndicator.FinishedWork();
         }
 
         public Texture2D GetSegmentTexture(SliceType type, int index)

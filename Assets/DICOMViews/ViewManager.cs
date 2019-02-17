@@ -28,6 +28,7 @@ namespace DICOMViews
         public RayMarching RayMarching;
         private ImageStack _stack;
         private SegmentCache _segmentCache;
+        private GlobalWorkIndicator _workIndicator;
 
         private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
 
@@ -35,6 +36,7 @@ namespace DICOMViews
         // Use this for initialization
         void Start ()
         {
+            _workIndicator = FindObjectOfType<GlobalWorkIndicator>();
             MainMenu.ClearDropdown();
 
             var folders = new List<string>(Directory.GetDirectories(Application.streamingAssetsPath));
@@ -205,6 +207,7 @@ namespace DICOMViews
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)
         {
             _currentWorkloads.Add(new Tuple<ThreadGroupState, string, Action>(threadGroupState, description, onFinished));
+            _workIndicator.StartedWork();
 
             if (_currentWorkloads.Count == 1)
             {
@@ -224,6 +227,7 @@ namespace DICOMViews
                 MainMenu.ProgressHandler.Max -= tuple.Item1.TotalProgress;   
             }
             _currentWorkloads.RemoveAt(index);
+            _workIndicator.FinishedWork();
         }
 
     }

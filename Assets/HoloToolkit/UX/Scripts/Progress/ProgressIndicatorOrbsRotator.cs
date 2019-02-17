@@ -68,6 +68,11 @@ namespace HoloToolkit.UX.Progress
             rotationWhenStopped = angles[0];
         }
 
+        public void Begin()
+        {
+            stopRequested = false;
+        }
+
         private void Update()
         {
             if (HasAnimationFinished == false)

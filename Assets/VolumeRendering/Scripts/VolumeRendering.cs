@@ -18,7 +18,7 @@ namespace VolumeRendering
         protected Material material;
 
         [SerializeField] Color color = Color.white;
-        [Range(0.5f, 3f)] private float intensity = 1.5f;
+        [Range(0.5f, 3f)] private float intensity = 1f;
         [Range(0f, 2f)] private float opacity = 1f;
         [Range(1, 256)] private int stepCount = 128;
         [Range(0f, 1f)] public float sliceXMin = 0.0f, sliceXMax = 1.0f;

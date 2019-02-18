@@ -207,7 +207,6 @@ namespace DICOMViews
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)
         {
             _currentWorkloads.Add(new Tuple<ThreadGroupState, string, Action>(threadGroupState, description, onFinished));
-            _workIndicator.StartedWork();
 
             if (_currentWorkloads.Count == 1)
             {

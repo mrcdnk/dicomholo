@@ -1,42 +1,37 @@
 ﻿using System;
+using System.CodeDom.Compiler;
+using System.Diagnostics;
 using System.Globalization;
+using Debug = UnityEngine.Debug;
 
 namespace DICOMParser
 {
-
     /**
     * Implements the internal representation of a DICOM Data Element.
     *
 */
     public class DiDataElement
     {
-
         private DiDictonary diDictionary = DiDictonary.Instance;
 
-        private uint groupid;
-        private uint elementid;
-        private int vl;
-        private VRType vr;
-        private byte[] values;
-        private string fileName = null;
+        private uint _groupid;
+        private uint _elementid;
+        private int _vl;
+        private VRType _vr;
+        private byte[] _values;
+        private readonly string _fileName = null;
+        protected int Endianess;
 
-        private int rawInt;
-        private double rawDouble;
-
-        bool exp = true;
+        private int _rawInt;
+        private double _rawDouble;
 
         public DiDataElement()
         {
-            groupid = 0;
-            elementid = 0;
-            vl = 0;
-            vr = 0;
-            values = null;
-        }
-
-        public DiDataElement(string fName, bool exp) : this(fName)
-        {
-            this.exp = exp;
+            _groupid = 0;
+            _elementid = 0;
+            _vl = 0;
+            _vr = 0;
+            _values = null;
         }
 
         /**
@@ -44,7 +39,7 @@ namespace DICOMParser
          */
         public DiDataElement(string fName) : this()
         {
-            fileName = fName;
+            _fileName = fName;
         }
 
         /**
@@ -53,74 +48,159 @@ namespace DICOMParser
          *
          * @param is a DiInputStream - must be open and readable
          */
-        public void readNext(DiFileStream inputStream)
+        public void ReadNext(DiFileStream inputStream)
         {
-            bool exp = this.exp;
-            //get ids
-            groupid = inputStream.ReadShort();
-            elementid = inputStream.ReadShort();
+            bool exp;
+            int vrFormat;
 
-            //get vr
-            if (groupid <= 2 || exp)
+            uint b0 = (uint) inputStream.ReadByte();
+            uint b1 = (uint) inputStream.ReadByte();
+
+            _groupid = (b1 << 8) | b0;
+
+            // --- meta group part start ----------------------------
+
+            if (inputStream.BeforeMetaGroup && _groupid == 0x0002)
             {
-                vr = (VRType)(((uint) inputStream.ReadByte() << 8) | (uint) inputStream.ReadByte());
+                // we just entered the meta group
+                inputStream.BeforeMetaGroup = false;
+                inputStream.MetaGroup = true;
+            }
+
+            if (inputStream.MetaGroup && _groupid != 0x0002)
+            {
+                // we just left the meta group
+                inputStream.MetaGroup = false;
+            }
+
+            if (inputStream.BeforeMetaGroup || inputStream.MetaGroup)
+            {
+                // are we still before or inside meta group?
+                vrFormat = DiFile.VrExplicit;
+                Endianess = DiFile.EndianLittle;
             }
             else
             {
-                vr = diDictionary.getVR(getTag());
+                vrFormat = inputStream.VrFormat;
+                Endianess = inputStream.Endianess;
             }
+
+            if (Endianess == DiFile.EndianBig)
+            {
+                _groupid = (b0 << 8) | b1;
+            }
+
+            // --- meta group part end ------------------------------
+
+            _elementid = inputStream.ReadUShort(Endianess);
+            //Debug.Log("group: " +_groupid + "\n");
+            //Debug.Log("element: " + _elementid + "\n");
+            b0 = (uint) inputStream.ReadByte();
+            b1 = (uint) inputStream.ReadByte();
+
+            _vr = (VRType)((b0 << 8) | b1);
+
+            // check if we are explicit or implicit:
+            // b0 and b1 could a) be an explicit VR or b) be the first part of the VL
+            exp = (vrFormat == DiFile.VrExplicit) || (vrFormat == DiFile.VrUnknown &&
+                                                      (_vr == VRType.AE || _vr == VRType.AS || _vr == VRType.AT ||
+                                                       _vr == VRType.CS || _vr == VRType.DA || _vr == VRType.DS ||
+                                                       _vr == VRType.DT || _vr == VRType.FD || _vr == VRType.FL ||
+                                                       _vr == VRType.IS || _vr == VRType.LO || _vr == VRType.LT ||
+                                                       _vr == VRType.PN || _vr == VRType.SH || _vr == VRType.SL ||
+                                                       _vr == VRType.SS || _vr == VRType.ST || _vr == VRType.TM ||
+                                                       _vr == VRType.UI || _vr == VRType.UL || _vr == VRType.US ||
+                                                       _vr == VRType.UT || _vr == VRType.OB || _vr == VRType.OW ||
+                                                       _vr == VRType.SQ || _vr == VRType.UN || _vr == VRType.QQ));
 
             // There are three special SQ related Data Elements that are not ruled by the VR encoding rules
             // conveyed by the Transfer Syntax. They shall be encoded as Implicit VR. These special Data Elements are
             // Item (FFFE,E000), Item Delimitation Item (FFFE,E00D), and Sequence Delimitation Item (FFFE,E0DD).
             // However, the Data Set within the Value Field of the Data Element Item (FFFE,E000) shall be encoded
             // according to the rules conveyed by the Transfer Syntax.
-            if (groupid == 0xfffe && (elementid == 0xe000 || elementid == 0xe00d || elementid == 0xe0dd))
+            if (_groupid == 0xfffe && (_elementid == 0xe000 || _elementid == 0xe00d || _elementid == 0xe0dd))
             {
                 exp = false;
             }
 
-            //get vl
-            switch (vr)
+            if (exp)
             {
-                case VRType.OB:
-                case VRType.OF:
-                case VRType.OW:
-                case VRType.SQ:
-                case VRType.UT:
-                case VRType.UN:
-                    //special
-                    if (groupid <= 2 || exp)
-                    {
-                        inputStream.ReadShort();
-                    }
+                // explicit VR -> get the VR first
+                // VL can have 2 or 4 byte ...
+                if (_vr == VRType.OB || _vr == VRType.OW || _vr == VRType.SQ || _vr == VRType.UT || _vr == VRType.UN)
+                {
+                    inputStream.ReadByte(); // skip 2 bytes ...
+                    inputStream.ReadByte();
+                    _vl = inputStream.ReadInt(Endianess);
+                }
+                else
+                {
+                    _vl = inputStream.ReadShort(Endianess);
+                }
+            }
+            else
+            {
+                // implicit VR -> lookup VR in the DicomDictionary
+                _vr = diDictionary.getVR(GetTag());
 
-                    vl = inputStream.ReadInt();
-                    break;
-                default:
-                    //normal
-                    if (groupid <= 2 || exp)
-                    {
-                        vl = Convert.ToInt32(inputStream.ReadShort());
-                    }
-                    else
-                    {
-                        vl = inputStream.ReadInt();
-                    }
+                uint b2 = (uint)inputStream.ReadByte(), b3 = (uint)inputStream.ReadByte();
 
-                    break;
+                if (Endianess == DiFile.EndianLittle)
+                {
+                    _vl = (int)((b3 << 24) + (b2 << 16) + (b1 << 8) + b0);
+                }
+                else
+                {
+                    _vl = (int)((b0 << 24) + (b1 << 16) + (b2 << 8) + b3);
+                }
             }
 
-            vl = Math.Max(vl, 0);
+            if (_vl == -1) _vl = 0; // _vl can be -1 if VR == SQ
 
-            //get data
-            values = new byte[vl];
+            _values = new byte[_vl];
+            inputStream.Read(_values, 0, _values.Length);
 
-            inputStream.Read(values, 0, vl);
+            if (Endianess == DiFile.EndianBig)
+            {
+                // VR's affected by endianess:
+                //   2-byte US, SS, OW and each component of AT
+                //   4-byte UL, SL, and FL
+                //   8 byte FD
+                if (_vr == VRType.US || _vr == VRType.SS || _vr == VRType.OW || _vr == VRType.UL || _vr == VRType.SL ||
+                    _vr == VRType.FL || _vr == VRType.FD)
+                {
+                    for (int i = 0; i < _values.Length / 2; i++)
+                    {
+                        byte tmp = _values[i];
+                        _values[i] = _values[_values.Length - 1 - i];
+                        _values[_values.Length - 1 - i] = tmp;
+                    }
+                }
+            }
+
+            if (DiDictonary.ToTag(_groupid, _elementid) == 0x00020010)
+            {
+                // check endianess and VR format
+                String ts_uid = GetValueAsString();
+                inputStream.VrFormat = DiDictonary.get_ts_uid_vr_format(ts_uid);
+                inputStream.Endianess = DiDictonary.get_ts_uid_endianess(ts_uid);
+                if (inputStream.VrFormat == DiFile.EndianUnknown)
+                {
+                    Debug.Log("DiDataElement Unknown Transfer Syntax UID \"" + ts_uid +
+                              "\". Endianess & VR format will be guessed.");
+                }
+            }
 
             try
             {
-                rawInt = getValueAsInt();
+                if (_groupid == 0x0028 && (_elementid == 0x1050 || _elementid == 0x1051))
+                {
+                    _rawInt = Int32.Parse(GetValueAsString().Split('\\')[0]);
+                }
+                else
+                {
+                    _rawInt = GetValueAsInt();
+                }
             }
             catch (Exception)
             {
@@ -129,7 +209,7 @@ namespace DICOMParser
 
             try
             {
-                rawDouble = GetValueAsDouble();
+                _rawDouble = GetValueAsDouble();
             }
             catch (Exception)
             {
@@ -142,12 +222,12 @@ namespace DICOMParser
          *
          * @return a human readable string representation
          */
-        public string toString()
+        public override string ToString()
         {
             string str;
 
-            str = getTagString() + " (" + diDictionary.GetTagDescription(getTag()) + ")  ";
-            str += "VR: " + getVRString() + "  VL: " + vl + "  Values: " + GetValueAsString();
+            str = GetTagString() + " (" + diDictionary.GetTagDescription(GetTag()) + ")  ";
+            str += "VR: " + GetVrString() + "  VL: " + _vl + "  Values: " + GetValueAsString();
 
             return str;
         }
@@ -159,7 +239,7 @@ namespace DICOMParser
          */
         public uint GetElementId()
         {
-            return elementid;
+            return _elementid;
         }
 
         /**
@@ -167,9 +247,9 @@ namespace DICOMParser
          *
          * @param element_number the element number.
          */
-        public void SetElementId(uint element_number)
+        public void SetElementId(uint elementNumber)
         {
-            this.elementid = element_number;
+            this._elementid = elementNumber;
         }
 
         /**
@@ -179,7 +259,7 @@ namespace DICOMParser
          */
         public uint GetGroupId()
         {
-            return groupid;
+            return _groupid;
         }
 
 
@@ -188,9 +268,9 @@ namespace DICOMParser
          *
          * @param group_number the group_number.
          */
-        public void SetGroupId(uint group_number)
+        public void SetGroupId(uint groupNumber)
         {
-            this.groupid = group_number;
+            this._groupid = groupNumber;
         }
 
         /**
@@ -200,7 +280,7 @@ namespace DICOMParser
          */
         public int GetVl()
         {
-            return vl;
+            return _vl;
         }
 
         /**
@@ -208,9 +288,9 @@ namespace DICOMParser
          *
          * @param value_length
          */
-        public void SetVl(int value_length)
+        public void SetVl(int valueLength)
         {
-            this.vl = value_length;
+            this._vl = valueLength;
         }
 
         /**
@@ -220,7 +300,7 @@ namespace DICOMParser
          */
         public byte[] GetValues()
         {
-            return values;
+            return _values;
         }
 
         /**
@@ -230,7 +310,7 @@ namespace DICOMParser
          */
         public void SetValues(byte[] values)
         {
-            this.values = values;
+            this._values = values;
         }
 
         /**
@@ -250,7 +330,7 @@ namespace DICOMParser
          */
         public double GetDouble()
         {
-            return rawDouble;
+            return _rawDouble;
         }
 
         /**
@@ -258,7 +338,7 @@ namespace DICOMParser
          *
          * @return the int value
          */
-        private int getValueAsInt()
+        private int GetValueAsInt()
         {
             string str = GetValueAsString();
             return Int32.Parse(str.Trim(), CultureInfo.InvariantCulture);
@@ -269,7 +349,7 @@ namespace DICOMParser
          */
         public int GetInt()
         {
-            return rawInt;
+            return _rawInt;
         }
 
         /**
@@ -281,100 +361,102 @@ namespace DICOMParser
         {
             string str = "";
 
-            if (vl > 255)
+            if (_vl > 255)
             {
                 str = "(too long to be printed)";
             }
-            else switch (vr)
-            {
-                case VRType.AE:
-                case VRType.AS:
-                case VRType.CS:
-                case VRType.DA:
-                case VRType.DS:
-                case VRType.DT:
-                case VRType.IS:
-                case VRType.LO:
-                case VRType.LT:
-                case VRType.OF:
-                case VRType.PN:
-                case VRType.SH:
-                case VRType.ST:
-                case VRType.TM:
-                case VRType.UI:
-                case VRType.UN:
-                case VRType.UT:
+            else
+                switch (_vr)
                 {
-                    for (int i = 0; i < vl; i++)
+                    case VRType.AE:
+                    case VRType.AS:
+                    case VRType.CS:
+                    case VRType.DA:
+                    case VRType.DS:
+                    case VRType.DT:
+                    case VRType.IS:
+                    case VRType.LO:
+                    case VRType.LT:
+                    case VRType.OF:
+                    case VRType.PN:
+                    case VRType.SH:
+                    case VRType.ST:
+                    case VRType.TM:
+                    case VRType.UI:
+                    case VRType.UN:
+                    case VRType.UT:
                     {
-                        if (values[i] > 0)
+                        for (int i = 0; i < _vl; i++)
                         {
-                            str += (char)(values[i]);
+                            if (_values[i] > 0)
+                            {
+                                str += (char) (_values[i]);
+                            }
                         }
+
+                        break;
                     }
-
-                    break;
-                }
-                case VRType.FL:
-                {
-                    //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
-                    float f = BitConverter.ToSingle(values, 0);
-                    str = f.ToString("0.0000");
-                    break;
-                }
-                case VRType.FD:
-                {
-                    //Int64 tmp = (values[7] << 56 | values[6] << 48 | values[5] << 40 | values[0] << 32 |
-                    //        values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
-                    Double d = BitConverter.ToDouble(values, 0);
-                    str = d.ToString();
-                    break;
-                }
-                case VRType.SL:
-                    //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
-
-                    str = BitConverter.ToString(values, 0); ;
-                    break;
-                case VRType.SQ:
-                    str = "TODO";
-                    break;
-                case VRType.SS:
-                {
-                    int tmp = (values[1] << 8 | values[0]);
-                    str = "" + tmp;
-                    break;
-                }
-                case VRType.UL:
-                {
-                    long tmp = ((values[3] & 0xFF) << 24 | (values[2] & 0xFF) << 16
-                                                         | (values[1] & 0xFF) << 8 | (values[0] & 0xFF));
-                    str = "" + tmp;
-                    break;
-                }
-                case VRType.US:
-                {
-                    int tmp = ((values[1] & 0xFF) << 8 | (values[0] & 0xFF));
-                    str = "" + tmp;
-                    break;
-                }
-                default:
-                {
-                    // supports: OB
-                    for (int i = 0; i < vl; i++)
+                    case VRType.FL:
                     {
-                        if (i < vl - 1)
-                        {
-                            str += ((int)(values[i]) + "|");
-                        }
-                        else
-                        {
-                            str += ((int)(values[i]));
-                        }
+                        //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
+                        float f = BitConverter.ToSingle(_values, 0);
+                        str = f.ToString("0.0000");
+                        break;
                     }
+                    case VRType.FD:
+                    {
+                        //Int64 tmp = (values[7] << 56 | values[6] << 48 | values[5] << 40 | values[0] << 32 |
+                        //        values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
+                        Double d = BitConverter.ToDouble(_values, 0);
+                        str = d.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    }
+                    case VRType.SL:
+                        //int tmp = (values[3] << 24 | values[2] << 16 | values[1] << 8 | values[0]);
 
-                    break;
+                        str = BitConverter.ToString(_values, 0);
+                        ;
+                        break;
+                    case VRType.SQ:
+                        str = "TODO";
+                        break;
+                    case VRType.SS:
+                    {
+                        int tmp = (_values[1] << 8 | _values[0]);
+                        str = "" + tmp;
+                        break;
+                    }
+                    case VRType.UL:
+                    {
+                        long tmp = ((_values[3] & 0xFF) << 24 | (_values[2] & 0xFF) << 16
+                                                              | (_values[1] & 0xFF) << 8 | (_values[0] & 0xFF));
+                        str = "" + tmp;
+                        break;
+                    }
+                    case VRType.US:
+                    {
+                        int tmp = ((_values[1] & 0xFF) << 8 | (_values[0] & 0xFF));
+                        str = "" + tmp;
+                        break;
+                    }
+                    default:
+                    {
+                        // supports: OB
+                        for (int i = 0; i < _vl; i++)
+                        {
+                            if (i < _vl - 1)
+                            {
+                                str += ((int) (_values[i]) + "|");
+                            }
+                            else
+                            {
+                                str += ((int) (_values[i]));
+                            }
+                        }
+
+                        break;
+                    }
                 }
-            }
 
             return str;
         }
@@ -387,7 +469,7 @@ namespace DICOMParser
          */
         public VRType GetVr()
         {
-            return vr;
+            return _vr;
         }
 
         /**
@@ -396,9 +478,9 @@ namespace DICOMParser
          * @param vr the vr value - use only public DiDictonary constants here
          * @see DiDictonary
          */
-        public void setVR(VRType vr)
+        public void SetVr(VRType vr)
         {
-            this.vr = vr;
+            this._vr = vr;
         }
 
         /**
@@ -406,9 +488,9 @@ namespace DICOMParser
          *
          * @return the vr tag as string
          */
-        public string getVRString()
+        public string GetVrString()
         {
-            return "" + (char)(((uint)vr & 0xff00) >> 8) + "" + (char)((uint)vr & 0x00ff);
+            return "" + (char) (((uint) _vr & 0xff00) >> 8) + "" + (char) ((uint) _vr & 0x00ff);
         }
 
         /**
@@ -417,9 +499,9 @@ namespace DICOMParser
          *
          * @return the tag id as an int
          */
-        public uint getTag()
+        public uint GetTag()
         {
-            return (groupid << 16 | elementid);
+            return (_groupid << 16 | _elementid);
         }
 
 
@@ -429,34 +511,9 @@ namespace DICOMParser
          *
          * @return the tag id as a string
          */
-        public string getTagString()
+        public string GetTagString()
         {
-            return "(" + my_format(groupid) + "," + my_format(elementid) + ")";
-        }
-
-        /**
-         * Returns the explicit state (from tag 0002,0010)
-         *
-         * @return the explicit state
-         */
-        public bool quickscanExp()
-        {
-
-            DiFileStream ds = new DiFileStream(fileName);
-            ds.SkipHeader();
-
-            DiDataElement de = new DiDataElement();
-
-            do
-            {
-                de.readNext(ds);
-            } while (de.getTag() < 0x00020010);
-
-            ds.Close();
-
-            string uid = de.GetValueAsString();
-
-            return uid.StartsWith("1.2.840.10008.1.2.1") || uid.StartsWith("1.2.840.10008.1.2.2");
+            return "(" + my_format(_groupid) + "," + my_format(_elementid) + ")";
         }
 
         /**
@@ -475,7 +532,5 @@ namespace DICOMParser
 
             return str;
         }
-
-
     }
 }

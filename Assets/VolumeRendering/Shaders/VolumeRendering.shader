@@ -4,7 +4,7 @@
 	{
 		_Color ("Color", Color) = (1, 1, 1, 1)
 		_Volume ("Volume", 3D) = "" {}
-		_Intensity("Intensity", Range(0.5, 3.0)) = 1.2
+		_Intensity("Intensity", Range(0.5, 3.0)) = 1
 		_AlphaCutoff("AlphaCutoff", Range(0.1, 1)) = 0.97
 		_StepCount("StepCount", Range(1, 256)) = 128
 		_SliceMin ("Slice min", Vector) = (0.0, 0.0, 0.0, -1.0)

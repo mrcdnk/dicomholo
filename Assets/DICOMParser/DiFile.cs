@@ -13,31 +13,62 @@ namespace DICOMParser
      * separate variables with special access functions.
      *
      * It is assumed that all DICOM files of a set are little_endian and of the same vr_format.
+     *
+     * @author kif ported to C# by Marco Deneke
      */
     public class DiFile
     {
-        private int width;
-        private int height;
-        private int bits_stored;
-        private int bits_allocated;
-        private int high_bit;
-        private bool exp = true;
-        private int image_number;
-        string file_name;
+        public const int VrUnknown = 0;
+        public const int VrExplicit = 1;
+        public const int VrImplicit = 2;
 
-        private Dictionary<uint, DiDataElement> data_elements;
-        private Dictionary<uint, Dictionary<uint, DiDataElement>> sequences; // contains the sequences
+        public const int EndianUnknown = 0;
+        public const int EndianLittle = 1;
+        public const int EndianBig = 2;
+
+        private int _vrFormat;
+        private int _endianess;
+
+        private int _width;
+        private int _height;
+
+        private int _bitsStored;
+        private int _bitsAllocated;
+        private int _highBit;
+        private int _intercept;
+        private int _slope;
+        private int _imageNumber;
+        string _fileName;
+
+        private readonly Dictionary<uint, DiDataElement> _dataElements;
+        private readonly Dictionary<uint, Dictionary<uint, DiDataElement>> _sequences; // contains the sequences
 
         /**
          * Default Construtor - creates an empty DicomFile.
          */
-        public DiFile(bool exp)
+        public DiFile()
         {
-            width = height = bits_stored = bits_allocated = image_number = 0;
-            data_elements = new Dictionary<uint, DiDataElement>();
-            sequences = new Dictionary<uint, Dictionary<uint, DiDataElement>>();
-            file_name = null;
-            this.exp = exp;
+            _width = _height = _bitsStored = _bitsAllocated = _imageNumber = 0;
+            _dataElements = new Dictionary<uint, DiDataElement>();
+            _sequences = new Dictionary<uint, Dictionary<uint, DiDataElement>>();
+            _fileName = null;
+
+            _vrFormat = VrUnknown;
+            _endianess = EndianUnknown;
+        }
+
+        /**
+	 * Default Constructor - creates an empty DiFile.
+	 */
+        public DiFile(int endianess, int vrFormat)
+        {
+            _width = _height = _bitsStored = _bitsAllocated = _imageNumber = 0;
+            _dataElements = new Dictionary<uint, DiDataElement>();
+            _sequences = new Dictionary<uint, Dictionary<uint, DiDataElement>>();
+            _fileName = null;
+
+            _vrFormat = vrFormat;
+            _endianess = endianess;
         }
 
         /**
@@ -48,106 +79,117 @@ namespace DICOMParser
          * @param file_name a string containing the name of a valid dicom file
          * @throws Exception
          */
-        public void InitFromFile(string file_name)
+        public void InitFromFile(string fileName)
         {
-            this.file_name = file_name;
-            DiFileStream file = new DiFileStream(this.file_name);
+            _fileName = fileName;
+            var file = new DiFileStream(_fileName);
 
-        
-            if (file.SkipHeader())
+            if (!file.SkipHeader()) return;
+            DiDataElement deOld = null, diDataElement;
+
+            int i = 0;
+
+            // read rest
+            do
             {
-                DiDataElement diDataElement = null, de_old = null;
+                diDataElement = new DiDataElement();
+                diDataElement.ReadNext(file);
+                // System.out.println(de);
+                // byte_sum += de._vl;
 
-                while (file.Position+1 < file.Length)
+                if (diDataElement.GetTag() == 0xfffee000)
                 {
-                    diDataElement = new DiDataElement(file_name, exp);
-                    diDataElement.readNext(file);
-                 
-                    if (diDataElement.getTag() == 0xfffee00) // handle sequences ...
+                    // handle sequences ...
+                    Dictionary<uint, DiDataElement> seq = new Dictionary<uint, DiDataElement>();
+                    DiDataElement seqDe = new DiDataElement();
+                    while (seqDe.GetTag() != 0xfffee0dd)
                     {
-                        Dictionary<uint, DiDataElement> seq = new Dictionary<uint, DiDataElement>();
-                        DiDataElement seq_de = new DiDataElement();
-                        while (seq_de.getTag() != 0xfffee0dd)
-                        {
-                            seq_de = new DiDataElement();
-                            seq_de.readNext(file);
-                            seq[seq_de.getTag()] = seq_de;
-                        }
-                        sequences[de_old.getTag()] = seq;
-                    }
-                    else if (diDataElement.getTag() == 0x7fe00010 && diDataElement.GetVl() == 0)
-                    {
-                        Debug.Log(diDataElement);
-                        // encapsulated pixel format
-                        Dictionary<uint, DiDataElement> seq = new Dictionary<uint, DiDataElement>();
-                        DiDataElement seq_de = new DiDataElement();
-                        DiDataElement pixel_data_de = diDataElement;
-                        int count = 0;
-
-                        while ((seq_de.getTag() != 0xfffee0dd))
-                        {
-                            seq_de = new DiDataElement();
-                            seq_de.readNext(file);
-                            if (seq_de.GetVl() > 4)
-                            {
-                                pixel_data_de = seq_de;
-                            }
-                            seq[seq_de.getTag()] = seq_de;
-                            count++;
-                        }
-                        data_elements[diDataElement.getTag()] = pixel_data_de;
-                    }
-                    else
-                    { // handle all but sequences
-                        data_elements.Add(diDataElement.getTag(), diDataElement);
+                        seqDe = new DiDataElement();
+                        seqDe.ReadNext(file);
+                        seq[seqDe.GetTag()] = seqDe;
                     }
 
-                    // 0028 -> 40
-                    if (diDataElement.GetGroupId() == 40)
-                    {
-                        switch (diDataElement.GetElementId())
-                        {
-                            // Hoehe
-                            case 16:
-                                height = diDataElement.GetInt();
-                                break;
-                            // Breite
-                            case 17:
-                                width = diDataElement.GetInt();
-                                break;
-                            // bits allocated
-                            case 256:
-                                bits_allocated = diDataElement.GetInt();
-                                break;
-                            // bits stored
-                            case 257:
-                                bits_stored = diDataElement.GetInt();
-                                break;
-                            case 258:
-                                high_bit = diDataElement.GetInt();
-                                break;
-                        }
-
-                    }
-                    else if (diDataElement.GetGroupId() == 32)
-                    {
-                        if (diDataElement.GetElementId() == 19)
-                        {
-                            image_number = diDataElement.GetInt();
-                        }
-                    }
-
-                    de_old = diDataElement;
-
-                    if (diDataElement.getTag() == 0x7fe0010)
-                    {
-                        break;
-                    }
+                    _sequences[deOld.GetTag()] = seq;
                 }
-            }
+                else if (diDataElement.GetTag() == 0x7fe00010 && diDataElement.GetVl() == 0)
+                {
+                    // encapsulated pixel format
+                    Dictionary<uint, DiDataElement> seq = new Dictionary<uint, DiDataElement>();
+                    DiDataElement seqDe = new DiDataElement();
+                    DiDataElement pixelDataDe = diDataElement;
+                    int count = 0;
+
+                    while (seqDe.GetTag() != 0xfffee0dd)
+                    {
+                        Debug.Log(count + " -> " + seqDe);
+                        seqDe = new DiDataElement();
+                        seqDe.ReadNext(file);
+                        if (seqDe.GetVl() > 4)
+                        {
+                            pixelDataDe = seqDe;
+                        }
+
+                        seq[seqDe.GetTag()] = seqDe;
+                        count++;
+                    }
+
+                    _dataElements[diDataElement.GetTag()] = pixelDataDe;
+                }
+                else
+                {
+                    // handle all but sequences
+                    _dataElements[diDataElement.GetTag()] = diDataElement;
+                }
+
+                if (i == 150)
+                {
+                    break;
+                }
+
+                i++;
+                deOld = diDataElement;
+            } while (diDataElement.GetTag() != 0x07fe0010 && file.CanRead && file.Position < file.Length);
+
 
             file.Close();
+
+            // image number
+            if (_dataElements.TryGetValue(0x00200013, out diDataElement))
+            {
+                _imageNumber = diDataElement.GetInt();
+            }
+
+            // image height
+            if (_dataElements.TryGetValue(0x00280010, out diDataElement))
+            {
+                _height = diDataElement.GetInt();
+            }
+
+            // image width
+            if (_dataElements.TryGetValue(0x00280011, out diDataElement))
+            {
+                _width = diDataElement.GetInt();
+            }
+
+            // Bits/Pixel allocated
+            if (_dataElements.TryGetValue(0x00280100, out diDataElement))
+            {
+                _bitsAllocated = diDataElement.GetInt();
+            }
+
+            // Bits/Pixel stored
+            if (_dataElements.TryGetValue(0x00280101, out diDataElement))
+            {
+                _bitsStored = diDataElement.GetInt();
+            }
+
+            // high bit
+            if (_dataElements.TryGetValue(0x00280102, out diDataElement))
+            {
+                _highBit = diDataElement.GetInt();
+            }
         }
+
 
         /**
         * Converts a dicom file into a human readable string info. Might be long.
@@ -159,15 +201,15 @@ namespace DICOMParser
         {
             string str = "";
 
-            str += file_name + "\n";
-            var keys = data_elements.Keys;
+            str += _fileName + "\n";
+            var keys = _dataElements.Keys;
             List<string> l = new List<string>();
 
 
             foreach (var key in keys)
             {
-                DiDataElement el = data_elements[key];
-                l.Add(el.toString());
+                DiDataElement el = _dataElements[key];
+                l.Add(el.ToString());
             }
 
             l.Sort();
@@ -188,7 +230,7 @@ namespace DICOMParser
          */
         public int GetBitsAllocated()
         {
-            return bits_allocated;
+            return _bitsAllocated;
         }
 
         /**
@@ -198,12 +240,12 @@ namespace DICOMParser
          */
         public int GetBitsStored()
         {
-            return bits_stored;
+            return _bitsStored;
         }
 
         public int GetHighBit()
         {
-            return high_bit;
+            return _highBit;
         }
 
         /**
@@ -213,7 +255,7 @@ namespace DICOMParser
          */
         public Dictionary<uint, DiDataElement> GetDataElements()
         {
-            return data_elements;
+            return _dataElements;
         }
 
         /**
@@ -224,18 +266,18 @@ namespace DICOMParser
          */
         public DiDataElement GetElement(uint id)
         {
-            return data_elements.GetValue(id);
+            return _dataElements.GetValue(id);
         }
 
         public DiDataElement GetElement(uint groupId, uint elementId)
         {
-            return data_elements.GetValue(DiDictonary.ToTag(groupId, elementId));
+            return _dataElements.GetValue(DiDictonary.ToTag(groupId, elementId));
         }
 
         public DiDataElement RemoveElement(uint groupId, uint elementId)
         {
             DiDataElement element = GetElement(groupId, elementId);
-            data_elements.Remove(DiDictonary.ToTag(groupId, elementId));
+            _dataElements.Remove(DiDictonary.ToTag(groupId, elementId));
 
             return element;
         }
@@ -247,7 +289,7 @@ namespace DICOMParser
          */
         public int GetImageWidth()
         {
-            return width;
+            return _width;
         }
 
         /**
@@ -257,7 +299,7 @@ namespace DICOMParser
          */
         public int GetImageHeight()
         {
-            return height;
+            return _height;
         }
 
         /**
@@ -267,7 +309,7 @@ namespace DICOMParser
          */
         public string GetFileName()
         {
-            return file_name;
+            return _fileName;
         }
 
         /**
@@ -277,7 +319,7 @@ namespace DICOMParser
          */
         public int GetImageNumber()
         {
-            return image_number;
+            return _imageNumber;
         }
 
 
@@ -286,27 +328,26 @@ namespace DICOMParser
             if (this == o) return true;
             if (o == null || this.GetType() != o.GetType()) return false;
             DiFile diFile = (DiFile)o;
-            return width == diFile.width &&
-                    height == diFile.height &&
-                    bits_stored == diFile.bits_stored &&
-                    bits_allocated == diFile.bits_allocated &&
-                    image_number == diFile.image_number &&
-                    data_elements.Equals(diFile.data_elements) &&
-                    file_name.Equals(diFile.file_name);
+            return _width == diFile._width &&
+                    _height == diFile._height &&
+                    _bitsStored == diFile._bitsStored &&
+                    _bitsAllocated == diFile._bitsAllocated &&
+                    _imageNumber == diFile._imageNumber &&
+                    _dataElements.Equals(diFile._dataElements) &&
+                    _fileName.Equals(diFile._fileName);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                var hashCode = width;
-                hashCode = (hashCode * 397) ^ height;
-                hashCode = (hashCode * 397) ^ bits_stored;
-                hashCode = (hashCode * 397) ^ bits_allocated;
-                hashCode = (hashCode * 397) ^ exp.GetHashCode();
-                hashCode = (hashCode * 397) ^ (data_elements != null ? data_elements.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ image_number;
-                hashCode = (hashCode * 397) ^ (file_name != null ? file_name.GetHashCode() : 0);
+                var hashCode = _width;
+                hashCode = (hashCode * 397) ^ _height;
+                hashCode = (hashCode * 397) ^ _bitsStored;
+                hashCode = (hashCode * 397) ^ _bitsAllocated;
+                hashCode = (hashCode * 397) ^ (_dataElements != null ? _dataElements.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ _imageNumber;
+                hashCode = (hashCode * 397) ^ (_fileName != null ? _fileName.GetHashCode() : 0);
                 return hashCode;
             }
         }

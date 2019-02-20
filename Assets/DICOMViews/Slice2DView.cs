@@ -48,6 +48,7 @@ namespace DICOMViews
                 _imageStack = value;
 
                 Display.texture = value.GetTexture2D(_currentSliceType, _selection.GetValue(_currentSliceType));
+                ResetClick();
             }
         }
 
@@ -58,12 +59,6 @@ namespace DICOMViews
             {
                 _selection[type] = 0;
             }
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
-          
         }
 
         public void Initialize()
@@ -133,14 +128,8 @@ namespace DICOMViews
             }
             else
             {
-                Texture2D tex = ClickDisplay.texture as Texture2D;
-                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
-                tex.Apply();
+               ResetClick();
             }
-
-            _lastClickY = -1;
-            _lastClickX = -1;
-            _hasBeenClicked = false;
         }
 
         /// <summary>
@@ -155,14 +144,7 @@ namespace DICOMViews
                 Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
                 SegmentImage.texture = SegmentCache.GetSegmentTexture(_currentSliceType, _selection[_currentSliceType]);
 
-                Texture2D tex = ClickDisplay.texture as Texture2D;
-
-                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
-                tex.Apply();
-
-                _lastClickX = -1;
-                _lastClickY = -1;
-                _hasBeenClicked = false;
+                ResetClick();
             }
         }
 
@@ -176,6 +158,8 @@ namespace DICOMViews
             if (_currentSliceType == type && _selection[_currentSliceType] == index)
             {
                 Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+
+                ResetClick();
             }
         }
 
@@ -203,8 +187,6 @@ namespace DICOMViews
         /// <param name="y">percentage of the height</param>
         private void OnPixelClicked(float x, float y)
         {
-            Texture2D tex = ClickDisplay.texture as Texture2D;
-
             int xCoord, yCoord;
 
             switch (_currentSliceType)
@@ -225,18 +207,39 @@ namespace DICOMViews
                     throw new ArgumentOutOfRangeException();
             }
 
+           
+            _lastClickX = xCoord;
+            _lastClickY = yCoord;
+            _hasBeenClicked = true;
+
+            SetClick(xCoord, yCoord);          
+
+            InvokePointSelected();
+        }
+
+        private void SetClick(int x, int y)
+        {
+            Texture2D tex = ClickDisplay.texture as Texture2D;
+
             if (_hasBeenClicked && _lastClickX > -1 && _lastClickY > -1)
             {
                 tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
             }
 
-            _lastClickX = xCoord;
-            _lastClickY = yCoord;
-            _hasBeenClicked = true;
+            tex.SetPixel(x, y, SelectionColor);
+            tex.Apply();
+        }
 
-            tex.SetPixel(xCoord, yCoord, SelectionColor);
+        private void ResetClick()
+        {
+            Texture2D tex = ClickDisplay.texture as Texture2D;
+
+            tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
             tex.Apply();
 
+            _lastClickX = -1;
+            _lastClickY = -1;
+            _hasBeenClicked = false;
             InvokePointSelected();
         }
 

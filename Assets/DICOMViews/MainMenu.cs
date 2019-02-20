@@ -17,6 +17,8 @@ namespace DICOMViews
         public Button LoadVolumeButton;
         public Button Load2DButton;
 
+        public const string FolderHint = "Select Folder";
+
         public void SetPreviewImage(Texture2D texture2D)
         {
             PreviewImage.texture = texture2D;
@@ -30,11 +32,20 @@ namespace DICOMViews
         public void ClearDropdown()
         {
             _selection.ClearOptions();
+            _selection.AddOptions(new List<string> {FolderHint });
         }
 
         public void AddDropdownOptions(List<string> options)
         {
             _selection.AddOptions(options);
+        }
+
+        public void RemoveHint()
+        {
+            if (_selection.options.RemoveAll(item => item.text == FolderHint) > 0)
+            {
+                //_selection.value -= 1;
+            }
         }
 
         public void DisableButtons()

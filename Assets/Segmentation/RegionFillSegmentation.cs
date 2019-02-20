@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using DICOMParser;
 using Threads;
 using UnityEngine;
 
@@ -12,14 +13,19 @@ namespace Segmentation
 
         public sealed class RegionFillParameter
         {
+            public double WindowWidth { get; set; }
+            public double WindowCenter { get; set; }
+
             public int X { get; set; }
             public int Y { get; set; }
             public int Z { get; set; }
 
             public int Threshold { get; set; }
 
-            public RegionFillParameter(int x, int y, int z, int threshold = 0)
+            public RegionFillParameter(double windowWidth, double windowCenter, int x, int y, int z, int threshold = 0)
             {
+                WindowWidth = windowWidth;
+                WindowCenter = windowCenter;
                 X = x;
                 Y = y;
                 Z = z;
@@ -76,6 +82,9 @@ namespace Segmentation
 
             var intensityBase = data[GetIndex(seedVoxel, segment.Width, segment.Height)];
 
+            intensityBase = (int)ImageStack.ApplyWindow(intensityBase, regionFillParameter.WindowWidth, regionFillParameter.WindowCenter);
+
+
             var intensityLower = intensityBase - regionFillParameter.Threshold;
             var intensityUpper = intensityBase + regionFillParameter.Threshold;
 
@@ -87,7 +96,9 @@ namespace Segmentation
 
                 var currentIdx = GetIndex(currentVec, segment.Width, segment.Height);
 
-                if (data[currentIdx] < intensityLower || data[currentIdx] > intensityUpper)
+                var curVal = (int)ImageStack.ApplyWindow(data[currentIdx], regionFillParameter.WindowWidth, regionFillParameter.WindowCenter);
+
+                if (curVal < intensityLower || curVal > intensityUpper)
                 {
                     continue;
                 }

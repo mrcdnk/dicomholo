@@ -31,12 +31,12 @@ namespace DICOMViews
         {
             WidthSlider.SliderChangedEvent.AddListener(delegate(TubeSlider tubeSlider)
             {
-                _windowWidth = tubeSlider.CurrentDouble;
+                _windowWidth = tubeSlider.CurrentInt;
                 SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
             });
             CenterSlider.SliderChangedEvent.AddListener(delegate(TubeSlider tubeSlider)
             {
-                _windowCenter = tubeSlider.CurrentDouble;
+                _windowCenter = tubeSlider.CurrentInt;
                 SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
             });
             DefaultToggle.onValueChanged.AddListener(delegate

@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using DICOMParser;
 using Threads;
 
 namespace Segmentation
@@ -8,6 +9,8 @@ namespace Segmentation
 
         public sealed class RangeParameter
         {
+            public double WindowWidth { get; set; }
+            public double WindowCenter { get; set; }
 
             public int Lower { get; set; }
 
@@ -15,8 +18,10 @@ namespace Segmentation
 
             public int ThreadCount { get; set; }
 
-            public RangeParameter(int lower, int upper, int threadCount)
+            public RangeParameter(double windowWidth, double windowCenter, int lower, int upper, int threadCount)
             {
+                WindowWidth = windowWidth;
+                WindowCenter = windowCenter;
                 Lower = lower;
                 Upper = upper;
                 ThreadCount = threadCount;
@@ -100,6 +105,9 @@ namespace Segmentation
                     for (var x = 0; x < segment.Width; ++x)
                     {
                         var value = data[idxPart + x * segment.Height];
+
+                        value = (int)ImageStack.ApplyWindow(value, rangeParameter.WindowWidth, rangeParameter.WindowCenter);
+
 
                         segment.Set(x, y, i, value >= rangeParameter.Lower && value <= rangeParameter.Upper);
                     }

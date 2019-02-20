@@ -179,8 +179,8 @@ namespace DICOMParser
 
             _data = new int[_dicomFiles.Length * _width * _height];
 
-            WindowCenter = _dicomFiles[0].GetElement(0x0028, 0x1050)?.GetInt() ?? double.MinValue;
-            WindowWidth = _dicomFiles[0].GetElement(0x0028, 0x1051)?.GetInt() ?? double.MinValue;
+            WindowCenter = _dicomFiles[0].GetElement(0x0028, 0x1050)?.GetDouble() ?? double.MinValue;
+            WindowWidth = _dicomFiles[0].GetElement(0x0028, 0x1051)?.GetDouble() ?? double.MinValue;
 
             MinPixelIntensity = (int)(_dicomFiles[0].GetElement(0x0028, 0x1052)?.GetDouble() ?? 0d); 
             MaxPixelIntensity = (int)((_dicomFiles[0].GetElement(0x0028, 0x1053)?.GetDouble() ?? 1d)*(Math.Pow(2, _dicomFiles[0].GetBitsStored())-1)+MinPixelIntensity);
@@ -719,7 +719,7 @@ namespace DICOMParser
         /// <param name="windówWidth">Optional possibility to override windowWidth</param>
         /// <param name="windowCenter">Optional possibility to override windowCenter</param>
         public static void FillPixelsTransversal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData,
-            Func<Color32, Color32> pShader, double windówWidth = Double.MinValue, double windowCenter = Double.MinValue)
+            Func<Color32, Color32> pShader, double windówWidth = double.MinValue, double windowCenter = double.MinValue)
         {
             int idxPartId = id * width * height;
             int idxPart;
@@ -761,10 +761,10 @@ namespace DICOMParser
         /// <param name="files">array of all DICOM files</param>
         /// <param name="texData">target texture array</param>
         /// <param name="pShader">pixel shader to be applied to every pixel</param>
-        /// <param name="windówWidth">Optional possibility to override windowWidth</param>
+        /// <param name="windowWidth">Optional possibility to override windowWidth</param>
         /// <param name="windowCenter">Optional possibility to override windowCenter</param>
         public static void FillPixelsFrontal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData,
-            Func<Color32, Color32> pShader, double windowWidth = Double.MinValue, double windowCenter = Double.MinValue)
+            Func<Color32, Color32> pShader, double windowWidth = double.MinValue, double windowCenter = double.MinValue)
         {
             int idxPart;
 
@@ -809,7 +809,7 @@ namespace DICOMParser
         /// <param name="windówWidth">Optional possibility to override windowWidth</param>
         /// <param name="windowCenter">Optional possibility to override windowCenter</param>
         public static void FillPixelsSagittal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData,
-            Func<Color32, Color32> pShader, double windówWidth = Double.MinValue, double windowCenter = Double.MinValue)
+            Func<Color32, Color32> pShader, double windówWidth = double.MinValue, double windowCenter = double.MinValue)
         {
             int idxPart;
 
@@ -854,7 +854,7 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set own window center</param>
         /// <returns>The resulting Color</returns>
         private static Color32 GetRGBValue(int pixelIntensity, DiFile file, double windowWidth = double.MinValue,
-          double windowCenter = double.MinValue)
+            double windowCenter = double.MinValue)
         {
             int bitsStored = file.GetBitsStored();
 
@@ -897,7 +897,7 @@ namespace DICOMParser
         /// <param name="width">width of the window</param>
         /// <param name="center">center of the window</param>
         /// <returns></returns>
-        private static double ApplyWindow(double val, double width, double center)
+        public static double ApplyWindow(double val, double width, double center)
         {
             double intensity = val;
 

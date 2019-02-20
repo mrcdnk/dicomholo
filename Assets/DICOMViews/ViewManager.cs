@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using DICOMParser;
-using GLTF.Schema;
-using HoloToolkit.UX.Progress;
 using Segmentation;
 using Threads;
 using UnityEngine;
@@ -32,7 +30,6 @@ namespace DICOMViews
 
         private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
 
-
         // Use this for initialization
         void Start ()
         {
@@ -46,7 +43,6 @@ namespace DICOMViews
             foreach (var fold in folders)
             {
                 names.Add(fold.Split('\\')[1]);
-
             }
 
             MainMenu.AddDropdownOptions(names);
@@ -72,7 +68,7 @@ namespace DICOMViews
 
             Slice2DView.OnPointSelected.AddListener(SegmentConfiguration.UpdateRegionSeed);
 
-            ParseFiles();
+            MainMenu.DisableButtons();
         }
 	
         // Update is called once per frame
@@ -107,10 +103,19 @@ namespace DICOMViews
         {
             _stack.WindowWidth = winWidth;
             _stack.WindowCenter = winCenter;
+
+            SegmentConfiguration.UpdateWindowSettings(winWidth, winCenter);
         }
 
         public void ParseFiles()
         {
+            if (MainMenu.GetSelectedFolder() == MainMenu.FolderHint)
+            {
+                return;
+            }
+
+            //MainMenu.RemoveHint();        
+
             WindowSettingsPanel.DisableButtons();
             MainMenu.DisableButtons();
             WindowSettingsPanel.gameObject.SetActive(false);

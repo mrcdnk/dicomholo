@@ -35,12 +35,12 @@ namespace DICOMViews
 
         private SliceType _currentSliceType = SliceType.Transversal;
 
-        private int lastClickX = -1;
-        private int lastClickY = -1;
+        private int _lastClickX = -1;
+        private int _lastClickY = -1;
 
-        private bool hasBeenClicked = false;
+        private bool _hasBeenClicked = false;
 
-        [SerializeField] private Color32 segmentTransparency = new Color32(255, 255, 255, 70);
+        [SerializeField] private Color32 _segmentTransparency = new Color32(255, 255, 255, 70);
 
         public ImageStack ImageStack {
             set
@@ -134,13 +134,13 @@ namespace DICOMViews
             else
             {
                 Texture2D tex = ClickDisplay.texture as Texture2D;
-                tex.SetPixel(lastClickX, lastClickY, Color.clear);
+                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
                 tex.Apply();
             }
 
-            lastClickY = -1;
-            lastClickX = -1;
-            hasBeenClicked = false;
+            _lastClickY = -1;
+            _lastClickX = -1;
+            _hasBeenClicked = false;
         }
 
         /// <summary>
@@ -157,12 +157,12 @@ namespace DICOMViews
 
                 Texture2D tex = ClickDisplay.texture as Texture2D;
 
-                tex.SetPixel(lastClickX, lastClickY, Color.clear);
+                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
                 tex.Apply();
 
-                lastClickX = -1;
-                lastClickY = -1;
-                hasBeenClicked = false;
+                _lastClickX = -1;
+                _lastClickY = -1;
+                _hasBeenClicked = false;
             }
         }
 
@@ -193,7 +193,7 @@ namespace DICOMViews
             }
 
             SegmentImage.texture = tex;
-            SegmentImage.color = segmentTransparency;
+            SegmentImage.color = _segmentTransparency;
         }
 
         /// <summary>
@@ -225,14 +225,14 @@ namespace DICOMViews
                     throw new ArgumentOutOfRangeException();
             }
 
-            if (hasBeenClicked && lastClickX > -1 && lastClickY > -1)
+            if (_hasBeenClicked && _lastClickX > -1 && _lastClickY > -1)
             {
-                tex.SetPixel(lastClickX, lastClickY, Color.clear);
+                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
             }
 
-            lastClickX = xCoord;
-            lastClickY = yCoord;
-            hasBeenClicked = true;
+            _lastClickX = xCoord;
+            _lastClickY = yCoord;
+            _hasBeenClicked = true;
 
             tex.SetPixel(xCoord, yCoord, SelectionColor);
             tex.Apply();
@@ -245,13 +245,13 @@ namespace DICOMViews
             switch (_currentSliceType)
             {
                 case SliceType.Transversal:
-                    OnPointSelected.Invoke(lastClickX, lastClickY, _selection[_currentSliceType]);
+                    OnPointSelected.Invoke(_lastClickX, _lastClickY, _selection[_currentSliceType]);
                     break;
                 case SliceType.Sagittal:
-                    OnPointSelected.Invoke(_selection[_currentSliceType], lastClickX, lastClickY);
+                    OnPointSelected.Invoke(_selection[_currentSliceType], _lastClickX, _lastClickY);
                     break;
                 case SliceType.Frontal:
-                    OnPointSelected.Invoke(lastClickX, _selection[_currentSliceType], lastClickY);
+                    OnPointSelected.Invoke(_lastClickX, _selection[_currentSliceType], _lastClickY);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

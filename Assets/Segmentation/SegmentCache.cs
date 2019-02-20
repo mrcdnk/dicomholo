@@ -318,6 +318,11 @@ namespace Segmentation
             return _segments[index];
         }
 
+        public void Clear(int segmentIndex)
+        {
+            _segments[segmentIndex].Clear();
+            SegmentChanged.Invoke(GetSelector(segmentIndex));
+        }
 
         /// <summary>
         /// Returns the selector for a given index

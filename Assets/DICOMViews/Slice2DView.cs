@@ -231,16 +231,20 @@ namespace DICOMViews
         }
 
         private void ResetClick()
-        {
-            Texture2D tex = ClickDisplay.texture as Texture2D;
-
-            tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
-            tex.Apply();
-
+        {  
             _lastClickX = -1;
             _lastClickY = -1;
             _hasBeenClicked = false;
-            InvokePointSelected();
+
+            Texture2D tex = ClickDisplay.texture as Texture2D;
+
+            if (tex)
+            {
+                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
+                InvokePointSelected();
+                tex.Apply();
+            }
+
         }
 
         private void InvokePointSelected()

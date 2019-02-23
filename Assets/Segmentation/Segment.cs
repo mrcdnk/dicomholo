@@ -236,41 +236,6 @@ namespace Segmentation
         }
 
         /// <summary>
-        /// Writes the segment into a texture 3D.
-        /// </summary>
-        /// <param name="texture3D">The target texture 3D to override</param>
-        public IEnumerator WriteToTexture(Texture3D texture3D)
-        {
-            if (!texture3D)
-            {
-                Debug.Log("Segment volume Texture wasn't initialized.");
-                yield break;
-            }
-
-            var pixelColors = texture3D.GetPixels32();
-
-            var idx = 0;
-
-            for (var z = 0; z < Slices; z++)
-            {
-                for (var y = 0; y < Height; y++)
-                {
-                    for (var x = 0; x < Width; x++, ++idx)
-                    {
-                        if (Contains(x, y, z)) { 
-                            pixelColors[idx] = AddColor(pixelColors[idx], SegmentColor);
-                        }
-
-                    }
-                }
-
-                yield return null;
-            }
-            texture3D.SetPixels32(pixelColors);
-            texture3D.Apply();
-        }
-
-        /// <summary>
         /// Returns the unity color representation of the given pixel
         /// </summary>
         /// <param name="x">x coordinate</param>

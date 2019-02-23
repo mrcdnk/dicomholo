@@ -258,7 +258,7 @@ namespace Segmentation
                     for (var x = 0; x < Width; x++, ++idx)
                     {
                         if (Contains(x, y, z)) { 
-                            pixelColors[idx] = AddColor(pixelColors[idx]);
+                            pixelColors[idx] = AddColor(pixelColors[idx], SegmentColor);
                         }
 
                     }
@@ -298,10 +298,10 @@ namespace Segmentation
         /// Combines multiple colors to the same
         /// </summary>
         /// <param name="target"></param>
-        /// <param name="other"></param>
-        private Color32 AddColor(Color32 target)
+        /// <param name="colorToAdd"></param>
+        public static Color32 AddColor(Color32 target, SegmentationColor colorToAdd)
         {
-            switch (SegmentColor)
+            switch (colorToAdd)
             {
                 case SegmentationColor.Red:
                     target.r = 255;

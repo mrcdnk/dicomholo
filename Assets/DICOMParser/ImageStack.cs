@@ -496,7 +496,7 @@ namespace DICOMParser
                     var idxPart = idxPartZ + y;
                     for (var x = 0; x < width; ++x, ++idx)
                     {
-                        target[idx] = PixelProcessor.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z], windowWidth, windowCenter));
+                        target[idx] = TransferFunction.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z], windowWidth, windowCenter));
                     }
                 }
                 Thread.Sleep(5);
@@ -560,7 +560,7 @@ namespace DICOMParser
             for (int layer = start; layer < end; ++layer)
             {
                 target[layer] = new Color32[width*height];
-                FillPixelsTransversal(layer, data, width, height, files, target[layer], PixelProcessor.Identity, windowWidth, windowCenter);
+                FillPixelsTransversal(layer, data, width, height, files, target[layer], TransferFunction.Identity, windowWidth, windowCenter);
                 processed.Enqueue(layer);
                 Thread.Sleep(5);
             }
@@ -622,7 +622,7 @@ namespace DICOMParser
             for (int y = start; y < end; ++y)
             {
                 target[y] = new Color32[width * files.Count];
-                FillPixelsFrontal(y, data, width, height, files, target[y], PixelProcessor.Identity, windowWidth, windowCenter);
+                FillPixelsFrontal(y, data, width, height, files, target[y], TransferFunction.Identity, windowWidth, windowCenter);
                 processed.Enqueue(y);
                 Thread.Sleep(5);
             }
@@ -684,7 +684,7 @@ namespace DICOMParser
             for (int x = start; x < end; ++x)
             {
                 target[x] = new Color32[height * files.Count];
-                FillPixelsSagittal(x, data, width, height, files, target[x], PixelProcessor.Identity, windowWidth, windowCenter);
+                FillPixelsSagittal(x, data, width, height, files, target[x], TransferFunction.Identity, windowWidth, windowCenter);
                 processed.Enqueue(x);
                 Thread.Sleep(5);
             }
@@ -703,7 +703,7 @@ namespace DICOMParser
         /// <param name="texData">target texture array</param>
         public static void FillPixelsTransversal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData)
         {
-            FillPixelsTransversal(id, data, width, height, files, texData, PixelProcessor.Identity);
+            FillPixelsTransversal(id, data, width, height, files, texData, TransferFunction.Identity);
         }
 
         /// <summary>
@@ -748,7 +748,7 @@ namespace DICOMParser
         /// <param name="texData">target texture array</param>
         public static void FillPixelsFrontal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData)
         {
-            FillPixelsFrontal(id, data, width, height, files, texData, PixelProcessor.Identity);
+            FillPixelsFrontal(id, data, width, height, files, texData, TransferFunction.Identity);
         }
 
         /// <summary>
@@ -793,7 +793,7 @@ namespace DICOMParser
         /// <param name="texData">target texture array</param>
         public static void FillPixelsSagittal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData)
         {
-            FillPixelsSagittal(id, data, width, height, files, texData, PixelProcessor.Identity);
+            FillPixelsSagittal(id, data, width, height, files, texData, TransferFunction.Identity);
         }
 
         /// <summary>

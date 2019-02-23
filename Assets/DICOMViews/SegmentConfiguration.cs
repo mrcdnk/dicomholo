@@ -19,6 +19,7 @@ namespace DICOMViews
 
         public uint Display2Ds = 0xFFFFFFFF;
         public uint Display3Ds = 0xFFFFFFFF;
+        public bool HideBase = false;
 
         [SerializeField] private Button _clear;
         [SerializeField] private Button _create;
@@ -39,6 +40,8 @@ namespace DICOMViews
 
         [SerializeField] private Toggle _display2D;
         [SerializeField] private Toggle _display3D;
+        [SerializeField] private Toggle _hideBaseData;
+
 
         private readonly RegionFillSegmentation _regionFillSegmentation = new RegionFillSegmentation();
         private readonly RangeSegmentation _rangeSegmentation = new RangeSegmentation();
@@ -46,13 +49,11 @@ namespace DICOMViews
         private int _selectedSegment = 0;
         private readonly SegmentationType[] _selectedType = new SegmentationType[SegmentCache.MaxSegmentCount];
 
-        private double _windowWidth = 0;
-        private double _windowCenter = 0;
-
         private SegmentCache _segmentCache;
 
         public SelectionChanged2D OnSelectionChanged2D = new SelectionChanged2D();
         public SelectionChanged3D OnSelectionChanged3D = new SelectionChanged3D();
+        public HideBaseChanged OnHideBaseChanged = new HideBaseChanged();
 
         // Start is called before the first frame update
         void Start()
@@ -72,6 +73,7 @@ namespace DICOMViews
             _clear.onClick.AddListener(() => _segmentCache.Clear(_selectedSegment));
             _display2D.onValueChanged.AddListener(Toggle2D);
             _display3D.onValueChanged.AddListener(Toggle3D);
+            _hideBaseData.onValueChanged.AddListener(ToggleHideBase);
         }
 
         // Update is called once per frame
@@ -94,8 +96,8 @@ namespace DICOMViews
             for (int i = 0; i < SegmentCache.MaxSegmentCount; i++)
             {
                 _selectedType[i] = SegmentationType.Range;
-                _rangeParameters[i] = new RangeSegmentation.RangeParameter(_windowWidth, _windowCenter, minIntensity, maxIntensity, 2);
-                _regionFillParameters[i] = new RegionFillSegmentation.RegionFillParameter(_windowWidth, _windowCenter, -1, -1, -1);
+                _rangeParameters[i] = new RangeSegmentation.RangeParameter(minIntensity, maxIntensity, 2);
+                _regionFillParameters[i] = new RegionFillSegmentation.RegionFillParameter(-1, -1, -1);
             }
 
             UpdateRegionSeed(-1, -1, -1);
@@ -120,28 +122,13 @@ namespace DICOMViews
             }
         }
 
-        public void UpdateWindowSettings(double windowWidth, double windowCenter)
-        {
-            _windowWidth = windowWidth;
-            _windowCenter = windowCenter;
-
-            for (int i = 0; i < SegmentCache.MaxSegmentCount; i++)
-            {
-                _rangeParameters[i].WindowWidth = windowWidth;
-                _rangeParameters[i].WindowCenter = windowCenter;
-
-                _regionFillParameters[i].WindowWidth = windowWidth;
-                _regionFillParameters[i].WindowCenter = windowCenter;
-            }
-        }
-
         private void CreateSelection()
         {
             switch (_selectedType[_selectedSegment])
             {
                 case SegmentationType.Range:
                     _segmentCache.CreateSegment(SegmentCache.GetSelector(_selectedSegment), _rangeSegmentation,
-                        _rangeParameters[_selectedSegment]);
+                        _rangeParameters[_selectedSegment], false);
                     break;
                 case SegmentationType.RegionFill:
                     _segmentCache.CreateSegment(SegmentCache.GetSelector(_selectedSegment), _regionFillSegmentation,
@@ -164,6 +151,12 @@ namespace DICOMViews
             OnSelectionChanged3D.Invoke(Display3Ds);
         }
 
+        private void ToggleHideBase(bool b)
+        {
+            HideBase = b;
+            OnHideBaseChanged.Invoke(b);
+        }
+
         private void UpdateToggles()
         {
             _display2D.isOn = SegmentCache.ContainsIndex(Display2Ds, _selectedSegment);
@@ -181,6 +174,30 @@ namespace DICOMViews
             _seedZRegion.text = "z: " + z;
 
             ValidateCurrentParameters();
+        }
+
+        public void UpdateThreshold(TubeSlider tubeSlider)
+        {
+            if (_regionFillParameters[_selectedSegment] != null)
+            {
+                _regionFillParameters[_selectedSegment].Threshold = tubeSlider.CurrentInt;
+            }
+        }
+
+        public void UpdateRegionMin(TubeSlider tubeSlider)
+        {
+            if (_rangeParameters[_selectedSegment] != null)
+            {
+                _rangeParameters[_selectedSegment].Lower = tubeSlider.CurrentInt;
+            }
+        }
+
+        public void UpdateRegionMax(TubeSlider tubeSlider)
+        {
+            if (_rangeParameters[_selectedSegment] != null)
+            {
+                _rangeParameters[_selectedSegment].Upper = tubeSlider.CurrentInt;
+            }
         }
 
         private void ShowSeg(int index)
@@ -221,6 +238,11 @@ namespace DICOMViews
         }
 
         public class SelectionChanged3D : UnityEvent<uint>
+        {
+
+        }
+
+        public class HideBaseChanged : UnityEvent<bool>
         {
 
         }

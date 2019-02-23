@@ -14,7 +14,7 @@ namespace Segmentation
     public class SegmentCache : MonoBehaviour
     {
         private GlobalWorkIndicator _workIndicator;
-        private Segment[] _segments = new Segment[3];
+        private readonly Segment[] _segments = new Segment[3];
         private readonly Dictionary<SliceType, Texture2D[]> _sliceSegments = new Dictionary<SliceType, Texture2D[]>(3);
 
         private int _width;
@@ -23,7 +23,7 @@ namespace Segmentation
         private bool _texturesInvalid = true;
         private bool _textureLock = false;
 
-        private List<Texture3D> _volumeLocks = new List<Texture3D>();
+        private readonly List<Texture3D> _volumeLocks = new List<Texture3D>();
 
         private ImageStack _imageStack;
 
@@ -36,12 +36,13 @@ namespace Segmentation
         public static readonly uint Three = GetSelector(2);
 
         public const int MaxSegmentCount = 3;
+        public const byte HiddenAlpha = 10;
 
         public SegmentTextureReady TextureReady = new SegmentTextureReady();
         public SegmentChanged SegmentChanged = new SegmentChanged();
 
         // Start is called before the first frame update
-        void Start()
+        private void Start()
         {
             _workIndicator = FindObjectOfType<GlobalWorkIndicator>();
 
@@ -53,7 +54,7 @@ namespace Segmentation
         }
 
         // Update is called once per frame
-        void Update()
+        private void Update()
         {
             int index = 0;
 
@@ -172,8 +173,13 @@ namespace Segmentation
         /// <param name="index">Index of the segment to create, range ist limited from 0 to 2</param>
         /// <param name="segmentationStrategy">Strategy for creating a Segmentation</param>
         /// <param name="parameters">Parameters used by the segmentation strategy</param>
-        public void CreateSegment<TP>(uint index, SegmentationStrategy<TP> segmentationStrategy, TP parameters)
+        public void CreateSegment<TP>(uint index, SegmentationStrategy<TP> segmentationStrategy, TP parameters, bool clearSegment = true)
         {
+            if (clearSegment)
+            {
+                _segments[GetIndex(index)].Clear();
+            }
+
             _currentWorkloads.Add(new Tuple<ThreadGroupState, uint, Action<uint>>(
                 segmentationStrategy.Fit(_segments[GetIndex(index)], _imageStack.GetData(), parameters), index, OnSegmentChange));
             _workIndicator.StartedWork();
@@ -193,28 +199,57 @@ namespace Segmentation
         /// </summary>
         /// <param name="texture3D">texture to write to.</param>
         /// <param name="selector">selection of segments that are going to be written to the texture.</param>
+        /// <param name="hideBaseData">Set to true, to reduce alpha value of not contained pixels.</param>
         /// <returns></returns>
-        public IEnumerator ApplySegments(Texture3D texture3D, uint selector = 0xFFFFFFFF)
+        public IEnumerator ApplySegments(Texture3D texture3D, uint selector = 0xFFFFFFFF, bool hideBaseData = false)
         {
+
             _workIndicator.StartedWork();
             yield return AccessVolume(texture3D);
-            for (var shift = 0; shift < MaxSegmentCount; shift++)
+
+            var pixelColors = texture3D.GetPixels32();
+
+            var idx = 0;
+
+            for (var z = 0; z < _slices; z++)
             {
-                if (!ContainsIndex(selector, shift))
+                for (var y = 0; y < _height; y++)
                 {
-                    continue;
+                    for (var x = 0; x < _width; x++, ++idx)
+                    {
+                        var inAny = false;
+
+                        for (var shift = 0; shift < MaxSegmentCount; shift++)
+                        {
+                            if (!ContainsIndex(selector, shift))
+                            {
+                                continue;
+                            }
+
+                            if (_segments[shift].IsClear)
+                            {
+                                continue;
+                            }
+
+                            if (_segments[shift].Contains(x, y, z))
+                            {
+                                pixelColors[idx] = Segment.AddColor(pixelColors[idx], _segments[shift].SegmentColor);
+                                inAny = true;
+                            }
+                        }
+
+                        if (!inAny && hideBaseData)
+                        {
+                            pixelColors[idx].a = HiddenAlpha;
+                        }
+                    }
                 }
 
-                if (_segments[shift].IsClear)
-                {
-                    continue;
-                }
-
-                yield return _segments[shift].WriteToTexture(texture3D);
+                yield return null;
             }
-
+            texture3D.SetPixels32(pixelColors);
             texture3D.Apply();
-
+           
             FreeVolume(texture3D);
             _workIndicator.FinishedWork();
         }

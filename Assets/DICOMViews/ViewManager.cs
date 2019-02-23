@@ -103,8 +103,6 @@ namespace DICOMViews
         {
             _stack.WindowWidth = winWidth;
             _stack.WindowCenter = winCenter;
-
-            SegmentConfiguration.UpdateWindowSettings(winWidth, winCenter);
         }
 
         public void ParseFiles()
@@ -155,7 +153,7 @@ namespace DICOMViews
         private void OnVolumeCreated()
         {
             VolumeRendering.SetVolume(_stack.VolumeTexture);
-            StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture, SegmentConfiguration.Display3Ds));
+            StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture, SegmentConfiguration.Display3Ds, SegmentConfiguration.HideBase));
             //RayMarching.initVolume(_stack.VolumeTexture);
 
             //Volume.SetActive(true);
@@ -190,6 +188,15 @@ namespace DICOMViews
         {
             //combine selector with user selection and apply it to the cache.
             StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));
+
+            if (_stack.VolumeTexture)
+            {
+                CreateVolume();
+            }
+        }
+
+        private void HideBaseChanged(bool hideBase)
+        {
             CreateVolume();
         }
 

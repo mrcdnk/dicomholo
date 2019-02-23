@@ -207,11 +207,6 @@ namespace DICOMViews
                     throw new ArgumentOutOfRangeException();
             }
 
-           
-            _lastClickX = xCoord;
-            _lastClickY = yCoord;
-            _hasBeenClicked = true;
-
             SetClick(xCoord, yCoord);          
 
             InvokePointSelected();
@@ -221,12 +216,22 @@ namespace DICOMViews
         {
             var tex = ClickDisplay.texture as Texture2D;
 
-            if (tex && _hasBeenClicked && _lastClickX > -1 && _lastClickY > -1)
+            if (!tex)
+            {
+                return;
+            }
+
+            if (_hasBeenClicked && _lastClickX > -1 && _lastClickY > -1)
             {
                 tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
-                tex.SetPixel(x, y, SelectionColor);
-                tex.Apply();
             }
+
+            tex.SetPixel(x, y, SelectionColor);
+            tex.Apply();
+
+            _lastClickX = x;
+            _lastClickY = y;
+            _hasBeenClicked = true;
         }
 
         private void ResetClick()
@@ -247,16 +252,20 @@ namespace DICOMViews
 
         private void InvokePointSelected()
         {
+            var selection = -1;
+
+            _selection.TryGetValue(_currentSliceType, out selection);
+
             switch (_currentSliceType)
             {
                 case SliceType.Transversal:
-                    OnPointSelected.Invoke(_lastClickX, _lastClickY, _selection[_currentSliceType]);
+                    OnPointSelected.Invoke(_lastClickX, _lastClickY, selection);
                     break;
                 case SliceType.Sagittal:
-                    OnPointSelected.Invoke(_selection[_currentSliceType], _lastClickX, _lastClickY);
+                    OnPointSelected.Invoke(selection, _lastClickX, _lastClickY);
                     break;
                 case SliceType.Frontal:
-                    OnPointSelected.Invoke(_lastClickX, _selection[_currentSliceType], _lastClickY);
+                    OnPointSelected.Invoke(_lastClickX, selection, _lastClickY);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

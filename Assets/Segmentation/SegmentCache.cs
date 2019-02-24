@@ -46,9 +46,9 @@ namespace Segmentation
         {
             _workIndicator = FindObjectOfType<GlobalWorkIndicator>();
 
-            _segments[0] = new Segment(SegmentationColor.Red);
-            _segments[1] = new Segment(SegmentationColor.Green);
-            _segments[2] = new Segment(SegmentationColor.Blue);
+            _segments[0] = new Segment(new Color32(255, 0, 0, Segment.SegmentTransparency));
+            _segments[1] = new Segment(new Color32(0, 255, 0, Segment.SegmentTransparency));
+            _segments[2] = new Segment(new Color32(0, 0, 255, Segment.SegmentTransparency));
 
             _imageStack = FindObjectOfType<ImageStack>();
         }
@@ -72,6 +72,10 @@ namespace Segmentation
             }
         }
 
+        /// <summary>
+        /// Removes the Workload at the given index and invokes the callback.
+        /// </summary>
+        /// <param name="index"></param>
         private void RemoveWorkload(int index)
         {
             var tuple = _currentWorkloads[index];
@@ -146,6 +150,10 @@ namespace Segmentation
 
         }
 
+        /// <summary>
+        /// Clears all textures stored in the cache.
+        /// </summary>
+        /// <returns></returns>
         private IEnumerator ClearTextures()
         {
             yield return AccessTextures();
@@ -231,11 +239,16 @@ namespace Segmentation
                                 continue;
                             }
 
-                            if (_segments[shift].Contains(x, y, z))
+                            if (!_segments[shift].Contains(x, y, z)) continue;
+
+                            pixelColors[idx] = Segment.AddColor(pixelColors[idx], _segments[shift].SegmentColor);
+
+                            if (hideBaseData)
                             {
-                                pixelColors[idx] = Segment.AddColor(pixelColors[idx], _segments[shift].SegmentColor);
-                                inAny = true;
+                                pixelColors[idx].a = (byte) Math.Min(pixelColors[idx].a*1.15, 255);
                             }
+
+                            inAny = true;
                         }
 
                         if (!inAny && hideBaseData)
@@ -323,7 +336,6 @@ namespace Segmentation
             for (var i = 0; i < _height; ++i)
             {
                 currentTexture = _sliceSegments[SliceType.Frontal][i];
-
                 for (var shift = 0; shift < MaxSegmentCount; shift++)
                 {
                     if (!ContainsIndex(selector, shift))
@@ -343,16 +355,31 @@ namespace Segmentation
             _workIndicator.FinishedWork();
         }
 
+        /// <summary>
+        /// Returns the Segment Texture for the given parameters.
+        /// </summary>
+        /// <param name="type">SliceType of the texture</param>
+        /// <param name="index">Index of the texture</param>
+        /// <returns>Texture2D containing the segment texture</returns>
         public Texture2D GetSegmentTexture(SliceType type, int index)
         {
             return _sliceSegments[type][index];
         }
 
+        /// <summary>
+        /// Returns the Segment with the given index.
+        /// </summary>
+        /// <param name="index">Index from 0 and to MaxSegmentCount-1</param>
+        /// <returns></returns>
         public Segment GetSegment(int index)
         {
             return _segments[index];
         }
 
+        /// <summary>
+        /// Clears the Segment with the given index.
+        /// </summary>
+        /// <param name="segmentIndex">Index from 0 and to MaxSegmentCount-1</param>
         public void Clear(int segmentIndex)
         {
             _segments[segmentIndex].Clear();
@@ -416,6 +443,10 @@ namespace Segmentation
             return selector & (~sel);
         }
 
+        /// <summary>
+        /// Locks access to the textures, to avoid multiple Coroutines working on them at the same time.
+        /// </summary>
+        /// <returns></returns>
         private IEnumerator AccessTextures()
         {
             while (_textureLock)
@@ -426,11 +457,19 @@ namespace Segmentation
             _textureLock = true;
         }
         
+        /// <summary>
+        /// Frees access to the textures
+        /// </summary>
         private void FreeTextures()
         {
             _textureLock = false;
         }
 
+        /// <summary>
+        /// Locks access to the given volume, to avoid multiple Coroutines working on it at the same time.
+        /// </summary>
+        /// <param name="texture3D">Texture to lock access to</param>
+        /// <returns></returns>
         private IEnumerator AccessVolume(Texture3D texture3D)
         {
             while (_volumeLocks.Contains(texture3D))
@@ -441,6 +480,10 @@ namespace Segmentation
             _volumeLocks.Add(texture3D);
         }
 
+        /// <summary>
+        /// Frees access to the given Volume
+        /// </summary>
+        /// <param name="texture3D">Texture to free</param>
         private void FreeVolume(Texture3D texture3D)
         {
             _volumeLocks.Remove(texture3D);

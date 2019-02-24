@@ -9,10 +9,10 @@ namespace DICOMParser
     /**
     * Implements the internal representation of a DICOM Data Element.
     *
-*/
+    */
     public class DiDataElement
     {
-        private DiDictonary diDictionary = DiDictonary.Instance;
+        private readonly DiDictonary diDictionary = DiDictonary.Instance;
 
         private uint _groupid;
         private uint _elementid;
@@ -23,7 +23,7 @@ namespace DICOMParser
         protected int Endianess;
 
         private int _rawInt;
-        private double _rawDouble;
+        private double[] _rawDoubles = new double[1];
 
         public DiDataElement()
         {
@@ -193,14 +193,7 @@ namespace DICOMParser
 
             try
             {
-                if (_groupid == 0x0028 && (_elementid == 0x1050 || _elementid == 0x1051))
-                {
-                    _rawInt = Int32.Parse(GetValueAsString().Split('\\')[0]);
-                }
-                else
-                {
-                    _rawInt = GetValueAsInt();
-                }
+                _rawInt = GetValueAsInt();
             }
             catch (Exception)
             {
@@ -209,7 +202,20 @@ namespace DICOMParser
 
             try
             {
-                _rawDouble = GetValueAsDouble();
+                if (_groupid == 0x0028 && (_elementid == 0x1050 || _elementid == 0x1051))
+                {
+                    var numbers = GetValueAsString().Split('\\');
+                    _rawDoubles = new double[numbers.Length];
+
+                    for (var index = 0; index < numbers.Length; index++)
+                    {
+                        _rawDoubles[index] = double.Parse(numbers[index]);
+                    }
+                }
+                else
+                {
+                    _rawDoubles[0] = GetValueAsDouble();
+                }
             }
             catch (Exception)
             {
@@ -243,16 +249,6 @@ namespace DICOMParser
         }
 
         /**
-         * Sets the element number.
-         *
-         * @param element_number the element number.
-         */
-        public void SetElementId(uint elementNumber)
-        {
-            this._elementid = elementNumber;
-        }
-
-        /**
          * Returns the group number (first part of the tag id)..
          *
          * @return the group number.
@@ -262,16 +258,6 @@ namespace DICOMParser
             return _groupid;
         }
 
-
-        /**
-         * Sets the group number.
-         *
-         * @param group_number the group_number.
-         */
-        public void SetGroupId(uint groupNumber)
-        {
-            this._groupid = groupNumber;
-        }
 
         /**
          * Returns the value length.
@@ -284,16 +270,6 @@ namespace DICOMParser
         }
 
         /**
-         * Sets the value length.
-         *
-         * @param value_length
-         */
-        public void SetVl(int valueLength)
-        {
-            this._vl = valueLength;
-        }
-
-        /**
          * Allows access to the byte value array.
          *
          * @return the byte value array containing the element data
@@ -301,16 +277,6 @@ namespace DICOMParser
         public byte[] GetValues()
         {
             return _values;
-        }
-
-        /**
-         * Sets the byte value array.
-         *
-         * @param values a byte array containing the element values.
-         */
-        public void SetValues(byte[] values)
-        {
-            this._values = values;
         }
 
         /**
@@ -330,7 +296,7 @@ namespace DICOMParser
          */
         public double GetDouble()
         {
-            return _rawDouble;
+            return _rawDoubles[0];
         }
 
         /**
@@ -350,6 +316,14 @@ namespace DICOMParser
         public int GetInt()
         {
             return _rawInt;
+        }
+
+        /**
+         * Returns an array of previously slash separated doubles.
+         */
+        public double[] GetDoubles()
+        {
+            return _rawDoubles;
         }
 
         /**
@@ -470,17 +444,6 @@ namespace DICOMParser
         public VRType GetVr()
         {
             return _vr;
-        }
-
-        /**
-         * Sets the vr tag.
-         *
-         * @param vr the vr value - use only public DiDictonary constants here
-         * @see DiDictonary
-         */
-        public void SetVr(VRType vr)
-        {
-            this._vr = vr;
         }
 
         /**

@@ -14,7 +14,7 @@ namespace Segmentation
     /// </summary>
     public class Segment
     {
-        const int SegmentTransparency = 180;
+        public const int SegmentTransparency = 180;
 
         private ulong[,] _segmentData;
         private object[] _locks;
@@ -23,7 +23,7 @@ namespace Segmentation
 
         internal readonly ThreadGroupState _currentWorkload;
 
-        public SegmentationColor SegmentColor { get; set; }
+        public Color SegmentColor { get; set; }
 
         public int Width { get; private set; }
         public int Height { get; private set; }
@@ -34,7 +34,7 @@ namespace Segmentation
         /// Creates an empty Segment with uninitialized data array.
         /// </summary>
         /// <param name="segmentColor">Color Number used inside the shader.</param>
-        public Segment(SegmentationColor segmentColor)
+        public Segment(Color segmentColor)
         {
             SegmentColor = segmentColor;
             _currentWorkload = new ThreadGroupState();
@@ -75,7 +75,7 @@ namespace Segmentation
             int longnum = (x + y * Width) >> 6;
             int bitnum = (x + y * Width) % 64;
 
-            return (_segmentData[z, longnum] & (ulong)1 << bitnum) != 0;
+            return (_segmentData[z, longnum] & (ulong) 1 << bitnum) != 0;
         }
 
         /// <summary>
@@ -114,14 +114,14 @@ namespace Segmentation
 
                 lock (_locks[z])
                 {
-                    _segmentData[z, longnum] |= (ulong)1 << bitnum;
+                    _segmentData[z, longnum] |= (ulong) 1 << bitnum;
                 }
             }
             else
             {
                 lock (_locks[z])
                 {
-                    _segmentData[z, longnum] &= ~((ulong)1 << bitnum);
+                    _segmentData[z, longnum] &= ~((ulong) 1 << bitnum);
                 }
             }
         }
@@ -246,7 +246,7 @@ namespace Segmentation
         {
             if (Contains(x, y, z))
             {
-               return GetColor(SegmentColor);
+                return SegmentColor;
             }
             else
             {
@@ -254,36 +254,29 @@ namespace Segmentation
             }
         }
 
-        public Color32 GetColor()
-        {
-            return GetColor(SegmentColor);
-        }
-
         /// <summary>
         /// Combines multiple colors to the same
         /// </summary>
         /// <param name="target"></param>
         /// <param name="colorToAdd"></param>
-        public static Color32 AddColor(Color32 target, SegmentationColor colorToAdd)
+        public static Color32 AddColor(Color32 target, Color32 colorToAdd)
         {
-            switch (colorToAdd)
-            {
-                case SegmentationColor.Red:
-                    target.r = 255;
-                    break;
-                case SegmentationColor.Blue:
-                    target.b = 255;
-                    break;
-                case SegmentationColor.Green:
-                    target.g = 255;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+
+            target.r = (byte) Math.Min(255, target.r + colorToAdd.r);
+            target.g = (byte) Math.Min(255, target.g + colorToAdd.g);
+            target.b = (byte) Math.Min(255, target.b + colorToAdd.b);
+
 
             return target;
         }
 
+
+        /// <summary>
+        /// Correctly layers the second color over the first.
+        /// </summary>
+        /// <param name="c1">base color</param>
+        /// <param name="c2">color to overlap on top of the base color</param>
+        /// <returns></returns>
         private Color32 OverlapColors(Color32 c1, Color32 c2)
         {
             Color32 color = new Color32();
@@ -302,38 +295,7 @@ namespace Segmentation
             return color;
         }
 
-        /// <summary>
-        /// Converts the given Segmentation Color to the UnityColor to use.
-        /// </summary>
-        /// <param name="color">Segmentation color enum</param>
-        /// <returns>Unity color representation</returns>
-        public static Color32 GetColor(SegmentationColor color)
-        {
-            switch (color)
-            {
-                case SegmentationColor.Red:
-                    return new Color32(255, 0, 0, SegmentTransparency);
-                case SegmentationColor.Blue:
-                    return new Color32(0, 0, 255, SegmentTransparency); ;
-                case SegmentationColor.Green:
-                    return new Color32(0, 255, 0, SegmentTransparency); ;
-                default:
-                    return Color.clear;
-            }
-        }
     }
-
-    /// <summary>
-    /// Used by the Shader to determine which color to draw for this shader.
-    /// Currently only 3 Colors are supported.
-    /// </summary>
-    public enum SegmentationColor : uint
-    {
-        Red = 1,
-        Blue = 2,
-        Green = 3
-    }
-
 }
 
 

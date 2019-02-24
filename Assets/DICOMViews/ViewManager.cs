@@ -28,6 +28,8 @@ namespace DICOMViews
         private SegmentCache _segmentCache;
         private GlobalWorkIndicator _workIndicator;
 
+        private bool _ignoreWindowSettingsChanged = false;
+
         private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
 
         // Use this for initialization
@@ -101,6 +103,7 @@ namespace DICOMViews
 
         private void OnWindowSettingsChanged(double winWidth, double winCenter)
         {
+            if (_ignoreWindowSettingsChanged) return;
             _stack.WindowWidth = winWidth;
             _stack.WindowCenter = winCenter;
         }
@@ -111,8 +114,9 @@ namespace DICOMViews
             {
                 return;
             }
+            _ignoreWindowSettingsChanged = true;
 
-            //MainMenu.RemoveHint();        
+            MainMenu.DisableDropDown();
 
             WindowSettingsPanel.DisableButtons();
             MainMenu.DisableButtons();
@@ -123,7 +127,7 @@ namespace DICOMViews
 
         private void OnFilesParsed()
         {
-            WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidth, _stack.WindowCenter);
+            WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidthPresets, _stack.WindowCenterPresets);
             WindowSettingsPanel.gameObject.SetActive(true);
             _segmentCache.InitializeSize(_stack.Width, _stack.Height, _stack.Slices);
             SegmentConfiguration.Initialize(_segmentCache, _stack.MinPixelIntensity, _stack.MaxPixelIntensity);
@@ -139,14 +143,19 @@ namespace DICOMViews
         private void OnPreProcessDone()
         {
             WindowSettingsPanel.EnableButtons();
+
             MainMenu.EnableButtons();
+            MainMenu.EnableDropDown();
+
             _segmentCache.InitializeTextures();
             SegmentConfiguration.transform.gameObject.SetActive(true);
+            _ignoreWindowSettingsChanged = false;
         }
 
         public void CreateVolume()
         {
             MainMenu.DisableButtons();
+            WindowSettingsPanel.DisableButtons();
             AddWorkload(_stack.StartCreatingVolume(), "Creating Volume", OnVolumeCreated);
         }
 
@@ -158,12 +167,15 @@ namespace DICOMViews
 
             //Volume.SetActive(true);
             MainMenu.EnableButtons();
+            WindowSettingsPanel.EnableButtons();
+
             VolumeRenderingParent.SetActive(true);
         }
 
         public void CreateTextures()
         {
             MainMenu.DisableButtons();
+            WindowSettingsPanel.DisableButtons();
             Slice2DView.gameObject.SetActive(true);
             AddWorkload(_stack.StartCreatingTextures(), "Creating Textures", OnTexturesCreated);
         }
@@ -171,6 +183,7 @@ namespace DICOMViews
         private void OnTexturesCreated()
         {
             MainMenu.EnableButtons();
+            WindowSettingsPanel.EnableButtons();
             StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));
         }
 
@@ -215,7 +228,6 @@ namespace DICOMViews
             CreateVolume();
         }
 
-
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)
         {
             _currentWorkloads.Add(new Tuple<ThreadGroupState, string, Action>(threadGroupState, description, onFinished));
@@ -232,7 +244,7 @@ namespace DICOMViews
         {
             var tuple = _currentWorkloads[index];
             tuple.Item3.Invoke();
-            if (index == 0)
+            if (_currentWorkloads.Count > 1)
             {
                 MainMenu.ProgressHandler.Value -= tuple.Item1.TotalProgress;
                 MainMenu.ProgressHandler.Max -= tuple.Item1.TotalProgress;   

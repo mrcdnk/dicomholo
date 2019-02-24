@@ -85,7 +85,7 @@ namespace DICOMViews
         public void Initialize(SegmentCache cache, int minIntensity, int maxIntensity)
         {
             _segmentCache = cache;
-            _selectedColor.color = cache.GetSegment(_selectedSegment).GetColor();
+            _selectedColor.color = cache.GetSegment(_selectedSegment).SegmentColor;
             _minRange.MinimumValue = minIntensity;
             _maxRange.MinimumValue = minIntensity;
             _minRange.MaximumValue = maxIntensity;
@@ -208,7 +208,7 @@ namespace DICOMViews
             }
 
             _selectedSegment = index;
-            _selectedColor.color = _segmentCache.GetSegment(_selectedSegment).GetColor();
+            _selectedColor.color = _segmentCache.GetSegment(_selectedSegment).SegmentColor;
             ValidateCurrentParameters();
             UpdateToggles();
         }

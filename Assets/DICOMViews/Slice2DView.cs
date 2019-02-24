@@ -79,7 +79,7 @@ namespace DICOMViews
 
         private void ResetClickDisplay(int width, int height)
         {
-            Texture2D other = new Texture2D(width, height, TextureFormat.ARGB32, false);
+            var other = new Texture2D(width, height, TextureFormat.ARGB32, false);
 
             other.SetPixels32(new Color32[width * height]);
             ClickDisplay.texture = other;

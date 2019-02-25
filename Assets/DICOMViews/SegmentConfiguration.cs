@@ -50,6 +50,8 @@ namespace DICOMViews
 
         private SegmentCache _segmentCache;
 
+        private bool _dontSendToggleEvent = false;
+
         public uint Display2Ds = 0xFFFFFFFF;
         public uint Display3Ds = 0xFFFFFFFF;
         public bool HideBase = false;
@@ -105,7 +107,9 @@ namespace DICOMViews
 
             UpdateRegionSeed(-1, -1, -1);
             ValidateCurrentParameters();
+            _dontSendToggleEvent = true;
             UpdateToggles();
+            _dontSendToggleEvent = false;
         }
 
         /// <summary>
@@ -154,6 +158,7 @@ namespace DICOMViews
         /// <param name="b">new toggle value</param>
         private void Toggle2D(bool b)
         {
+            if(_dontSendToggleEvent) return;
             Display2Ds = SegmentCache.ToggleIndex(Display2Ds, _selectedSegment);
             OnSelectionChanged2D.Invoke(Display2Ds);
         }
@@ -164,6 +169,7 @@ namespace DICOMViews
         /// <param name="b">new toggle value</param>
         private void Toggle3D(bool b)
         {
+            if (_dontSendToggleEvent) return;
             Display3Ds = SegmentCache.ToggleIndex(Display3Ds, _selectedSegment);
             OnSelectionChanged3D.Invoke(Display3Ds);
         }
@@ -244,7 +250,9 @@ namespace DICOMViews
             _selectedSegment = index;
             _selectedColor.color = _segmentCache.GetSegment(_selectedSegment).SegmentColor;
             ValidateCurrentParameters();
+            _dontSendToggleEvent = true;
             UpdateToggles();
+            _dontSendToggleEvent = false;
         }
 
         private void SelectedType(int index)

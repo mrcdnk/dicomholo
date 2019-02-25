@@ -276,21 +276,23 @@ namespace Segmentation
         /// <returns></returns>
         private static Color32 OverlapColors(Color32 c1, Color32 c2)
         {
-            Color32 color = new Color32();
+            var color = new Color32();
 
-            var a1 = c1.a / byte.MaxValue;
-            var a2 = c2.a / byte.MaxValue;
+            var a1 = c1.a / (float)byte.MaxValue;
+            var a2 = c2.a / (float)byte.MaxValue;
 
-            color.a = (byte) ((1 - a1) * c2.a + c1.a);
+            color.a = (byte) ((1f - a1) * c2.a + c1.a);
 
             if (color.a == 0)
             {
                 return c1;
             }
 
-            color.r = (byte) (((1 - a1) * a2 * c2.r + a1 * c1.r) / color.a);
-            color.g = (byte) (((1 - a1) * a2 * c2.g + a1 * c1.g) / color.a);
-            color.b = (byte) (((1 - a1) * a2 * c2.b + a1 * c1.b) / color.a);
+            var a3 = color.a / (float)byte.MaxValue;
+
+            color.r = (byte) (((1f - a1) * a2 * c2.r + a1 * c1.r) / a3);
+            color.g = (byte) (((1f - a1) * a2 * c2.g + a1 * c1.g) / a3);
+            color.b = (byte) (((1f - a1) * a2 * c2.b + a1 * c1.b) / a3);
 
             return color;
         }

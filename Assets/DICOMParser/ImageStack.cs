@@ -171,6 +171,8 @@ namespace DICOMParser
 
             _data = new int[_dicomFiles.Length * Width * Height];
 
+            VolumeTexture = null;
+
             WindowCenterPresets = _dicomFiles[0].GetElement(0x0028, 0x1050)?.GetDoubles() ?? new[]{double.MinValue};
             WindowWidthPresets = _dicomFiles[0].GetElement(0x0028, 0x1051)?.GetDoubles() ?? new[]{double.MinValue};
 

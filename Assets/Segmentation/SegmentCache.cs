@@ -5,7 +5,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Threads;
 using UnityEngine;
 
@@ -245,7 +244,7 @@ namespace Segmentation
 
                             if (hideBaseData)
                             {
-                                pixelColors[idx].a = (byte) Math.Min(pixelColors[idx].a*1.15, 255);
+                                pixelColors[idx].a = (byte) Math.Min(pixelColors[idx].a*1.1, 255);
                             }
 
                             inAny = true;

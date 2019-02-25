@@ -89,8 +89,12 @@ namespace DICOMViews
                     if (_currentWorkloads.Count > 0)
                     {
                         MainMenu.ProgressHandler.TaskDescription = _currentWorkloads[0].Item2;
+                        
                         continue;
                     }
+
+                    MainMenu.ProgressHandler.Max = 0;
+
                     break;
                 }
 
@@ -247,7 +251,10 @@ namespace DICOMViews
         /// <param name="hideBase">new state of visibility</param>
         private void HideBaseChanged(bool hideBase)
         {
-            CreateVolume();
+            if (_stack.VolumeTexture)
+            {
+                CreateVolume();
+            }
         }
 
         /// <summary>
@@ -294,11 +301,6 @@ namespace DICOMViews
         {
             var tuple = _currentWorkloads[index];
             tuple.Item3.Invoke();
-            if (_currentWorkloads.Count > 1)
-            {
-                MainMenu.ProgressHandler.Value -= tuple.Item1.TotalProgress;
-                MainMenu.ProgressHandler.Max -= tuple.Item1.TotalProgress;   
-            }
             _currentWorkloads.RemoveAt(index);
             _workIndicator.FinishedWork();
         }

@@ -13,6 +13,12 @@ namespace DICOMViews
     /// </summary>
     public class ViewManager : MonoBehaviour
     {
+        private ImageStack _stack;
+        private SegmentCache _segmentCache;
+        private GlobalWorkIndicator _workIndicator;
+
+        private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
+
         public MainMenu MainMenu;
         public WindowSettingsPanel WindowSettingsPanel;
         public Slice2DView Slice2DView;
@@ -24,16 +30,9 @@ namespace DICOMViews
 
         public GameObject Volume;
         public RayMarching RayMarching;
-        private ImageStack _stack;
-        private SegmentCache _segmentCache;
-        private GlobalWorkIndicator _workIndicator;
-
-        private bool _ignoreWindowSettingsChanged = false;
-
-        private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
 
         // Use this for initialization
-        void Start ()
+        private void Start ()
         {
             _workIndicator = FindObjectOfType<GlobalWorkIndicator>();
             MainMenu.ClearDropdown();
@@ -50,13 +49,13 @@ namespace DICOMViews
             MainMenu.AddDropdownOptions(names);
 
             _stack = gameObject.AddComponent<ImageStack>();
-            _stack.ViewManager = this;
+            _stack.OnTextureUpdate.AddListener(TextureUpdated);
+            _stack.OnTextureUpdate.AddListener(Slice2DView.TextureUpdated);
 
             _segmentCache = gameObject.AddComponent<SegmentCache>();
-            _segmentCache.TextureReady.AddListener(SegmentTextureUpdated);
+            _segmentCache.TextureReady.AddListener(Slice2DView.SegmentTextureUpdated);
             _segmentCache.SegmentChanged.AddListener(SegmentChanged);
 
-            Slice2DView.ImageStack = _stack;
             Slice2DView.SegmentCache = _segmentCache;
 
             WindowSettingsPanel.SettingsChangedEvent.AddListener(OnWindowSettingsChanged);
@@ -67,6 +66,7 @@ namespace DICOMViews
             SegmentConfiguration.transform.gameObject.SetActive(false);
             SegmentConfiguration.OnSelectionChanged2D.AddListener(SelectionChanged2D);
             SegmentConfiguration.OnSelectionChanged3D.AddListener(SelectionChanged3D);
+            SegmentConfiguration.OnHideBaseChanged.AddListener(HideBaseChanged);
 
             Slice2DView.OnPointSelected.AddListener(SegmentConfiguration.UpdateRegionSeed);
 
@@ -74,10 +74,10 @@ namespace DICOMViews
         }
 	
         // Update is called once per frame
-        void Update ()
+        private void Update ()
         {
-            int progress = 0;
-            int index = 0;
+            var progress = 0;
+            var index = 0;
 
             while (_currentWorkloads.Count > 0 && index < _currentWorkloads.Count)
             {
@@ -100,21 +100,27 @@ namespace DICOMViews
 
             MainMenu.ProgressHandler.Value = progress;
         }
-
+        
+        /// <summary>
+        /// Window Settings have been changed.
+        /// </summary>
+        /// <param name="winWidth">new window width</param>
+        /// <param name="winCenter">new window center</param>
         private void OnWindowSettingsChanged(double winWidth, double winCenter)
         {
-            if (_ignoreWindowSettingsChanged) return;
             _stack.WindowWidth = winWidth;
             _stack.WindowCenter = winCenter;
         }
 
+        /// <summary>
+        /// Starts parsing the files in the currently selected folder.
+        /// </summary>
         public void ParseFiles()
         {
             if (MainMenu.GetSelectedFolder() == MainMenu.FolderHint)
             {
                 return;
             }
-            _ignoreWindowSettingsChanged = true;
 
             MainMenu.DisableDropDown();
 
@@ -125,21 +131,30 @@ namespace DICOMViews
             AddWorkload(_stack.StartParsingFiles(Path.Combine(Application.streamingAssetsPath, MainMenu.GetSelectedFolder())),"Loading Files", OnFilesParsed);
         }
 
+        /// <summary>
+        /// Parsing of files has been completed.
+        /// </summary>
         private void OnFilesParsed()
         {
             WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidthPresets, _stack.WindowCenterPresets);
             WindowSettingsPanel.gameObject.SetActive(true);
             _segmentCache.InitializeSize(_stack.Width, _stack.Height, _stack.Slices);
             SegmentConfiguration.Initialize(_segmentCache, _stack.MinPixelIntensity, _stack.MaxPixelIntensity);
-            Slice2DView.Initialize();
+            Slice2DView.Initialize(_stack);
             PreProcessData();
         }
 
+        /// <summary>
+        /// Starts preprocessing the stored DiFiles.
+        /// </summary>
         public void PreProcessData()
         {
             AddWorkload(_stack.StartPreprocessData(), "Preprocessing Data", OnPreProcessDone);
         }
 
+        /// <summary>
+        /// Preprocessing of the DiFiles is completed.
+        /// </summary>
         private void OnPreProcessDone()
         {
             WindowSettingsPanel.EnableButtons();
@@ -149,9 +164,11 @@ namespace DICOMViews
 
             _segmentCache.InitializeTextures();
             SegmentConfiguration.transform.gameObject.SetActive(true);
-            _ignoreWindowSettingsChanged = false;
         }
 
+        /// <summary>
+        /// Starts creating a volume from the current data.
+        /// </summary>
         public void CreateVolume()
         {
             MainMenu.DisableButtons();
@@ -159,6 +176,9 @@ namespace DICOMViews
             AddWorkload(_stack.StartCreatingVolume(), "Creating Volume", OnVolumeCreated);
         }
 
+        /// <summary>
+        /// Volume creation is completed.
+        /// </summary>
         private void OnVolumeCreated()
         {
             VolumeRendering.SetVolume(_stack.VolumeTexture);
@@ -172,6 +192,9 @@ namespace DICOMViews
             VolumeRenderingParent.SetActive(true);
         }
 
+        /// <summary>
+        /// Starts creating 2D Textures for the current data.
+        /// </summary>
         public void CreateTextures()
         {
             MainMenu.DisableButtons();
@@ -180,6 +203,9 @@ namespace DICOMViews
             AddWorkload(_stack.StartCreatingTextures(), "Creating Textures", OnTexturesCreated);
         }
 
+        /// <summary>
+        /// Texture creation has been completed.
+        /// </summary>
         private void OnTexturesCreated()
         {
             MainMenu.EnableButtons();
@@ -187,16 +213,23 @@ namespace DICOMViews
             StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));
         }
 
+        /// <summary>
+        /// Texture has been modified.
+        /// </summary>
+        /// <param name="type">SliceType of the texture</param>
+        /// <param name="index">index of the texture</param>
         public void TextureUpdated(SliceType type, int index)
         {
-            Slice2DView.TextureUpdated(type, index);
-
             if (type == SliceType.Transversal && index == 50)
             {
                 MainMenu.SetPreviewImage(_stack.GetTexture2D(type, index));
             }
         }
 
+        /// <summary>
+        /// A segment has been modified.
+        /// </summary>
+        /// <param name="selector">The selector for the modified segment</param>
         private void SegmentChanged(uint selector)
         {
             //combine selector with user selection and apply it to the cache.
@@ -208,26 +241,39 @@ namespace DICOMViews
             }
         }
 
+        /// <summary>
+        /// Value changed for visibility of base data
+        /// </summary>
+        /// <param name="hideBase">new state of visibility</param>
         private void HideBaseChanged(bool hideBase)
         {
             CreateVolume();
         }
 
-        private void SegmentTextureUpdated(Texture2D tex, SliceType type, int index)
-        {
-            Slice2DView.SegmentTextureUpdated(tex, type, index);
-        }
-
+        /// <summary>
+        /// Visibility of a segment in 2D has changed
+        /// </summary>
+        /// <param name="selector">new selection of segments to display</param>
         private void SelectionChanged2D(uint selector)
         {
             StartCoroutine(_segmentCache.ApplyTextures(selector, true));
         }
 
+        /// <summary>
+        /// Visibility of a segment in 3D has changed
+        /// </summary>
+        /// <param name="selector">new selection of segments to display</param>
         private void SelectionChanged3D(uint selector)
         {
             CreateVolume();
         }
 
+        /// <summary>
+        /// Adds a workload to be completed.
+        /// </summary>
+        /// <param name="threadGroupState">State of the workload</param>
+        /// <param name="description">Displayed description of the workload</param>
+        /// <param name="onFinished">Callback for completed work</param>
         public void AddWorkload(ThreadGroupState threadGroupState, string description, Action onFinished)
         {
             _currentWorkloads.Add(new Tuple<ThreadGroupState, string, Action>(threadGroupState, description, onFinished));
@@ -240,6 +286,10 @@ namespace DICOMViews
             MainMenu.ProgressHandler.Max += threadGroupState.TotalProgress;
         }
 
+        /// <summary>
+        /// Removes the workload at the index and calls the callback
+        /// </summary>
+        /// <param name="index">index of the workload</param>
         private void RemoveWorkload(int index)
         {
             var tuple = _currentWorkloads[index];

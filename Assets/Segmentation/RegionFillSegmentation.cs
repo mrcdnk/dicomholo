@@ -11,6 +11,9 @@ namespace Segmentation
     {
         private readonly List<Thread> _runningThreads = new List<Thread>(1); 
 
+        /// <summary>
+        /// Contains all parameters for creating a region fill segmentation
+        /// </summary>
         public sealed class RegionFillParameter
         {
             public int X { get; set; }
@@ -33,6 +36,9 @@ namespace Segmentation
             }
         }
 
+        /// <summary>
+        /// Kill all remaining threads if this Object gets destroyed.
+        /// </summary>
         ~RegionFillSegmentation()
         {
             foreach (var runningThread in _runningThreads)
@@ -41,7 +47,14 @@ namespace Segmentation
             }
         }
 
-        public override ThreadGroupState Fit(Segment segment, int[] data, RegionFillParameter parameters)
+        /// <summary>
+        /// Iterates over the given data, which has to match the allocated size, to check whether data points are inside the segment or not.
+        /// </summary>
+        /// <param name="segment">The segment this segmentation is going to be applied to.</param>
+        /// <param name="data">Base data volume</param>
+        /// <param name="parameters">Region fill parameters for the segmentation</param>
+        /// <returns>The ThreadGroupState to enable progress monitoring and callback on finish. May return null if previous work has not yet been finished.</returns>
+        public override ThreadGroupState Fit(Segment segment, IReadOnlyList<int> data, RegionFillParameter parameters)
         {
             if (segment._currentWorkload.Working > 0)
             {
@@ -63,6 +76,12 @@ namespace Segmentation
             return segment._currentWorkload;
         }
 
+        /// <summary>
+        /// Region fill implementation
+        /// </summary>
+        /// <param name="segment">The segment this segmentation is going to be applied to.</param>
+        /// <param name="data">Base data volume</param>
+        /// <param name="regionFillParameter">Region fill parameters for the segmentation</param>
         private void StartRegionFill(Segment segment, IReadOnlyList<int> data,
             RegionFillParameter regionFillParameter)
         {
@@ -176,13 +195,23 @@ namespace Segmentation
             _runningThreads.Remove(Thread.CurrentThread);
         }
 
-        private int GetIndex(Voxel coordinates, int width, int height)
+        /// <summary>
+        /// Converts the given Voxel to a 1D index.
+        /// </summary>
+        /// <param name="coordinates">target 3D coordinates</param>
+        /// <param name="width">width of a slice</param>
+        /// <param name="height">height of a slice</param>
+        /// <returns>A 1D Index</returns>
+        private static int GetIndex(Voxel coordinates, int width, int height)
         {
             return coordinates.Z * width * height
                    + coordinates.X * height
                    + coordinates.Y;
         }
 
+        /// <summary>
+        /// Container for 3D coordinates
+        /// </summary>
         private class Voxel : IEquatable<Voxel>
         {
             public readonly int X;
@@ -196,12 +225,11 @@ namespace Segmentation
                 Z = z;
             }
 
-            public override bool Equals(System.Object obj)
+            public override bool Equals(object obj)
             {
                 if (ReferenceEquals(null, obj)) return false;
                 if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != GetType()) return false;
-                return Equals((Voxel) obj);
+                return obj.GetType() == GetType() && Equals((Voxel) obj);
             }
      
             public override int GetHashCode()

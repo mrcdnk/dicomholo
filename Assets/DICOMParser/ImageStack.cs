@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using DICOMViews;
 using Threads;
 using System.Threading;
+using UnityEngine.Events;
 
 namespace DICOMParser
 {
@@ -18,28 +19,19 @@ namespace DICOMParser
     /// </summary>
     public class ImageStack : MonoBehaviour
     {
-        public Text DebugText;
 
         private int[] _data;
 
         private Texture2D[] _transversalTexture2Ds;
         private Texture2D[] _frontalTexture2Ds;
         private Texture2D[] _sagittalTexture2Ds;
-
-        private Texture3D _volume;
-        public Texture3D VolumeTexture => _volume;
-
-        private ViewManager _viewManager;
-        public ViewManager ViewManager {
-            set { _viewManager = value; }
-        }
-
+        
         private DiFile[] _dicomFiles;
 
-        private string _folderPath;
+        public Text DebugText;
+        public Texture3D VolumeTexture { get; private set; }
 
-        private int _width;
-        private int _height;
+        private string _folderPath;
 
         public double WindowCenter { get; set; } = double.MinValue;
         public double WindowWidth { get; set; } = double.MinValue;
@@ -50,12 +42,11 @@ namespace DICOMParser
         public int MinPixelIntensity { get; set; }
         public int MaxPixelIntensity { get; set; }
 
-        private bool _explicit = true;
-
-        public int Width => _width;
-
-        public int Height => _height;
+        public int Width { get; private set; }
+        public int Height { get; private set; }
         public int Slices => _dicomFiles?.Length ?? 0;
+
+        public TextureUpdate OnTextureUpdate = new TextureUpdate();
 
         /// <summary>
         /// Start coroutine for parsing of files.
@@ -93,7 +84,7 @@ namespace DICOMParser
         /// </summary>
         public ThreadGroupState StartCreatingTextures()
         {
-            ThreadGroupState state = new ThreadGroupState {TotalProgress = _dicomFiles.Length + _width + _height};
+            ThreadGroupState state = new ThreadGroupState {TotalProgress = _dicomFiles.Length + Width + Height};
             StartCoroutine(CreateTextures(state));
             return state;
         }
@@ -149,7 +140,7 @@ namespace DICOMParser
 
             yield return null;
 
-            bool zeroBased = true;
+            var zeroBased = true;
 
             foreach (var path in fileNames)
             {
@@ -175,10 +166,10 @@ namespace DICOMParser
                 yield return null;
             }
 
-            _width = _dicomFiles[0].GetImageWidth();
-            _height = _dicomFiles[0].GetImageHeight();
+            Width = _dicomFiles[0].GetImageWidth();
+            Height = _dicomFiles[0].GetImageHeight();
 
-            _data = new int[_dicomFiles.Length * _width * _height];
+            _data = new int[_dicomFiles.Length * Width * Height];
 
             WindowCenterPresets = _dicomFiles[0].GetElement(0x0028, 0x1050)?.GetDoubles() ?? new[]{double.MinValue};
             WindowWidthPresets = _dicomFiles[0].GetElement(0x0028, 0x1051)?.GetDoubles() ?? new[]{double.MinValue};
@@ -199,7 +190,7 @@ namespace DICOMParser
         /// <param name="array">List to be modified</param>
         private static void ShiftLeft<T>(IList<T> array)
         {
-            for (int i = 1; i < array.Count; i++)
+            for (var i = 1; i < array.Count; i++)
             {
                 array[i - 1] = array[i];
             }
@@ -222,16 +213,16 @@ namespace DICOMParser
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateVolume(ThreadGroupState threadGroupState)
         {
-            _volume = new Texture3D(_width, _height, _dicomFiles.Length, TextureFormat.ARGB32, false);
+            VolumeTexture = new Texture3D(Width, Height, _dicomFiles.Length, TextureFormat.ARGB32, false);
 
-            var cols = new Color32[_width * _height * _dicomFiles.Length];
+            var cols = new Color32[Width * Height * _dicomFiles.Length];
 
             StartCreatingVolume(threadGroupState, _dicomFiles, _data, cols, WindowWidth, WindowCenter, 6);
 
             yield return WaitForThreads(threadGroupState);
 
-            _volume.SetPixels32(cols);
-            _volume.Apply();
+            VolumeTexture.SetPixels32(cols);
+            VolumeTexture.Apply();
         }
 
         /// <summary>
@@ -242,12 +233,12 @@ namespace DICOMParser
         private IEnumerator CreateTextures(ThreadGroupState threadGroupState)
         {
             _transversalTexture2Ds = new Texture2D[_dicomFiles.Length];
-            _frontalTexture2Ds = new Texture2D[_height];
-            _sagittalTexture2Ds = new Texture2D[_width];
+            _frontalTexture2Ds = new Texture2D[Height];
+            _sagittalTexture2Ds = new Texture2D[Width];
 
-            Color32[][] transTextureColors = new Color32[_dicomFiles.Length][];
-            Color32[][] frontTextureColors = new Color32[_height][];
-            Color32[][] sagTextureColors = new Color32[_width][];
+            var transTextureColors = new Color32[_dicomFiles.Length][];
+            var frontTextureColors = new Color32[Height][];
+            var sagTextureColors = new Color32[Width][];
 
             var transProgress = new ConcurrentQueue<int>();
             var frontProgress = new ConcurrentQueue<int>();
@@ -262,22 +253,22 @@ namespace DICOMParser
                 int current;
                 if (transProgress.TryDequeue(out current))
                 {
-                    CreateTexture2D(_width, _height, transTextureColors, _transversalTexture2Ds, current);
-                    _viewManager.TextureUpdated(SliceType.Transversal, current);
+                    CreateTexture2D(Width, Height, transTextureColors, _transversalTexture2Ds, current);
+                    OnTextureUpdate.Invoke(SliceType.Transversal, current);
                     threadGroupState.IncrementProgress();
                 }
 
                 if (frontProgress.TryDequeue(out current))
                 {
-                    CreateTexture2D(_width, _dicomFiles.Length, frontTextureColors, _frontalTexture2Ds, current);
-                    _viewManager.TextureUpdated(SliceType.Frontal, current);
+                    CreateTexture2D(Width, _dicomFiles.Length, frontTextureColors, _frontalTexture2Ds, current);
+                    OnTextureUpdate.Invoke(SliceType.Frontal, current);
                     threadGroupState.IncrementProgress();
                 }
 
                 if (sagProgress.TryDequeue(out current))
                 {
-                    CreateTexture2D(_height, _dicomFiles.Length, sagTextureColors, _sagittalTexture2Ds, current);
-                    _viewManager.TextureUpdated(SliceType.Sagittal, current);
+                    CreateTexture2D(Height, _dicomFiles.Length, sagTextureColors, _sagittalTexture2Ds, current);
+                    OnTextureUpdate.Invoke(SliceType.Sagittal, current);
                     threadGroupState.IncrementProgress();
                 }
 
@@ -294,7 +285,7 @@ namespace DICOMParser
         /// <param name="textureColors">Array of all colors for every slice of this slice type.</param>
         /// <param name="target">Target array to write the texture2D to.</param>
         /// <param name="current">Index of the Texture to be created.</param>
-        private static void CreateTexture2D(int width, int height, Color32[][] textureColors, Texture2D[] target, int current)
+        private static void CreateTexture2D(int width, int height, IReadOnlyList<Color32[]> textureColors, IList<Texture2D> target, int current)
         {
             var currentTexture2D = new Texture2D(width, height, TextureFormat.ARGB32, true);
             currentTexture2D.SetPixels32(textureColors[current]);
@@ -371,8 +362,8 @@ namespace DICOMParser
             switch (type)
             {
                 case SliceType.Transversal: return _dicomFiles.Length - 1;
-                case SliceType.Frontal: return _height-1;
-                case SliceType.Sagittal: return _width-1;
+                case SliceType.Frontal: return Height-1;
+                case SliceType.Sagittal: return Width-1;
                 default: return 0;
             }
         }
@@ -399,7 +390,7 @@ namespace DICOMParser
                 }
 
                 groupState.Register();
-                var t = new Thread(() => PreProcess(groupState, files, _width, _height, target, startIndex, endIndex))
+                var t = new Thread(() => PreProcess(groupState, files, Width, Height, target, startIndex, endIndex))
                 {
                     IsBackground = true
                 };
@@ -418,7 +409,7 @@ namespace DICOMParser
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
         private static void PreProcess(ThreadGroupState groupState, IReadOnlyList<DiFile> files, int width, int height,
-            int[] target, int start, int end)
+            IList<int> target, int start, int end)
         {
             var storedBytes = new byte[4];           
 
@@ -426,7 +417,7 @@ namespace DICOMParser
             {
                 var currentDiFile = files[layer];
                 var pixelData = currentDiFile.RemoveElement(0x7FE0, 0x0010);
-                int mask = ~(~0 << currentDiFile.GetHighBit() + 1);
+                uint mask = ~(0xFFFFFFFF << (currentDiFile.GetHighBit()+1));
                 int allocated = currentDiFile.GetBitsAllocated() / 8;
 
                 var baseOffset = layer * width * height;
@@ -440,7 +431,7 @@ namespace DICOMParser
                             //get current Int value
                             pixels.Read(storedBytes, 0, allocated);
                             var value = BitConverter.ToInt32(storedBytes, 0);
-                            var currentPix = GetPixelIntensity(value & mask, currentDiFile);
+                            var currentPix = GetPixelIntensity((int)(value & mask), currentDiFile);
                             target[baseOffset + x * height + y] = currentPix;
                         }
                     }
@@ -464,22 +455,22 @@ namespace DICOMParser
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingVolume(ThreadGroupState groupState, IReadOnlyList<DiFile> files, int[] data, Color32[] target, double windowWidth, double windowCenter, int threadCount)
+        private void StartCreatingVolume(ThreadGroupState groupState, IReadOnlyList<DiFile> files, IReadOnlyList<int> data, IList<Color32> target, double windowWidth, double windowCenter, int threadCount)
         {
             var spacing = files.Count / threadCount;
 
             for (var i = 0; i < threadCount; ++i)
             {
                 groupState.Register();
-                int startIndex = i * spacing;
-                int endIndex = startIndex + spacing;
+                var startIndex = i * spacing;
+                var endIndex = startIndex + spacing;
 
                 if (i + 1 == threadCount)
                 {
                     endIndex = files.Count;
                 }
 
-                var t = new Thread(() => CreateVolume(groupState, data, files, _width, _height, target, windowWidth,
+                var t = new Thread(() => CreateVolume(groupState, data, files, Width, Height, target, windowWidth,
                     windowCenter, startIndex, endIndex)) {IsBackground = true};
                 t.Start();
             }
@@ -539,18 +530,18 @@ namespace DICOMParser
         {
             int spacing = files.Count / threadCount;
 
-            for (int i = 0; i < threadCount; ++i)
+            for (var i = 0; i < threadCount; ++i)
             {
                 groupState.Register();
-                int startIndex = i * spacing;
-                int endIndex = startIndex + spacing;
+                var startIndex = i * spacing;
+                var endIndex = startIndex + spacing;
 
                 if (i + 1 == threadCount)
                 {
                     endIndex = files.Count;
                 }
 
-                var t = new Thread(() => CreateTransTextures(groupState, processed, data, _width, _height, files,
+                var t = new Thread(() => CreateTransTextures(groupState, processed, data, Width, Height, files,
                     target,
                     windowWidth, windowCenter, startIndex, endIndex)) {IsBackground = true};
                 t.Start();
@@ -574,7 +565,7 @@ namespace DICOMParser
         private static void CreateTransTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, int width, int height, IReadOnlyList<DiFile> files, 
             IList<Color32[]> target, double windowWidth, double windowCenter, int start, int end)
         {
-            for (int layer = start; layer < end; ++layer)
+            for (var layer = start; layer < end; ++layer)
             {
                 target[layer] = new Color32[width*height];
                 FillPixelsTransversal(layer, data, width, height, files, target[layer], TransferFunction.Identity, windowWidth, windowCenter);
@@ -599,20 +590,20 @@ namespace DICOMParser
         private void StartCreatingFrontTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, IReadOnlyList<DiFile> files, Color32[][] target,
             double windowWidth, double windowCenter, int threadCount)
         {
-            int spacing = _height / threadCount;
+            int spacing = Height / threadCount;
 
-            for (int i = 0; i < threadCount; ++i)
+            for (var i = 0; i < threadCount; ++i)
             {
                 groupState.Register();
-                int startIndex = i * spacing;
-                int endIndex = startIndex + spacing;
+                var startIndex = i * spacing;
+                var endIndex = startIndex + spacing;
 
                 if (i + 1 == threadCount)
                 {
-                    endIndex = _height;
+                    endIndex = Height;
                 }
 
-                var t = new Thread(() => CreateFrontTextures(groupState, processed, data, _width, _height, files,
+                var t = new Thread(() => CreateFrontTextures(groupState, processed, data, Width, Height, files,
                     target,
                     windowWidth, windowCenter, startIndex, endIndex)) {IsBackground = true};
                 t.Start();
@@ -633,10 +624,10 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void CreateFrontTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[][] target,
+        private static void CreateFrontTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, int width, int height, IReadOnlyList<DiFile> files, IList<Color32[]> target,
             double windowWidth, double windowCenter, int start, int end)
         {
-            for (int y = start; y < end; ++y)
+            for (var y = start; y < end; ++y)
             {
                 target[y] = new Color32[width * files.Count];
                 FillPixelsFrontal(y, data, width, height, files, target[y], TransferFunction.Identity, windowWidth, windowCenter);
@@ -648,7 +639,7 @@ namespace DICOMParser
         }
 
         /// <summary>
-        /// Starts threads for saggital texture creation.
+        /// Starts threads for sagittal texture creation.
         /// </summary>
         /// <param name="groupState">synchronized Threadstate used to observe progress of one or multiple threads.</param>
         /// <param name="processed">synchronized queue which will be filled with each image index, that is ready.</param>
@@ -658,23 +649,23 @@ namespace DICOMParser
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingSagTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, IReadOnlyList<DiFile> files, Color32[][] target,
+        private void StartCreatingSagTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, IReadOnlyList<DiFile> files, IList<Color32[]> target,
             double windowWidth, double windowCenter, int threadCount)
         {
-            int spacing = _width / threadCount;
+            int spacing = Width / threadCount;
 
-            for (int i = 0; i < threadCount; ++i)
+            for (var i = 0; i < threadCount; ++i)
             {
                 groupState.Register();
-                int startIndex = i * spacing;
-                int endIndex = startIndex + spacing;
+                var startIndex = i * spacing;
+                var endIndex = startIndex + spacing;
 
                 if (i + 1 == threadCount)
                 {
-                    endIndex = _width;
+                    endIndex = Width;
                 }
 
-                var t = new Thread(() => CreateSagTextures(groupState, processed, data, _width, _height, files, target,
+                var t = new Thread(() => CreateSagTextures(groupState, processed, data, Width, Height, files, target,
                     windowWidth, windowCenter, startIndex, endIndex)) {IsBackground = true};
                 t.Start();
             }
@@ -694,10 +685,10 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void CreateSagTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[][] target,
+        private static void CreateSagTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, int width, int height, IReadOnlyList<DiFile> files, IList<Color32[]> target,
             double windowWidth, double windowCenter, int start, int end)
         {
-            for (int x = start; x < end; ++x)
+            for (var x = start; x < end; ++x)
             {
                 target[x] = new Color32[height * files.Count];
                 FillPixelsSagittal(x, data, width, height, files, target[x], TransferFunction.Identity, windowWidth, windowCenter);
@@ -737,15 +728,15 @@ namespace DICOMParser
         public static void FillPixelsTransversal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData,
             Func<Color32, Color32> pShader, double windowWidth = double.MinValue, double windowCenter = double.MinValue)
         {
-            int idxPartId = id * width * height;
-            DiFile file = files[id];
+            var idxPartId = id * width * height;
+            var file = files[id];
 
             for (var y = 0; y < height; ++y)
             {
                 var idxPart = idxPartId + y;
                 for (var x = 0; x < width; ++x)
                 {
-                    int index = y * width + x;
+                    var index = y * width + x;
 
                     texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windowWidth, windowCenter));
                 }
@@ -781,16 +772,14 @@ namespace DICOMParser
         public static void FillPixelsFrontal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData,
             Func<Color32, Color32> pShader, double windowWidth = double.MinValue, double windowCenter = double.MinValue)
         {
-            int idxPart;
-
-            for (int i = 0; i < files.Count; ++i)
+            for (var i = 0; i < files.Count; ++i)
             {
-                idxPart = i * width * height + id;
-                DiFile file = files[i];
+                var idxPart = i * width * height + id;
+                var file = files[i];
 
-                for (int x = 0; x < width; ++x)
+                for (var x = 0; x < width; ++x)
                 {
-                    int index = i * height + x;
+                    var index = i * height + x;
 
                     texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windowWidth, windowCenter));
                 }
@@ -826,16 +815,14 @@ namespace DICOMParser
         public static void FillPixelsSagittal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData,
             Func<Color32, Color32> pShader, double windówWidth = double.MinValue, double windowCenter = double.MinValue)
         {
-            int idxPart;
-
-            for (int i = 0; i < files.Count; ++i)
+            for (var i = 0; i < files.Count; ++i)
             {
-                idxPart = i * width * height + id * height;
-                DiFile file = files[i];
+                var idxPart = i * width * height + id * height;
+                var file = files[i];
 
-                for (int y = 0; y < height; ++y)
+                for (var y = 0; y < height; ++y)
                 {
-                    int index = i * width + y;
+                    var index = i * width + y;
 
                     texData[index] = pShader(GetRGBValue(data[idxPart + y], file, windówWidth, windowCenter));
                 }
@@ -850,12 +837,12 @@ namespace DICOMParser
         /// <returns>The resulting value</returns>
         private static int GetPixelIntensity(int rawIntensity, DiFile file)
         {
-            DiDataElement interceptElement = file.GetElement(0x0028, 0x1052);
-            DiDataElement slopeElement = file.GetElement(0x0028, 0x1053);
+            var interceptElement = file.GetElement(0x0028, 0x1052);
+            var slopeElement = file.GetElement(0x0028, 0x1053);
 
-            double intercept = interceptElement?.GetDouble() ?? 0;
-            double slope = slopeElement?.GetDouble() ?? 1;
-            double intensity = (rawIntensity * slope) + intercept;
+            var intercept = interceptElement?.GetDouble() ?? 0;
+            var slope = slopeElement?.GetDouble() ?? 1;
+            var intensity = (rawIntensity * slope) + intercept;
 
             return (int)intensity;
         }
@@ -871,16 +858,16 @@ namespace DICOMParser
         private static Color32 GetRGBValue(int pixelIntensity, DiFile file, double windowWidth = double.MinValue,
             double windowCenter = double.MinValue)
         {
-            int bitsStored = file.GetBitsStored();
+            var bitsStored = file.GetBitsStored();
             const int rgbRange = 255;
 
-            DiDataElement windowCenterElement = file.GetElement(0x0028, 0x1050);
-            DiDataElement windowWidthElement = file.GetElement(0x0028, 0x1051);
-            DiDataElement interceptElement = file.GetElement(0x0028, 0x1052);
-            DiDataElement slopeElement = file.GetElement(0x0028, 0x1053);
+            var windowCenterElement = file.GetElement(0x0028, 0x1050);
+            var windowWidthElement = file.GetElement(0x0028, 0x1051);
+            var interceptElement = file.GetElement(0x0028, 0x1052);
+            var slopeElement = file.GetElement(0x0028, 0x1053);
 
-            double intercept = interceptElement?.GetDouble() ?? 0;
-            double slope = slopeElement?.GetDouble() ?? 1;
+            var intercept = interceptElement?.GetDouble() ?? 0;
+            var slope = slopeElement?.GetDouble() ?? 1;
             double intensity = pixelIntensity;
 
             if (windowCenter > double.MinValue && windowWidth > double.MinValue)
@@ -931,6 +918,8 @@ namespace DICOMParser
 
             return intensity;
         }
+
+        public class TextureUpdate : UnityEvent<SliceType, int>{}
 
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Threading;
 using DICOMParser;
 using Threads;
 
@@ -6,7 +7,9 @@ namespace Segmentation
 {
     public class RangeSegmentation : SegmentationStrategy<RangeSegmentation.RangeParameter>
     {
-
+        /// <summary>
+        /// Contains Parameters used for the Range segmentation.
+        /// </summary>
         public sealed class RangeParameter
         {
             public int Lower { get; set; }
@@ -33,9 +36,9 @@ namespace Segmentation
         /// </summary>
         /// <param name="segment">The segment this segmentation is going to be applied to.</param>
         /// <param name="data">Base data volume</param>
-        /// <param name="parameters">Custom Parameter Object</param>
+        /// <param name="parameters">Range Parameters for the segmentation</param>
         /// <returns>The ThreadGroupState to enable progress monitoring and callback on finish. May return null if previous work has not yet been finished.</returns>
-        public override ThreadGroupState Fit(Segment segment, int[] data, RangeParameter parameters)
+        public override ThreadGroupState Fit(Segment segment, IReadOnlyList<int> data, RangeParameter parameters)
         {
             if (segment._currentWorkload.Working > 0)
             {
@@ -52,18 +55,18 @@ namespace Segmentation
         /// <summary>
         /// Starts the worker threads
         /// </summary>
-        /// <param name="segment"></param>
-        /// <param name="data"></param>
-        /// <param name="rangeParameter"></param>
-        /// <param name="threadCount"></param>
-        private void StartFittingRange(Segment segment, int[] data, RangeParameter rangeParameter, int threadCount)
+        /// <param name="segment">The segment this segmentation is going to be applied to.</param>
+        /// <param name="data">Base data volume</param>
+        /// <param name="rangeParameter">Range Parameters for the segmentation</param>
+        /// <param name="threadCount">Number of threads to use</param>
+        private void StartFittingRange(Segment segment, IReadOnlyList<int> data, RangeParameter rangeParameter, int threadCount)
         {
             int spacing = segment.Slices / threadCount;
 
             for (var i = 0; i < threadCount; ++i)
             {
-                int startIndex = i * spacing;
-                int endIndex = startIndex + spacing;
+                var startIndex = i * spacing;
+                var endIndex = startIndex + spacing;
 
                 if (i + 1 == threadCount)
                 {
@@ -80,14 +83,14 @@ namespace Segmentation
         }
 
         /// <summary>
-        /// Possible memory corruption with multiple threads if two threads try to access the same long. Needs array of locks...
+        /// Work portion for one of the worker threads.
         /// </summary>
-        /// <param name="segment"></param>
-        /// <param name="data"></param>
-        /// <param name="rangeParameter"></param>
-        /// <param name="startIndex"></param>
-        /// <param name="endIndex"></param>
-        private void FitRangePartially(Segment segment, int[] data, RangeParameter rangeParameter, int startIndex, int endIndex)
+        /// <param name="segment">The segment this segmentation is going to be applied to.</param>
+        /// <param name="data">Base data volume</param>
+        /// <param name="rangeParameter">Range Parameters for the segmentation</param>
+        /// <param name="startIndex">Slice Index this thread starts working on</param>
+        /// <param name="endIndex">Index after the last slice to be worked on</param>
+        private void FitRangePartially(Segment segment, IReadOnlyList<int> data, RangeParameter rangeParameter, int startIndex, int endIndex)
         {
             for (var i = startIndex; i < endIndex; ++i)
             {

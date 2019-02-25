@@ -7,19 +7,12 @@ using UnityEngine.UI;
 namespace DICOMViews
 {
 
+    /// <summary>
+    /// Configuration window for segments
+    /// </summary>
     public class SegmentConfiguration : MonoBehaviour
     {
         [SerializeField] private Button[] _segmentButtons;
-
-        private readonly RangeSegmentation.RangeParameter[] _rangeParameters =
-            new RangeSegmentation.RangeParameter[SegmentCache.MaxSegmentCount];
-
-        private readonly RegionFillSegmentation.RegionFillParameter[] _regionFillParameters =
-            new RegionFillSegmentation.RegionFillParameter[SegmentCache.MaxSegmentCount];
-
-        public uint Display2Ds = 0xFFFFFFFF;
-        public uint Display3Ds = 0xFFFFFFFF;
-        public bool HideBase = false;
 
         [SerializeField] private Button _clear;
         [SerializeField] private Button _create;
@@ -42,28 +35,38 @@ namespace DICOMViews
         [SerializeField] private Toggle _display3D;
         [SerializeField] private Toggle _hideBaseData;
 
+        private readonly RangeSegmentation.RangeParameter[] _rangeParameters =
+            new RangeSegmentation.RangeParameter[SegmentCache.MaxSegmentCount];
+
+        private readonly RegionFillSegmentation.RegionFillParameter[] _regionFillParameters =
+            new RegionFillSegmentation.RegionFillParameter[SegmentCache.MaxSegmentCount];
 
         private readonly RegionFillSegmentation _regionFillSegmentation = new RegionFillSegmentation();
         private readonly RangeSegmentation _rangeSegmentation = new RangeSegmentation();
 
-        private int _selectedSegment = 0;
         private readonly SegmentationType[] _selectedType = new SegmentationType[SegmentCache.MaxSegmentCount];
+
+        private int _selectedSegment = 0;
 
         private SegmentCache _segmentCache;
 
-        public SelectionChanged2D OnSelectionChanged2D = new SelectionChanged2D();
-        public SelectionChanged3D OnSelectionChanged3D = new SelectionChanged3D();
+        public uint Display2Ds = 0xFFFFFFFF;
+        public uint Display3Ds = 0xFFFFFFFF;
+        public bool HideBase = false;
+
+        public SegmentVisibilityChanged OnSelectionChanged2D = new SegmentVisibilityChanged();
+        public SegmentVisibilityChanged OnSelectionChanged3D = new SegmentVisibilityChanged();
         public HideBaseChanged OnHideBaseChanged = new HideBaseChanged();
 
         // Start is called before the first frame update
-        void Start()
+        private void Start()
         {
             _regionFillParent.SetActive(false);
             _rangeParent.SetActive(true);
 
-            for (int i = 0; i < SegmentCache.MaxSegmentCount; i++)
+            for (var i = 0; i < SegmentCache.MaxSegmentCount; i++)
             {
-                int ti = i;
+                var ti = i;
                 _segmentButtons[i].onClick.AddListener(() => ShowSeg(ti));
             }
 
@@ -76,12 +79,12 @@ namespace DICOMViews
             _hideBaseData.onValueChanged.AddListener(ToggleHideBase);
         }
 
-        // Update is called once per frame
-        void Update()
-        {
-
-        }
-
+        /// <summary>
+        /// Initializes the configuration window for the given cache.
+        /// </summary>
+        /// <param name="cache">SegmentCache containing the segments</param>
+        /// <param name="minIntensity">Minimum possible intensity in data</param>
+        /// <param name="maxIntensity">Maximum possible intensity in data</param>
         public void Initialize(SegmentCache cache, int minIntensity, int maxIntensity)
         {
             _segmentCache = cache;
@@ -93,7 +96,7 @@ namespace DICOMViews
             _thresholdRegion.MinimumValue = 0;
             _thresholdRegion.MaximumValue = (maxIntensity - minIntensity) / 2f;
 
-            for (int i = 0; i < SegmentCache.MaxSegmentCount; i++)
+            for (var i = 0; i < SegmentCache.MaxSegmentCount; i++)
             {
                 _selectedType[i] = SegmentationType.Range;
                 _rangeParameters[i] = new RangeSegmentation.RangeParameter(minIntensity, maxIntensity, 2);
@@ -105,6 +108,9 @@ namespace DICOMViews
             UpdateToggles();
         }
 
+        /// <summary>
+        /// Checks if the current parameters are valid for segment creation and disables  or enables the creation button.
+        /// </summary>
         private void ValidateCurrentParameters()
         {
             switch (_selectedType[_selectedSegment])
@@ -122,6 +128,9 @@ namespace DICOMViews
             }
         }
 
+        /// <summary>
+        /// Creates a Segment with the current selection.
+        /// </summary>
         private void CreateSelection()
         {
             switch (_selectedType[_selectedSegment])
@@ -139,30 +148,51 @@ namespace DICOMViews
             }
         }
 
+        /// <summary>
+        /// Toggles if the selected segment is visible in 2D or not.
+        /// </summary>
+        /// <param name="b">new toggle value</param>
         private void Toggle2D(bool b)
         {
             Display2Ds = SegmentCache.ToggleIndex(Display2Ds, _selectedSegment);
             OnSelectionChanged2D.Invoke(Display2Ds);
         }
 
+        /// <summary>
+        /// Toggles if the selected segment is visible in 3D or not.
+        /// </summary>
+        /// <param name="b">new toggle value</param>
         private void Toggle3D(bool b)
         {
             Display3Ds = SegmentCache.ToggleIndex(Display3Ds, _selectedSegment);
             OnSelectionChanged3D.Invoke(Display3Ds);
         }
 
+        /// <summary>
+        /// Toggles if the base data is visible in 3D or not.
+        /// </summary>
+        /// <param name="b">new toggle value</param>
         private void ToggleHideBase(bool b)
         {
             HideBase = b;
             OnHideBaseChanged.Invoke(b);
         }
 
+        /// <summary>
+        /// Updates the 2D and 3D toggle for the current selection.
+        /// </summary>
         private void UpdateToggles()
         {
             _display2D.isOn = SegmentCache.ContainsIndex(Display2Ds, _selectedSegment);
             _display3D.isOn = SegmentCache.ContainsIndex(Display3Ds, _selectedSegment);
         }
 
+        /// <summary>
+        /// Updates the selected seed for region fill segmentation
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
         public void UpdateRegionSeed(int x, int y, int z)
         {
             _regionFillParameters[_selectedSegment].X = x;
@@ -200,9 +230,13 @@ namespace DICOMViews
             }
         }
 
+        /// <summary>
+        /// Switches the currently selected segment
+        /// </summary>
+        /// <param name="index">Index of the segment in the segment cache</param>
         private void ShowSeg(int index)
         {
-            for (int i = 0; i < SegmentCache.MaxSegmentCount; i++)
+            for (var i = 0; i < SegmentCache.MaxSegmentCount; i++)
             {
                 _segmentButtons[i].interactable = i != index;
             }
@@ -227,26 +261,26 @@ namespace DICOMViews
                     _rangeParent.SetActive(false);
                     _selectedType[_selectedSegment] = SegmentationType.RegionFill;
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
             ValidateCurrentParameters();
         }
 
-        public class SelectionChanged2D : UnityEvent<uint>
-        {
+        /// <summary>
+        /// Event for a change in Segment visibility
+        /// </summary>
+        public class SegmentVisibilityChanged : UnityEvent<uint>{}
 
-        }
+        /// <summary>
+        /// Event for a change in base data visibility
+        /// </summary>
+        public class HideBaseChanged : UnityEvent<bool>{}
 
-        public class SelectionChanged3D : UnityEvent<uint>
-        {
-
-        }
-
-        public class HideBaseChanged : UnityEvent<bool>
-        {
-
-        }
-
+        /// <summary>
+        /// Possible Segmentation Types
+        /// </summary>
         private enum SegmentationType
         {
             Range,

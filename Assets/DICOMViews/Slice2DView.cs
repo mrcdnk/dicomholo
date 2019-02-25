@@ -15,6 +15,17 @@ namespace DICOMViews
     public class Slice2DView : MonoBehaviour
     {
         private ImageStack _imageStack;
+        private PixelClickHandler _pixelClickHandler;
+
+        private int _lastClickX = -1;
+        private int _lastClickY = -1;
+
+        private bool _hasBeenClicked = false;
+
+        [SerializeField] private Color32 _segmentTransparency = new Color32(255, 255, 255, 75);
+
+        private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
+
         public TubeSlider SliceSlider;
         public Button TransButton;
         public Button FrontButton;
@@ -26,34 +37,12 @@ namespace DICOMViews
 
         public SegmentCache SegmentCache;
         public PointSelected OnPointSelected = new PointSelected();
-        
         public Color SelectionColor = Color.yellow;
+        public SliceType CurrentSliceType { get; private set; } = SliceType.Transversal;
 
-        private PixelClickHandler _pixelClickHandler;
-
-        private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
-
-        private SliceType _currentSliceType = SliceType.Transversal;
-
-        private int _lastClickX = -1;
-        private int _lastClickY = -1;
-
-        private bool _hasBeenClicked = false;
-
-        [SerializeField] private Color32 _segmentTransparency = new Color32(255, 255, 255, 70);
-
-        public ImageStack ImageStack {
-            set
-            {
-                _imageStack = value;
-
-                Display.texture = value.GetTexture2D(_currentSliceType, _selection.GetValue(_currentSliceType));
-                ResetClick();
-            }
-        }
 
         // Use this for initialization
-        void Start()
+        private void Start()
         {
             foreach (var type in Enum.GetValues(typeof(SliceType)).Cast<SliceType>())
             {
@@ -61,31 +50,49 @@ namespace DICOMViews
             }
         }
 
-        public void Initialize()
+        /// <summary>
+        /// Initializes the 2D view with the given ImageStack
+        /// </summary>
+        public void Initialize(ImageStack imageStack)
         {
             if (_pixelClickHandler == null)
             {
                 _pixelClickHandler = gameObject.GetComponentInChildren<PixelClickHandler>();
             }
 
-            SliceSlider.MaximumValue = _imageStack.GetMaxValue(_currentSliceType);
-            SliceSlider.CurrentInt = _selection.GetValue(_currentSliceType, 0);
+            _imageStack = imageStack;
 
-            _pixelClickHandler.PixelClick.AddListener(OnPixelClicked); 
-    
-            ResetClickDisplay(_imageStack.Width, _imageStack.Height);
-            ClickDisplay.color = new Color32(255, 255, 255, 255);
+            SliceSlider.MaximumValue = _imageStack.GetMaxValue(CurrentSliceType);
+            SliceSlider.CurrentInt = _selection.GetValue(CurrentSliceType, 0);
+
+            _pixelClickHandler.PixelClick.AddListener(OnPixelClicked);
+            try
+            {
+                Display.texture = _imageStack.GetTexture2D(CurrentSliceType, _selection.GetValue(CurrentSliceType));
+            }
+            finally
+            {
+                ResetClickDisplay(_imageStack.Width, _imageStack.Height);
+                ClickDisplay.color = new Color32(255, 255, 255, 255);
+            }         
         }
 
+        /// <summary>
+        /// Resets and resizes the ClickDisplay.
+        /// </summary>
+        /// <param name="width">new width of the click display</param>
+        /// <param name="height">new height of the click display</param>
         private void ResetClickDisplay(int width, int height)
         {
             var other = new Texture2D(width, height, TextureFormat.ARGB32, false);
-
             other.SetPixels32(new Color32[width * height]);
             ClickDisplay.texture = other;
             other.Apply();
         }
 
+        /// <summary>
+        /// Show Transversal textures.
+        /// </summary>
         public void ShowTrans()
         {
             TransButton.interactable = false;
@@ -94,6 +101,9 @@ namespace DICOMViews
             Show(SliceType.Transversal);
         }
 
+        /// <summary>
+        /// Show Frontal textures.
+        /// </summary>
         public void ShowFront()
         {
             TransButton.interactable = true;
@@ -102,6 +112,9 @@ namespace DICOMViews
             Show(SliceType.Frontal);
         }
 
+        /// <summary>
+        /// Show Saggital textures.
+        /// </summary>
         public void ShowSag()
         {
             TransButton.interactable = true;
@@ -116,10 +129,10 @@ namespace DICOMViews
         /// <param name="type">SliceType to display.</param>
         public void Show(SliceType type)
         {
-            _currentSliceType = type;
-            SliceSlider.MaximumValue = _imageStack.GetMaxValue(_currentSliceType);
-            SliceSlider.CurrentInt = _selection[_currentSliceType];
-            Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+            CurrentSliceType = type;
+            SliceSlider.MaximumValue = _imageStack.GetMaxValue(CurrentSliceType);
+            SliceSlider.CurrentInt = _selection[CurrentSliceType];
+            Display.texture = _imageStack.GetTexture2D(CurrentSliceType, _selection[CurrentSliceType]);
 
             if (ClickDisplay.texture.width != Display.texture.width ||
                 ClickDisplay.texture.height != Display.texture.height)
@@ -140,9 +153,9 @@ namespace DICOMViews
         {
             if (_selection.Count == Enum.GetNames(typeof(SliceType)).Length && Display != null && _imageStack != null)
             {
-                _selection[_currentSliceType] = slider.CurrentInt;
-                Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
-                SegmentImage.texture = SegmentCache.GetSegmentTexture(_currentSliceType, _selection[_currentSliceType]);
+                _selection[CurrentSliceType] = slider.CurrentInt;
+                Display.texture = _imageStack.GetTexture2D(CurrentSliceType, _selection[CurrentSliceType]);
+                SegmentImage.texture = SegmentCache.GetSegmentTexture(CurrentSliceType, _selection[CurrentSliceType]);
 
                 ResetClick();
             }
@@ -155,9 +168,9 @@ namespace DICOMViews
         /// <param name="index">index of the updated texture</param>
         public void TextureUpdated(SliceType type, int index)
         {
-            if (_currentSliceType == type && _selection[_currentSliceType] == index)
+            if (CurrentSliceType == type && _selection[CurrentSliceType] == index)
             {
-                Display.texture = _imageStack.GetTexture2D(_currentSliceType, _selection[_currentSliceType]);
+                Display.texture = _imageStack.GetTexture2D(CurrentSliceType, _selection[CurrentSliceType]);
 
                 ResetClick();
             }
@@ -171,7 +184,7 @@ namespace DICOMViews
         /// <param name="index">index of the updated texture</param>
         public void SegmentTextureUpdated(Texture2D tex, SliceType type, int index)
         {
-            if (_currentSliceType != type || !_selection.ContainsKey(_currentSliceType) || _selection[_currentSliceType] != index)
+            if (CurrentSliceType != type || !_selection.ContainsKey(CurrentSliceType) || _selection[CurrentSliceType] != index)
             {
                 return;
             }
@@ -189,7 +202,7 @@ namespace DICOMViews
         {
             int xCoord, yCoord;
 
-            switch (_currentSliceType)
+            switch (CurrentSliceType)
             {
                 case SliceType.Transversal:
                     xCoord = Mathf.RoundToInt(x * _imageStack.Width);
@@ -212,6 +225,11 @@ namespace DICOMViews
             InvokePointSelected();
         }
 
+        /// <summary>
+        /// Sets the selection of the clickDisplay
+        /// </summary>
+        /// <param name="x">Selected x</param>
+        /// <param name="y">Selected y</param>
         private void SetClick(int x, int y)
         {
             var tex = ClickDisplay.texture as Texture2D;
@@ -234,6 +252,9 @@ namespace DICOMViews
             _hasBeenClicked = true;
         }
 
+        /// <summary>
+        /// Removes last click, if there was one.
+        /// </summary>
         private void ResetClick()
         {  
             var tex = ClickDisplay.texture as Texture2D;
@@ -250,13 +271,16 @@ namespace DICOMViews
             InvokePointSelected();
         }
 
+        /// <summary>
+        /// Invokes the point selected event for the currently selected pixel
+        /// </summary>
         private void InvokePointSelected()
         {
             var selection = -1;
 
-            _selection.TryGetValue(_currentSliceType, out selection);
+            _selection.TryGetValue(CurrentSliceType, out selection);
 
-            switch (_currentSliceType)
+            switch (CurrentSliceType)
             {
                 case SliceType.Transversal:
                     OnPointSelected.Invoke(_lastClickX, _lastClickY, selection);
@@ -272,20 +296,16 @@ namespace DICOMViews
             }
         }
 
-        public SliceType GetCurrentSliceType()
-        {
-            return _currentSliceType;
-        }
-
+        /// <summary>
+        /// Returns the selected slice for the given SliceType
+        /// </summary>
+        /// <param name="type">Type of slice to get selection of</param>
+        /// <returns>index of the selected slice</returns>
         public int GetSelection(SliceType type)
         {
             return _selection[type];
         }
 
-
-        public class PointSelected : UnityEvent<int, int, int>
-        {
-
-        }
+        public class PointSelected : UnityEvent<int, int, int>{}
     }
 }

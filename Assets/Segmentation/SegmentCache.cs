@@ -31,12 +31,12 @@ namespace Segmentation
             new List<Tuple<ThreadGroupState, uint, Action<uint>>>(5);
 
         public const uint All = 0xFFFFFFFF;
+        public const int MaxSegmentCount = 3;
+        public const byte HiddenAlpha = 5;
+
         public static readonly uint One = GetSelector(0);
         public static readonly uint Two = GetSelector(1);
-        public static readonly uint Three = GetSelector(2);
-
-        public const int MaxSegmentCount = 3;
-        public const byte HiddenAlpha = 10;
+        public static readonly uint Three = GetSelector(2);    
 
         public SegmentTextureReady TextureReady = new SegmentTextureReady();
         public SegmentChanged SegmentChanged = new SegmentChanged();

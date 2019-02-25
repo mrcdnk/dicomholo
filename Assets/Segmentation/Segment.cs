@@ -18,9 +18,6 @@ namespace Segmentation
 
         private ulong[,] _segmentData;
         private object[] _locks;
-
-        private bool _isClear = true;
-
         internal readonly ThreadGroupState _currentWorkload;
 
         public Color SegmentColor { get; set; }
@@ -28,7 +25,7 @@ namespace Segmentation
         public int Width { get; private set; }
         public int Height { get; private set; }
         public int Slices { get; private set; }
-        public bool IsClear => _isClear;
+        public bool IsClear { get; private set; } = true;
 
         /// <summary>
         /// Creates an empty Segment with uninitialized data array.
@@ -72,8 +69,8 @@ namespace Segmentation
         /// <returns>true if the given point is inside the segment.</returns>
         public bool Contains(int x, int y, int z)
         {
-            int longnum = (x + y * Width) >> 6;
-            int bitnum = (x + y * Width) % 64;
+            var longnum = (x + y * Width) >> 6;
+            var bitnum = (x + y * Width) % 64;
 
             return (_segmentData[z, longnum] & (ulong) 1 << bitnum) != 0;
         }
@@ -84,7 +81,7 @@ namespace Segmentation
         public void Clear()
         {
             Array.Clear(_segmentData, 0, _segmentData.Length);
-            _isClear = true;
+            IsClear = true;
         }
 
         /// <summary>
@@ -110,7 +107,7 @@ namespace Segmentation
 
             if (value)
             {
-                _isClear = false;
+                IsClear = false;
 
                 lock (_locks[z])
                 {
@@ -277,20 +274,23 @@ namespace Segmentation
         /// <param name="c1">base color</param>
         /// <param name="c2">color to overlap on top of the base color</param>
         /// <returns></returns>
-        private Color32 OverlapColors(Color32 c1, Color32 c2)
+        private static Color32 OverlapColors(Color32 c1, Color32 c2)
         {
             Color32 color = new Color32();
 
-            color.a = (byte) ((1 - c1.a) * c2.a + c1.a);
+            var a1 = c1.a / byte.MaxValue;
+            var a2 = c2.a / byte.MaxValue;
+
+            color.a = (byte) ((1 - a1) * c2.a + c1.a);
 
             if (color.a == 0)
             {
                 return c1;
             }
 
-            color.r = (byte) (((1 - c1.a) * c2.a * c2.r + c1.a * c1.r) / color.a);
-            color.g = (byte) (((1 - c1.a) * c2.a * c2.g + c1.a * c1.g) / color.a);
-            color.b = (byte) (((1 - c1.a) * c2.a * c2.b + c1.a * c1.b) / color.a);
+            color.r = (byte) (((1 - a1) * a2 * c2.r + a1 * c1.r) / color.a);
+            color.g = (byte) (((1 - a1) * a2 * c2.g + a1 * c1.g) / color.a);
+            color.b = (byte) (((1 - a1) * a2 * c2.b + a1 * c1.b) / color.a);
 
             return color;
         }

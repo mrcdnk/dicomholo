@@ -126,6 +126,8 @@ namespace DICOMViews
                 return;
             }
 
+            _workIndicator.StartedWork();
+
             MainMenu.DisableDropDown();
 
             WindowSettingsPanel.DisableButtons();
@@ -145,6 +147,7 @@ namespace DICOMViews
             _segmentCache.InitializeSize(_stack.Width, _stack.Height, _stack.Slices);
             SegmentConfiguration.Initialize(_segmentCache, _stack.MinPixelIntensity, _stack.MaxPixelIntensity);
             Slice2DView.Initialize(_stack);
+            _workIndicator.FinishedWork();
             PreProcessData();
         }
 
@@ -153,6 +156,7 @@ namespace DICOMViews
         /// </summary>
         public void PreProcessData()
         {
+            _workIndicator.StartedWork();
             AddWorkload(_stack.StartPreprocessData(), "Preprocessing Data", OnPreProcessDone);
         }
 
@@ -167,6 +171,8 @@ namespace DICOMViews
             MainMenu.EnableDropDown();
 
             _segmentCache.InitializeTextures();
+
+            _workIndicator.FinishedWork();
             SegmentConfiguration.transform.gameObject.SetActive(true);
         }
 
@@ -175,6 +181,7 @@ namespace DICOMViews
         /// </summary>
         public void CreateVolume()
         {
+            _workIndicator.StartedWork();
             MainMenu.DisableButtons();
             WindowSettingsPanel.DisableButtons();
             AddWorkload(_stack.StartCreatingVolume(), "Creating Volume", OnVolumeCreated);
@@ -192,7 +199,7 @@ namespace DICOMViews
             //Volume.SetActive(true);
             MainMenu.EnableButtons();
             WindowSettingsPanel.EnableButtons();
-
+            _workIndicator.FinishedWork();
             VolumeRenderingParent.SetActive(true);
         }
 
@@ -201,6 +208,7 @@ namespace DICOMViews
         /// </summary>
         public void CreateTextures()
         {
+            _workIndicator.StartedWork();
             MainMenu.DisableButtons();
             WindowSettingsPanel.DisableButtons();
             Slice2DView.gameObject.SetActive(true);
@@ -212,6 +220,7 @@ namespace DICOMViews
         /// </summary>
         private void OnTexturesCreated()
         {
+            _workIndicator.FinishedWork();
             MainMenu.EnableButtons();
             WindowSettingsPanel.EnableButtons();
             StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));

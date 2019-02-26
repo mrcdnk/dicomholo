@@ -110,6 +110,7 @@ namespace DICOMViews
         private void RegisterDefaultSettings(IReadOnlyList<double> widthPresets, IReadOnlyList<double> centerPresets)
         {
             _presets.Clear();
+            DefaultSettings.ClearOptions();
 
             for (var i = 0; i < widthPresets.Count; i++)
             {

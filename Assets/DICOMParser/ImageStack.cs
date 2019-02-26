@@ -326,9 +326,35 @@ namespace DICOMParser
         {
             switch (type)
             {
-                case SliceType.Transversal: return _transversalTexture2Ds?[index];
-                case SliceType.Frontal: return _frontalTexture2Ds?[index];
-                case SliceType.Sagittal: return _sagittalTexture2Ds?[index];
+                case SliceType.Transversal:
+                    
+                    if (_transversalTexture2Ds != null && index < _transversalTexture2Ds.Length)
+                    {
+                        return _transversalTexture2Ds[index];
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    
+                case SliceType.Frontal:
+                    if (_frontalTexture2Ds != null && index < _frontalTexture2Ds.Length)
+                    {
+                        return _frontalTexture2Ds[index];
+                    }
+                    else
+                    {
+                        return null;
+                    };
+                case SliceType.Sagittal:
+                    if (_sagittalTexture2Ds != null && index < _sagittalTexture2Ds.Length)
+                    {
+                        return _sagittalTexture2Ds[index];
+                    }
+                    else
+                    {
+                        return null;
+                    };
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }

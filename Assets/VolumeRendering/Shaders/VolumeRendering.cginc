@@ -3,7 +3,6 @@
 
 #include "UnityCG.cginc"
 
-half4 _Color;
 sampler3D _Volume;
 half _Intensity;
 half _AlphaCutoff;
@@ -12,21 +11,23 @@ half _StepCount;
 half3 _SliceMin, _SliceMax;
 float4x4 _AxisRotationMatrix;
 
+static const fixed3 AABB_MIN = fixed3(-0.5, -0.5, -0.5);
+static const fixed3 AABB_MAX = fixed3(0.5, 0.5, 0.5);
+
+static const float EPSILON = 0.01;
+static const float LOWER_EPSILON = -EPSILON;
+static const float UPPER_EPSILON = 1 + EPSILON;
+
 struct Ray {
-  float3 origin;
-  float3 dir;
+  fixed3 origin;
+  fixed3 dir;
 };
 
-struct AABB {
-  float3 min;
-  float3 max;
-};
-
-bool intersect(Ray r, AABB aabb, out float t0, out float t1)
+bool intersect(Ray r, out float t0, out float t1)
 {
   float3 invR = 1.0 / r.dir;
-  float3 tbot = invR * (aabb.min - r.origin);
-  float3 ttop = invR * (aabb.max - r.origin);
+  float3 tbot = invR * (AABB_MIN - r.origin);
+  float3 ttop = invR * (AABB_MAX - r.origin);
   float3 tmin = min(ttop, tbot);
   float3 tmax = max(ttop, tbot);
   float2 t = max(tmin.xx, tmin.yz);
@@ -59,12 +60,9 @@ float4 sample_volume(sampler3D vol, float3 uv, float3 p)
 
 bool outside(float3 uv)
 {
-  const float EPSILON = 0.01;
-  float lower = -EPSILON;
-  float upper = 1 + EPSILON;
   return (
-			uv.x < lower || uv.y < lower || uv.z < lower ||
-			uv.x > upper || uv.y > upper || uv.z > upper
+			uv.x < LOWER_EPSILON || uv.y < LOWER_EPSILON || uv.z < LOWER_EPSILON ||
+			uv.x > UPPER_EPSILON || uv.y > UPPER_EPSILON || uv.z > UPPER_EPSILON
 		);
 }
 
@@ -80,6 +78,7 @@ struct v2f
   float2 uv : TEXCOORD0;
   float3 world : TEXCOORD1;
   float3 local : TEXCOORD2;
+  float opacity : COLOR0;
 };
 
 v2f vert(appdata v)
@@ -89,6 +88,8 @@ v2f vert(appdata v)
   o.uv = v.uv;
   o.world = mul(unity_ObjectToWorld, v.vertex).xyz;
   o.local = v.vertex.xyz;
+  o.opacity = _Opacity / 3; // average of r g b colors
+
   return o;
 }
 
@@ -102,13 +103,9 @@ fixed4 frag(v2f i) : SV_Target
   float3 dir = (i.world - _WorldSpaceCameraPos);
   ray.dir = normalize(mul(unity_WorldToObject, dir));
 
-  AABB aabb;
-  aabb.min = float3(-0.5, -0.5, -0.5);
-  aabb.max = float3(0.5, 0.5, 0.5);
-
   float tnear;
   float tfar;
-  intersect(ray, aabb, tnear, tfar);
+  intersect(ray, tnear, tfar);
 
   tnear = max(0.0, tnear);
 
@@ -128,12 +125,13 @@ fixed4 frag(v2f i) : SV_Target
     float3 uv = get_uv(p);
     float4 src = sample_volume(_Volume, uv, p);
 
-	src.a *= saturate(((src.r+src.g+src.b)/3) *_Opacity);
+	src.a *= saturate((src.r+src.g+src.b) * i.opacity);
 
 	src.rgb *= src.a;
 
     // blend
     dst = (1.0 - dst.a) * src + dst;
+
 	if (dst.a > _AlphaCutoff) {
 		break;
 	}

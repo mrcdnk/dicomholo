@@ -1,53 +1,49 @@
 ﻿using System;
-using System.CodeDom.Compiler;
-using System.Diagnostics;
 using System.Globalization;
-using Debug = UnityEngine.Debug;
+using UnityEngine;
 
 namespace DICOMParser
 {
-    /**
-    * Implements the internal representation of a DICOM Data Element.
-    *
-    */
+    /// <summary>
+    /// Implements the internal representation of a DICOM Data Element.
+    /// </summary>
     public class DiDataElement
     {
-        private readonly DiDictonary diDictionary = DiDictonary.Instance;
+        protected int Endianess;
 
-        private uint _groupid;
-        private uint _elementid;
+        private uint _groupId;
+        private uint _elementId;
         private int _vl;
         private VRType _vr;
         private byte[] _values;
-        private readonly string _fileName = null;
-        protected int Endianess;
-
         private int _rawInt;
         private double[] _rawDoubles = new double[1];
 
+        private readonly DiDictonary _diDictionary = DiDictonary.Instance;
+        private readonly string _fileName = null;
+
         public DiDataElement()
         {
-            _groupid = 0;
-            _elementid = 0;
+            _groupId = 0;
+            _elementId = 0;
             _vl = 0;
             _vr = 0;
             _values = null;
         }
 
-        /**
-         * Default constructor; creates an empty element.
-         */
+        /// <summary>
+        /// Default constructor; creates an empty element.
+        /// </summary>
+        /// <param name="fName">name of file with this element</param>
         public DiDataElement(string fName) : this()
         {
             _fileName = fName;
         }
 
-        /**
-         * Reads the next DiDataElement from a (dicom) input stream.
-         * Might throwh an IOException, for example unexpected end of file.
-         *
-         * @param is a DiInputStream - must be open and readable
-         */
+        /// <summary>
+        /// Reads the next DiDataElement from a (dicom) input stream.
+        /// </summary>
+        /// <param name="inputStream">is a DiInputStream - must be open and readable</param>
         public void ReadNext(DiFileStream inputStream)
         {
             bool exp;
@@ -56,18 +52,18 @@ namespace DICOMParser
             uint b0 = (uint) inputStream.ReadByte();
             uint b1 = (uint) inputStream.ReadByte();
 
-            _groupid = (b1 << 8) | b0;
+            _groupId = (b1 << 8) | b0;
 
             // --- meta group part start ----------------------------
 
-            if (inputStream.BeforeMetaGroup && _groupid == 0x0002)
+            if (inputStream.BeforeMetaGroup && _groupId == 0x0002)
             {
                 // we just entered the meta group
                 inputStream.BeforeMetaGroup = false;
                 inputStream.MetaGroup = true;
             }
 
-            if (inputStream.MetaGroup && _groupid != 0x0002)
+            if (inputStream.MetaGroup && _groupId != 0x0002)
             {
                 // we just left the meta group
                 inputStream.MetaGroup = false;
@@ -87,14 +83,13 @@ namespace DICOMParser
 
             if (Endianess == DiFile.EndianBig)
             {
-                _groupid = (b0 << 8) | b1;
+                _groupId = (b0 << 8) | b1;
             }
 
             // --- meta group part end ------------------------------
 
-            _elementid = inputStream.ReadUShort(Endianess);
-            //Debug.Log("group: " +_groupid + "\n");
-            //Debug.Log("element: " + _elementid + "\n");
+            _elementId = inputStream.ReadUShort(Endianess);
+        
             b0 = (uint) inputStream.ReadByte();
             b1 = (uint) inputStream.ReadByte();
 
@@ -118,7 +113,7 @@ namespace DICOMParser
             // Item (FFFE,E000), Item Delimitation Item (FFFE,E00D), and Sequence Delimitation Item (FFFE,E0DD).
             // However, the Data Set within the Value Field of the Data Element Item (FFFE,E000) shall be encoded
             // according to the rules conveyed by the Transfer Syntax.
-            if (_groupid == 0xfffe && (_elementid == 0xe000 || _elementid == 0xe00d || _elementid == 0xe0dd))
+            if (_groupId == 0xfffe && (_elementId == 0xe000 || _elementId == 0xe00d || _elementId == 0xe0dd))
             {
                 exp = false;
             }
@@ -141,7 +136,7 @@ namespace DICOMParser
             else
             {
                 // implicit VR -> lookup VR in the DicomDictionary
-                _vr = diDictionary.getVR(GetTag());
+                _vr = _diDictionary.getVR(GetTag());
 
                 uint b2 = (uint)inputStream.ReadByte(), b3 = (uint)inputStream.ReadByte();
 
@@ -178,7 +173,7 @@ namespace DICOMParser
                 }
             }
 
-            if (DiDictonary.ToTag(_groupid, _elementid) == 0x00020010)
+            if (DiDictonary.ToTag(_groupId, _elementId) == 0x00020010)
             {
                 // check endianess and VR format
                 String ts_uid = GetValueAsString();
@@ -202,7 +197,7 @@ namespace DICOMParser
 
             try
             {
-                if (_groupid == 0x0028 && (_elementid == 0x1050 || _elementid == 0x1051))
+                if (_groupId == 0x0028 && (_elementId == 0x1050 || _elementId == 0x1051))
                 {
                     var numbers = GetValueAsString().Split('\\');
                     _rawDoubles = new double[numbers.Length];
@@ -223,67 +218,61 @@ namespace DICOMParser
             }
         }
 
-        /**
-         * Converts the DiDataElement to a human readable string.
-         *
-         * @return a human readable string representation
-         */
+        /// <summary>
+        /// Converts the DiDataElement to a human readable string.
+        /// </summary>
+        /// <returns>a human readable string representation</returns>
         public override string ToString()
         {
             string str;
 
-            str = GetTagString() + " (" + diDictionary.GetTagDescription(GetTag()) + ")  ";
+            str = GetTagString() + " (" + _diDictionary.GetTagDescription(GetTag()) + ")  ";
             str += "VR: " + GetVrString() + "  VL: " + _vl + "  Values: " + GetValueAsString();
 
             return str;
         }
 
-        /**
-         * Returns the element number (second part of the tag id).
-         *
-         * @return the element numbber as an integer.
-         */
+        /// <summary>
+        /// Returns the element number (second part of the tag id).
+        /// </summary>
+        /// <returns> the element numbber as an integer.</returns>
         public uint GetElementId()
         {
-            return _elementid;
+            return _elementId;
         }
 
-        /**
-         * Returns the group number (first part of the tag id)..
-         *
-         * @return the group number.
-         */
+        /// <summary>
+        /// Returns the group number (first part of the tag id).
+        /// </summary>
+        /// <returns>the group number.</returns>
         public uint GetGroupId()
         {
-            return _groupid;
+            return _groupId;
         }
 
 
-        /**
-         * Returns the value length.
-         *
-         * @return the value length
-         */
+        /// <summary>
+        /// Returns the value length.
+        /// </summary>
+        /// <returns>the value length</returns>
         public int GetVl()
         {
             return _vl;
         }
 
-        /**
-         * Allows access to the byte value array.
-         *
-         * @return the byte value array containing the element data
-         */
+        /// <summary>
+        /// Allows access to the byte value array.
+        /// </summary>
+        /// <returns>the byte value array containing the element data</returns>
         public byte[] GetValues()
         {
             return _values;
         }
 
-        /**
-         * Returns the value as a double value. Does not perform a typecheck before.
-         *
-         * @return the double value
-         */
+        /// <summary>
+        /// Returns the value as a double value. Does not perform a typecheck before.
+        /// </summary>
+        /// <returns> the double value</returns>
         private double GetValueAsDouble()
         {
             string str = GetValueAsString();
@@ -291,46 +280,47 @@ namespace DICOMParser
             return double.Parse(str.Trim(), CultureInfo.InvariantCulture);
         }
 
-        /**
-         * Returns the double computed at parsing time. Faster for performance.
-         */
+        /// <summary>
+        /// Returns the double computed at parsing time. Faster for performance.
+        /// </summary>
+        /// <returns></returns>
         public double GetDouble()
         {
             return _rawDoubles[0];
         }
 
-        /**
-         * Returns the value as an int value. Does not perform a typecheck before.
-         *
-         * @return the int value
-         */
+        /// <summary>
+        /// Returns the value as an int value. Does not perform a typecheck before.
+        /// </summary>
+        /// <returns></returns>
         private int GetValueAsInt()
         {
             string str = GetValueAsString();
             return Int32.Parse(str.Trim(), CultureInfo.InvariantCulture);
         }
 
-        /*
-         * Returns the int value computed at parsing time. Faster for performance.
-         */
+        /// <summary>
+        /// Returns the int value computed at parsing time. Faster for performance.
+        /// </summary>
+        /// <returns>the contained int value</returns>
         public int GetInt()
         {
             return _rawInt;
         }
 
-        /**
-         * Returns an array of previously slash separated doubles.
-         */
+        /// <summary>
+        /// Returns an array of previously slash separated doubles.
+        /// </summary>
+        /// <returns>array of doubles contained in this element</returns>
         public double[] GetDoubles()
         {
             return _rawDoubles;
         }
 
-        /**
-         * Returns the value as a string value.
-         *
-         * @return the string value
-         */
+        /// <summary>
+        /// Returns the value as a string value.
+        /// </summary>
+        /// <returns>the string value</returns>
         public string GetValueAsString()
         {
             string str = "";
@@ -435,59 +425,51 @@ namespace DICOMParser
             return str;
         }
 
-        /**
-         * Returns the vr tag as an integer value (faster for comparing).
-         *
-         * @return the vr tag as integer - compare with public VRType constants
-         * @see DiDictonary
-         */
+        /// <summary>
+        /// Returns the vr tag as an integer value (faster for comparing).
+        /// </summary>
+        /// <returns>the vr tag as integer - compare with public VRType constants</returns>
         public VRType GetVr()
         {
             return _vr;
         }
 
-        /**
-         * Returns the vr tag as an string value (human readable).
-         *
-         * @return the vr tag as string
-         */
+        /// <summary>
+        /// Returns the vr tag as an string value (human readable).
+        /// </summary>
+        /// <returns>the vr tag as string</returns>
         public string GetVrString()
         {
             return "" + (char) (((uint) _vr & 0xff00) >> 8) + "" + (char) ((uint) _vr & 0x00ff);
         }
 
-        /**
-         * Returns the complete tag id (groub number,elementnumber) as an integer
-         * (fast comparing).
-         *
-         * @return the tag id as an int
-         */
+        /// <summary>
+        ///  Returns the complete tag id (groub number,elementnumber) as an integer (fast comparing).
+        /// </summary>
+        /// <returns>the tag id as an uint</returns>
         public uint GetTag()
         {
-            return (_groupid << 16 | _elementid);
+            return (_groupId << 16 | _elementId);
         }
 
 
-        /**
-         * Returns the complete tag id (groub number,elementnumber) as a string
-         * (human readable).
-         *
-         * @return the tag id as a string
-         */
+        /// <summary>
+        /// Returns the complete tag id (groub number,elementnumber) as a string (human readable).
+        /// </summary>
+        /// <returns>the tag id as a string</returns>
         public string GetTagString()
         {
-            return "(" + my_format(_groupid) + "," + my_format(_elementid) + ")";
+            return "(" + My_format(_groupId) + "," + My_format(_elementId) + ")";
         }
 
-        /**
-        * Formats group and element id
-        *
-        * @param num an integer
-        * @return a string
-        */
-        private string my_format(uint num)
+        /// <summary>
+        /// Formats group and element id
+        /// </summary>
+        /// <param name="num">num an integer</param>
+        /// <returns>a string</returns>
+        private static string My_format(uint num)
         {
-            string str = num.ToString("X");
+            var str = num.ToString("X");
 
             if (num < 4096) str = "0" + str;
             if (num < 256) str = "0" + str;

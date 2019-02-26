@@ -2,7 +2,6 @@
 {
 	Properties
 	{
-		_Color ("Color", Color) = (1, 1, 1, 1)
 		_Volume ("Volume", 3D) = "" {}
 		_Intensity("Intensity", Range(0.5, 3.0)) = 1
 		_AlphaCutoff("AlphaCutoff", Range(0.1, 1)) = 0.97

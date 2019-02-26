@@ -6,16 +6,16 @@ using ExtensionsMethods;
 
 namespace DICOMParser
 {
-    /**
-     * Implements the internal representation of a DICOM file.
-     * Stores all DataElements and makes them accessable via getDataElement(TagName).
-     * Also stores the pixel data & important information for displaying the contained image in
-     * separate variables with special access functions.
-     *
-     * It is assumed that all DICOM files of a set are little_endian and of the same vr_format.
-     *
-     * @author kif ported to C# by Marco Deneke
-     */
+    /// <summary>
+    /// Implements the internal representation of a DICOM file.
+    /// Stores all DataElements and makes them accessable via getDataElement(TagName).
+    /// Also stores the pixel data & important information for displaying the contained image in
+    /// separate variables with special access functions.
+    ///
+    ///  It is assumed that all DICOM files of a set are little_endian and of the same vr_format.
+    ///
+    /// @author kif ported to C# by Marco Deneke
+    /// </summary>
     public class DiFile
     {
         public const int VrUnknown = 0;
@@ -38,14 +38,14 @@ namespace DICOMParser
         private int _intercept;
         private int _slope;
         private int _imageNumber;
-        string _fileName;
+        private string _fileName;
 
         private readonly Dictionary<uint, DiDataElement> _dataElements;
         private readonly Dictionary<uint, Dictionary<uint, DiDataElement>> _sequences; // contains the sequences
 
-        /**
-         * Default Construtor - creates an empty DicomFile.
-         */
+        /// <summary>
+        /// Default constructor - creates an empty dicom File.
+        /// </summary>
         public DiFile()
         {
             _width = _height = _bitsStored = _bitsAllocated = _imageNumber = 0;
@@ -57,9 +57,11 @@ namespace DICOMParser
             _endianess = EndianUnknown;
         }
 
-        /**
-	 * Default Constructor - creates an empty DiFile.
-	 */
+        /// <summary>
+        /// Default Constructor - creates an empty DiFile.
+        /// </summary>
+        /// <param name="endianess">endianess of this file</param>
+        /// <param name="vrFormat">vrFormat of this file</param>
         public DiFile(int endianess, int vrFormat)
         {
             _width = _height = _bitsStored = _bitsAllocated = _imageNumber = 0;
@@ -71,14 +73,12 @@ namespace DICOMParser
             _endianess = endianess;
         }
 
-        /**
-         * Initializes the DicomFile from a file. Might throw an exception (unexpected
-         * end of file, wrong data etc).
-         * This method will be implemented in exercise 1.
-         *
-         * @param file_name a string containing the name of a valid dicom file
-         * @throws Exception
-         */
+        /// <summary>
+        /// Initializes the DicomFile from a file. Might throw an exception (unexpected
+        /// end of file, wrong data etc).
+        /// This method will be implemented in exercise 1.
+        /// </summary>
+        /// <param name="fileName">file_name a string containing the name of a valid dicom file</param>
         public void InitFromFile(string fileName)
         {
             _fileName = fileName;
@@ -87,7 +87,7 @@ namespace DICOMParser
             if (!file.SkipHeader()) return;
             DiDataElement deOld = null, diDataElement;
 
-            int i = 0;
+            var i = 0;
 
             // read rest
             do
@@ -100,8 +100,8 @@ namespace DICOMParser
                 if (diDataElement.GetTag() == 0xfffee000)
                 {
                     // handle sequences ...
-                    Dictionary<uint, DiDataElement> seq = new Dictionary<uint, DiDataElement>();
-                    DiDataElement seqDe = new DiDataElement();
+                    var seq = new Dictionary<uint, DiDataElement>();
+                    var seqDe = new DiDataElement();
                     while (seqDe.GetTag() != 0xfffee0dd)
                     {
                         seqDe = new DiDataElement();
@@ -114,10 +114,10 @@ namespace DICOMParser
                 else if (diDataElement.GetTag() == 0x7fe00010 && diDataElement.GetVl() == 0)
                 {
                     // encapsulated pixel format
-                    Dictionary<uint, DiDataElement> seq = new Dictionary<uint, DiDataElement>();
-                    DiDataElement seqDe = new DiDataElement();
-                    DiDataElement pixelDataDe = diDataElement;
-                    int count = 0;
+                    var seq = new Dictionary<uint, DiDataElement>();
+                    var seqDe = new DiDataElement();
+                    var pixelDataDe = diDataElement;
+                    var count = 0;
 
                     while (seqDe.GetTag() != 0xfffee0dd)
                     {
@@ -191,24 +191,22 @@ namespace DICOMParser
         }
 
 
-        /**
-        * Converts a dicom file into a human readable string info. Might be long.
-        * Useful for debugging.
-        *
-        * @return a human readable string representation
-        */
+        /// <summary>
+        ///  Converts a dicom file into a human readable string info. Might be long. Useful for debugging.
+        /// </summary>
+        /// <returns>a human readable string representation</returns>
         public override string ToString()
         {
-            string str = "";
+            var str = "";
 
             str += _fileName + "\n";
             var keys = _dataElements.Keys;
-            List<string> l = new List<string>();
+            var l = new List<string>();
 
 
             foreach (var key in keys)
             {
-                DiDataElement el = _dataElements[key];
+                var el = _dataElements[key];
                 l.Add(el.ToString());
             }
 
@@ -223,57 +221,69 @@ namespace DICOMParser
             return str;
         }
 
-        /**
-         * Returns the number of allocated bits per pixel.
-         *
-         * @return the number of allocated bits.
-         */
+        /// <summary>
+        /// Returns the number of allocated bits per pixel.
+        /// </summary>
+        /// <returns> the number of allocated bits.</returns>
         public int GetBitsAllocated()
         {
             return _bitsAllocated;
         }
 
-        /**
-         * Returns the number of bits per pixel that are actually used for color info.
-         *
-         * @return the number of stored bits.
-         */
+        /// <summary>
+        ///  Returns the number of bits per pixel that are actually used for color info.
+        /// </summary>
+        /// <returns>the number of stored bits.</returns>
         public int GetBitsStored()
         {
             return _bitsStored;
         }
 
+        /// <summary>
+        /// Returns the index of the highest pixel intensity bit
+        /// </summary>
+        /// <returns></returns>
         public int GetHighBit()
         {
             return _highBit;
         }
 
-        /**
-         * Allows access to the internal data element Dictionary.
-         *
-         * @return a reference to the data element Dictionary
-         */
+        /// <summary>
+        /// Allows access to the internal data element Dictionary.
+        /// </summary>
+        /// <returns> a reference to the data element Dictionary</returns>
         public Dictionary<uint, DiDataElement> GetDataElements()
         {
             return _dataElements;
         }
 
-        /**
-         * Returns the DiDataElement with the given id. Can return null.
-         *
-         * @param id DiDataElement id
-         * @return
-         */
+        /// <summary>
+        /// Returns the DiDataElement with the given id. Can return null.
+        /// </summary>
+        /// <param name="id">DiDataElement id</param>
+        /// <returns></returns>
         public DiDataElement GetElement(uint id)
         {
             return _dataElements.GetValue(id);
         }
 
+        /// <summary>
+        /// Returns the DiDataElement with the given ids. Can return null.
+        /// </summary>
+        /// <param name="groupId"></param>
+        /// <param name="elementId"></param>
+        /// <returns></returns>
         public DiDataElement GetElement(uint groupId, uint elementId)
         {
             return _dataElements.GetValue(DiDictonary.ToTag(groupId, elementId));
         }
 
+        /// <summary>
+        /// Returns the DiDataElement with the given ids and removes it from this diFile. Can return null.
+        /// </summary>
+        /// <param name="groupId"></param>
+        /// <param name="elementId"></param>
+        /// <returns></returns>
         public DiDataElement RemoveElement(uint groupId, uint elementId)
         {
             DiDataElement element = GetElement(groupId, elementId);
@@ -282,52 +292,47 @@ namespace DICOMParser
             return element;
         }
 
-        /**
-         * Returns the image width of the contained dicom image.
-         *
-         * @return the image width
-         */
+        /// <summary>
+        /// Returns the image width of the contained dicom image.
+        /// </summary>
+        /// <returns>the image width</returns>
         public int GetImageWidth()
         {
             return _width;
         }
 
-        /**
-         * Returns the image height of the contained dicom image.
-         *
-         * @return the image height
-         */
+        /// <summary>
+        ///  Returns the image height of the contained dicom image.
+        /// </summary>
+        /// <returns> the image height</returns>
         public int GetImageHeight()
         {
             return _height;
         }
 
-        /**
-         * Returns the file name of the current file.
-         *
-         * @return the file name
-         */
+        /// <summary>
+        ///  Returns the file name of the current file.
+        /// </summary>
+        /// <returns> the file name</returns>
         public string GetFileName()
         {
             return _fileName;
         }
 
-        /**
-         * Returns the image number in the current dicom series.
-         *
-         * @return the image number
-         */
+        /// <summary>
+        /// Returns the image number in the current dicom series.
+        /// </summary>
+        /// <returns>the image number</returns>
         public int GetImageNumber()
         {
             return _imageNumber;
         }
 
-
         public override bool Equals(System.Object o)
         {
             if (this == o) return true;
             if (o == null || this.GetType() != o.GetType()) return false;
-            DiFile diFile = (DiFile)o;
+            var diFile = (DiFile)o;
             return _width == diFile._width &&
                     _height == diFile._height &&
                     _bitsStored == diFile._bitsStored &&

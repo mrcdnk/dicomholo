@@ -1,0 +1,10 @@
+﻿The code in this folder has been ported and extended by Marco Deneke to C# from the YaDiV Project of Friese, KI..
+
+Bibtex
+
+Type = Dissertation
+Title = Entwicklung einer Plattform zur 3D-Visualisierung und -Segmentierung medizinischer Daten
+Author = Friese, KI.
+School = Gottfried Wilhelm Leibniz Universität Hannover
+URL = https://doi.org/10.1007/s00371-010-0539-6
+Year = 2010

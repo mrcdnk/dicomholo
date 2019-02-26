@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace DICOMParser
@@ -37,10 +36,6 @@ namespace DICOMParser
         {
             return isoColor;
         }
-
-
-
-
     }
 
 }

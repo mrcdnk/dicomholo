@@ -8,6 +8,9 @@ using Vector2 = UnityEngine.Vector2;
 
 namespace DICOMParser
 {
+    /// <summary>
+    /// Stream for parsing a DiFile
+    /// </summary>
     public class DiFileStream : FileStream
     {
         public bool MetaGroup, BeforeMetaGroup;
@@ -18,7 +21,7 @@ namespace DICOMParser
         public class QuickInfo
         {
             public string SeriesUid;
-            //	    public String _media_stored_sop_class_uid;
+            //public String _media_stored_sop_class_uid;
             public int ImageNumber;
             public bool Scout;
 
@@ -28,7 +31,11 @@ namespace DICOMParser
             }
         }
 
-        public DiFileStream(string fname) : base(fname, FileMode.Open, FileAccess.Read, FileShare.Read)
+        /// <summary>
+        /// Creates a file stream for the given file
+        /// </summary>
+        /// <param name="fName"></param>
+        public DiFileStream(string fName) : base(fName, FileMode.Open, FileAccess.Read, FileShare.Read)
         {
             Endianess = DiFile.EndianUnknown;
             VrFormat = DiFile.VrUnknown;
@@ -36,11 +43,16 @@ namespace DICOMParser
             MetaGroup = false;
         }
 
+        /// <summary>
+        /// Scans for the given tag in the di file
+        /// </summary>
+        /// <param name="searchTag">tag id to look for</param>
+        /// <returns></returns>
         public DiDataElement Scan_for(uint searchTag)
         {
-            DiDataElement de = new DiDataElement();
-            bool exceptionOccured = false;
-            bool inSequence = false;
+            var de = new DiDataElement();
+            var exceptionOccured = false;
+            var inSequence = false;
             uint searchGroupId = (searchTag >> 16);
 
             do
@@ -67,15 +79,14 @@ namespace DICOMParser
             return null;
         }
 
-        /**
-        * Fills a QuickInfo objects and skips all information that is not necessary.
-        * 
-        * @return
-        */
+        /// <summary>
+        /// Fills a QuickInfo objects and skips all information that is not necessary.
+        /// </summary>
+        /// <returns></returns>
         public QuickInfo Get_quick_info()
         {
-            DiDataElement de = new DiDataElement();
-            QuickInfo qi = new QuickInfo();
+            var de = new DiDataElement();
+            var qi = new QuickInfo();
 
             VrFormat = DiFile.VrExplicit;
             Endianess = DiFile.EndianLittle;
@@ -92,12 +103,12 @@ namespace DICOMParser
             de = Scan_for(0x00020010);
             if (de != null)
             {
-                String ts_uid = de.GetValueAsString();
-                VrFormat = DiDictonary.get_ts_uid_vr_format(ts_uid);
-                Endianess = DiDictonary.get_ts_uid_endianess(ts_uid);
+                var tsUid = de.GetValueAsString();
+                VrFormat = DiDictonary.get_ts_uid_vr_format(tsUid);
+                Endianess = DiDictonary.get_ts_uid_endianess(tsUid);
                 if (VrFormat == DiFile.EndianUnknown)
                 {
-                    Debug.Log("DiFileInputStream::get_quick_info Warning: Unknown Transfer Syntax UID \"" + ts_uid + "\". Endianess & VR format will be guessed.");
+                    Debug.Log("DiFileInputStream::get_quick_info Warning: Unknown Transfer Syntax UID \"" + tsUid + "\". Endianess & VR format will be guessed.");
                 }
             }
 
@@ -105,8 +116,8 @@ namespace DICOMParser
             de = Scan_for(0x00080008);
             if (de != null)
             {
-                string image_type = de.GetValueAsString();
-                string[] split = image_type.Split(new [] {"\\\\"}, StringSplitOptions.None);
+                var imageType = de.GetValueAsString();
+                var split = imageType.Split(new [] {"\\\\"}, StringSplitOptions.None);
                 if (split.Length > 2 && split[2].Equals("SCOUT"))
                 {
                     qi.Scout = true;
@@ -130,22 +141,19 @@ namespace DICOMParser
 
             // image number
             de = Scan_for(0x00200013);
-            if (de != null)
-            {
-                qi.ImageNumber = de.GetInt();
-            }
-            else
-            {
-                // TODO: better error handling
-                qi.ImageNumber = 0;
-            }
+            qi.ImageNumber = de?.GetInt() ?? 0;
 
             return qi;
         }
 
+        /// <summary>
+        /// Reads an unsigned short from the stream
+        /// </summary>
+        /// <param name="endianess"></param>
+        /// <returns></returns>
         public uint ReadUShort(int endianess)
         {
-            byte[] val = new byte[2];
+            var val = new byte[2];
             Read(val, 0, val.Length);
 
             if (endianess == DiFile.EndianBig)
@@ -156,9 +164,14 @@ namespace DICOMParser
             return BitConverter.ToUInt16(val, 0);
         }
 
+        /// <summary>
+        /// Reads a signed short from the stream
+        /// </summary>
+        /// <param name="endianess"></param>
+        /// <returns></returns>
         public int ReadShort(int endianess)
         {
-            byte[] val = new byte[2];
+            var val = new byte[2];
             Read(val, 0, val.Length);
 
             if (endianess == DiFile.EndianBig)
@@ -169,9 +182,14 @@ namespace DICOMParser
             return BitConverter.ToInt16(val, 0);
         }
 
-        public Int32 ReadInt(int endianess)
+        /// <summary>
+        /// Reads a signed integer from the stream
+        /// </summary>
+        /// <param name="endianess"></param>
+        /// <returns></returns>
+        public int ReadInt(int endianess)
         {
-            byte[] val = new byte[4];
+            var val = new byte[4];
             Read(val, 0, val.Length);
 
             if (endianess == DiFile.EndianBig)
@@ -182,13 +200,17 @@ namespace DICOMParser
             return BitConverter.ToInt32(val, 0);
         }
 
+        /// <summary>
+        /// Checks if the current file is a dicom file and skips the header.
+        /// </summary>
+        /// <returns></returns>
         public bool SkipHeader()
         {
             if (!CanSeek || Length < 128 || Seek(128, SeekOrigin.Begin) <= 0)
             {
                 return false;
             }
-            byte[] dicm = new byte[4];
+            var dicm = new byte[4];
 
             return Read(dicm, 0, dicm.Length) == 4 && ("DICM".Equals(Encoding.ASCII.GetString(dicm)));
         }

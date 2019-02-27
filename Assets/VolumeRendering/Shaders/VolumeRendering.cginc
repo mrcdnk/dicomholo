@@ -139,7 +139,9 @@ fixed4 frag(v2f i) : SV_Target
     p += ds;
   }
 
-  return saturate(dst) ;
+  dst = saturate(dst);
+
+  return dst;
 }
 
 #endif 

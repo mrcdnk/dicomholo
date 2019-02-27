@@ -38,7 +38,7 @@ namespace Segmentation
         /// <param name="data">Base data volume</param>
         /// <param name="parameters">Range Parameters for the segmentation</param>
         /// <returns>The ThreadGroupState to enable progress monitoring and callback on finish. May return null if previous work has not yet been finished.</returns>
-        public override ThreadGroupState Fit(Segment segment, IReadOnlyList<int> data, RangeParameter parameters)
+        public override ThreadGroupState Fit(Segment segment, int[] data, RangeParameter parameters)
         {
             if (segment._currentWorkload.Working > 0)
             {

@@ -16,6 +16,6 @@ namespace Segmentation
         /// <param name="data">Base data volume</param>
         /// <param name="parameters">Custom parameters for the segmentation</param>
         /// <returns>The ThreadGroupState to enable progress monitoring and callback on finish. May return null if previous work has not yet been finished.</returns>
-        public abstract ThreadGroupState Fit(Segment segment, IReadOnlyList<int> data, TP parameters);
+        public abstract ThreadGroupState Fit(Segment segment, int[] data, TP parameters);
     }
 }

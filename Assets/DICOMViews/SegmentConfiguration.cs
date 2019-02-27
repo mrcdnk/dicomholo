@@ -71,7 +71,6 @@ namespace DICOMViews
                 var ti = i;
                 _segmentButtons[i].onClick.AddListener(() => ShowSeg(ti));
             }
-
             _segmentationStrategyChoice.onValueChanged.AddListener(SelectedType);
 
             _create.onClick.AddListener(CreateSelection);
@@ -90,6 +89,12 @@ namespace DICOMViews
         public void Initialize(SegmentCache cache, int minIntensity, int maxIntensity)
         {
             _segmentCache = cache;
+
+            _segmentCache.SegmentChanged.AddListener(delegate (uint segment)
+            {
+                ValidateCurrentParameters();
+            });
+
             _selectedColor.color = cache.GetSegment(_selectedSegment).SegmentColor;
             _minRange.MinimumValue = minIntensity;
             _maxRange.MinimumValue = minIntensity;
@@ -137,6 +142,7 @@ namespace DICOMViews
         /// </summary>
         private void CreateSelection()
         {
+            _create.interactable = false;
             switch (_selectedType[_selectedSegment])
             {
                 case SegmentationType.Range:

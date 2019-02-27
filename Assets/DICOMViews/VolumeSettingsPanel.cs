@@ -27,7 +27,6 @@ namespace DICOMViews
         {
             _currentConfig = CullAxis.X;
             OnSelectCullAxis(_currentConfig);
-
         }
 
         public void SetCullAxisY()
@@ -50,11 +49,6 @@ namespace DICOMViews
             _intensitySlider.CurrentFloat = _volumeRendering.Intensity;
             _opacitySlider.CurrentFloat = _volumeRendering.Opacity;
             _stepCountSlider.CurrentInt = _volumeRendering.StepCount;
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
         }
 
         public void Toggle()

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using DICOMParser;
 using Threads;
 using UnityEngine;
 
@@ -54,7 +53,7 @@ namespace Segmentation
         /// <param name="data">Base data volume</param>
         /// <param name="parameters">Region fill parameters for the segmentation</param>
         /// <returns>The ThreadGroupState to enable progress monitoring and callback on finish. May return null if previous work has not yet been finished.</returns>
-        public override ThreadGroupState Fit(Segment segment, IReadOnlyList<int> data, RegionFillParameter parameters)
+        public override ThreadGroupState Fit(Segment segment, int[] data, RegionFillParameter parameters)
         {
             if (segment._currentWorkload.Working > 0)
             {
@@ -96,8 +95,14 @@ namespace Segmentation
 
             var intensityBase = data[GetIndex(seedVoxel, segment.Width, segment.Height)];
 
+            Debug.Log(intensityBase);
+
             var intensityLower = intensityBase - regionFillParameter.Threshold;
             var intensityUpper = intensityBase + regionFillParameter.Threshold;
+
+            Debug.Log(intensityLower);
+            Debug.Log(intensityUpper);
+
 
             long processed = 0;
 

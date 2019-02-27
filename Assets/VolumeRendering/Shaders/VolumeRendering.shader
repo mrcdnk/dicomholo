@@ -16,11 +16,14 @@
 
 	SubShader {
 		Cull Back
-		Blend SrcAlpha OneMinusSrcAlpha
+		Tags{ "Queue" = "Transparent" "RenderType" = "Transparent" "IgnoreProjector" = "True" }
 		// ZTest Always
 
 		Pass
 		{
+			ZWrite Off
+			Blend SrcAlpha OneMinusSrcAlpha
+
 			CGPROGRAM
 
 			#include "./VolumeRendering.cginc"

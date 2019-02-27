@@ -22,9 +22,9 @@ namespace Segmentation
         private bool _texturesInvalid = true;
         private bool _textureLock = false;
 
-        private readonly List<Texture3D> _volumeLocks = new List<Texture3D>();
-
         private ImageStack _imageStack;
+
+        private readonly List<Texture3D> _volumeLocks = new List<Texture3D>();
 
         private readonly List<Tuple<ThreadGroupState, uint, Action<uint>>> _currentWorkloads =
             new List<Tuple<ThreadGroupState, uint, Action<uint>>>(5);
@@ -55,7 +55,7 @@ namespace Segmentation
         // Update is called once per frame
         private void Update()
         {
-            int index = 0;
+            var index = 0;
 
             while (_currentWorkloads.Count > 0 && index < _currentWorkloads.Count)
             {
@@ -180,6 +180,7 @@ namespace Segmentation
         /// <param name="index">Index of the segment to create, range ist limited from 0 to 2</param>
         /// <param name="segmentationStrategy">Strategy for creating a Segmentation</param>
         /// <param name="parameters">Parameters used by the segmentation strategy</param>
+        /// <param name="clearSegment">controls whether the segment will be cleared before creating the segment, defaults to true</param>
         public void CreateSegment<TP>(uint index, SegmentationStrategy<TP> segmentationStrategy, TP parameters, bool clearSegment = true)
         {
             if (clearSegment)
@@ -402,7 +403,7 @@ namespace Segmentation
         /// <returns>Actual index for the segments array.</returns>
         public static int GetIndex(uint selector)
         {
-            for (int shift = 0; shift < MaxSegmentCount; shift++)
+            for (var shift = 0; shift < MaxSegmentCount; shift++)
             {
                 if (ContainsIndex(selector, shift))
                 {

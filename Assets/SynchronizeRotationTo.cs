@@ -1,7 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
+/// <summary>
+/// Synchronizes the objects global rotation to the given source rotation
+/// </summary>
 public class SynchronizeRotationTo : MonoBehaviour
 {
     public Transform RotationSource;
@@ -9,9 +10,6 @@ public class SynchronizeRotationTo : MonoBehaviour
     // Update is called once per frame
     private void Update()
     {
-        // The step size is equal to speed times frame time.
-
-        // Rotate our transform a step closer to the target's.
         transform.rotation = RotationSource.rotation;
     }
 }

@@ -1,23 +1,25 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
+/// <summary>
+/// Resets the Objects rotation to its initial global rotation
+/// </summary>
 public class ResetRotation : MonoBehaviour
 {
-    // The object whose rotation we want to match.
-    private Quaternion _target;
 
     // Angular speed in degrees per sec.
     public float Speed = 200f;
 
     public bool Reset;
 
+    // The object whose rotation we want to match.
+    private Quaternion _target;
+
     private void Awake()
     {
         _target = transform.rotation;
     }
 
-    void Update()
+    private void Update()
     {
         if (!Reset) return;
 
@@ -32,7 +34,9 @@ public class ResetRotation : MonoBehaviour
         }
     }
 
-
+    /// <summary>
+    /// Call to begin resetting the rotation
+    /// </summary>
     public void ResetToZero()
     {
         Reset = true;

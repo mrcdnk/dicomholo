@@ -4,6 +4,9 @@ using UnityEngine.EventSystems;
 
 namespace DICOMViews
 {
+    /// <summary>
+    /// Receives clicks on the attached object and sends events upwards. Used for the HoloSlider.
+    /// </summary>
     public class ClickHandler : MonoBehaviour, IInputClickHandler, IPointerClickHandler
     {
 

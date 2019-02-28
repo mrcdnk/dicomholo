@@ -74,7 +74,7 @@ namespace DICOMParser
         }
 
         /// <summary>
-        /// Initializes the DicomFile from a file. Might throw an exception (unexpected
+        /// Initializes the DiFile from a file. Might throw an exception (unexpected
         /// end of file, wrong data etc).
         /// This method will be implemented in exercise 1.
         /// </summary>

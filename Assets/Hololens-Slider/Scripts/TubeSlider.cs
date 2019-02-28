@@ -3,15 +3,14 @@ using HoloToolkit.Unity.InputModule;
 using UnityEngine;
 using Cursor = HoloToolkit.Unity.InputModule.Cursor;
 
+/// <summary>
+/// Script handling a TubeSlider
+/// </summary>
 public class TubeSlider : MonoBehaviour
 {
-    private Cursor Cursor;
     public SliderChangedEvent SliderChangedEvent = new SliderChangedEvent();
 
     public string SliderName;
-
-    [SerializeField]
-    private double _minValue = 0;
 
     public double MinimumValue
     {
@@ -19,14 +18,11 @@ public class TubeSlider : MonoBehaviour
         set
         {
             _minValue = value;
-            SliderRange = MaximumValue - MinimumValue;
+            _sliderRange = MaximumValue - MinimumValue;
             UpdatePosition();
         }
     }
     public string MinimumLabel;
-
-    [SerializeField]
-    private double _maxValue = 100;
 
     public double MaximumValue
     {
@@ -34,41 +30,38 @@ public class TubeSlider : MonoBehaviour
         set
         {
             _maxValue = value;
-            SliderRange = MaximumValue - MinimumValue;
+            _sliderRange = MaximumValue - MinimumValue;
             UpdatePosition();
         }
     }
     public string MaximumLabel;
 
-    [SerializeField]
-    private double _currentValue = 0.5d;
-
     public int CurrentInt
     {
-        get { return Mathf.RoundToInt((float)((SliderRange * _currentValue) + MinimumValue)); }
+        get { return Mathf.RoundToInt((float)((_sliderRange * _currentValue) + MinimumValue)); }
         set
         {
-            _currentValue = (value - _minValue)/SliderRange;
+            _currentValue = (value - _minValue)/_sliderRange;
             UpdatePosition();
         }
     }
 
     public float CurrentFloat
     {
-        get { return (float) (_currentValue*SliderRange + MinimumValue); }
+        get { return (float) (_currentValue*_sliderRange + MinimumValue); }
         set
         {
-            _currentValue = (value - _minValue) / SliderRange;
+            _currentValue = (value - _minValue) / _sliderRange;
             UpdatePosition();
         }
     }
 
     public double CurrentDouble
     {
-        get { return (_currentValue * SliderRange + MinimumValue); }
+        get { return (_currentValue * _sliderRange + MinimumValue); }
         set
         {
-            _currentValue = (value - _minValue) / SliderRange;
+            _currentValue = (value - _minValue) / _sliderRange;
             UpdatePosition();
         }
     }
@@ -79,82 +72,115 @@ public class TubeSlider : MonoBehaviour
         private set { _currentValue = value; SliderChangedEvent.Invoke(this); }
     }
 
+    public Color ButtonColorOffFocus
+    {
+        get { return _buttonColorOffFocus; }
+        set
+        {
+            _buttonColorOffFocus = value;
+            for (int i = 0; i < 4; ++i)
+                ButtonColor.ButtonColorOffFocusArr[i] = _buttonColorOffFocus[i];
+        }
+    }
+
+    public Color ButtonColorOnFocus
+    {
+        get { return _buttonColorOnFocus; }
+        set
+        {
+            _buttonColorOnFocus = value;
+            for (int i = 0; i < 4; ++i)
+                ButtonColor.ButtonColorOnFocusArr[i] = _buttonColorOnFocus[i];
+        }
+    }
+
     public bool DisplayInt = true;
 
     public Stats ButtonColor;
-    public Color ButtonColorOffFocus;
-    public Color ButtonColorOnFocus;
-
     public Transform LeftPivot;
     public Transform RightPivot;
-    private GameObject button;
-    private GameObject buttonPivot;
 
-    private string leftLabel;
-    private string rightLabel;
-    private string buttonLabel;
+    private Cursor _cursor;
 
-    private bool isSliderManipulationTriggered;
+    [SerializeField] private Color _buttonColorOffFocus;
+    [SerializeField] private Color _buttonColorOnFocus;
 
-    private double SliderRange;
+    [SerializeField]
+    private double _minValue = 0;
+    [SerializeField]
+    private double _maxValue = 100;
+    [SerializeField]
+    private double _currentValue = 0.5d;
 
-    private Vector3 start;
-    private Vector3 end;
-    private Vector3 sliderVector;
-    private Vector3 prevPosition;
-    private Vector3 movementDistance;
-    private Vector3 newPosition;
-    private float angleMinBound;
-    private float angleMaxBound;
-    private Vector3 newPositionVector;
+    private GameObject _button;
+    private GameObject _buttonPivot;
 
-    void Awake()
+    private string _leftLabel;
+    private string _rightLabel;
+    private string _buttonLabel;
+
+    private bool _isSliderManipulationTriggered;
+
+    private double _sliderRange;
+
+    private Vector3 _start;
+    private Vector3 _end;
+    private Vector3 _sliderVector;
+    private Vector3 _prevPosition;
+    private Vector3 _movementDistance;
+    private Vector3 _newPosition;
+    private float _angleMinBound;
+    private float _angleMaxBound;
+    private Vector3 _newPositionVector;
+
+    private void Awake()
     {
-        isSliderManipulationTriggered = false;
+        _isSliderManipulationTriggered = false;
         foreach (Transform child in transform)
         {
-           
-            switch(child.tag)
+            if (child.CompareTag("SliderButton"))
             {
-                case "SliderButton":
-                    button = child.gameObject;
-                    break;
-                case "SliderName":
-                    child.GetComponent<TextMesh>().text = SliderName;
-                    break;
+                _button = child.gameObject;
+            }
+            else if (child.CompareTag("SliderName"))
+            {
+                child.GetComponent<TextMesh>().text = SliderName;
             }
         }
 
-        Cursor = GameObject.FindGameObjectWithTag("HoloCursor").GetComponent<Cursor>();
+        _cursor = GameObject.FindGameObjectWithTag("HoloCursor").GetComponent<Cursor>();
 
-        if (!Cursor)
+        if (!_cursor)
         {
             Debug.LogWarning("No Cursor with Tag 'HoloCursor' present in scene.");
         }
 
-        SliderRange = MaximumValue - MinimumValue;
+        _sliderRange = MaximumValue - MinimumValue;
 
-        button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
+        _button.GetComponent<Renderer>().material.color = _buttonColorOffFocus;
         UpdatePosition();
     }
 
     private void OnValidate()
     {
-        if (button && LeftPivot && RightPivot)
-        {
-            _currentValue = Math.Max(0.0, Math.Min(_currentValue, 1.0));
-            UpdatePosition();
-        }
+        if (!_button || !LeftPivot || !RightPivot) return;
+
+        _currentValue = Math.Max(0.0, Math.Min(_currentValue, 1.0));
+        UpdatePosition();
     }
 
+    /// <summary>
+    /// Updates the position of the button on the slider.
+    /// </summary>
+    /// <param name="invokeEvent">defaults to true and controls if the value changed event should be invoked</param>
     private void UpdatePosition(bool invokeEvent = true)
     {
-        start = LeftPivot.position;
-        end = RightPivot.position;
-        sliderVector = end - start;
+        _start = LeftPivot.position;
+        _end = RightPivot.position;
+        _sliderVector = _end - _start;
 
-        button.transform.position = start + (-button.transform.up.normalized * (float)_currentValue * sliderVector.magnitude);
-        button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
+        _button.transform.position = _start + (-_button.transform.up.normalized * (float)_currentValue * _sliderVector.magnitude);
+        _button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
 
         if (invokeEvent)
         {
@@ -162,186 +188,205 @@ public class TubeSlider : MonoBehaviour
         }
     }
 
-    public Color buttonColorOffFocus
-    {
-        get { return ButtonColorOffFocus; }
-        set
-        {
-            ButtonColorOffFocus = value;
-            for (int i = 0; i < 4; ++i)
-                ButtonColor.ButtonColorOffFocusArr[i] = ButtonColorOffFocus[i];
-        }
-    }
-
-    public Color buttonColorOnFocus
-    {
-        get { return ButtonColorOnFocus; }
-        set
-        {
-            ButtonColorOnFocus = value;
-            for (int i = 0; i < 4; ++i)
-                ButtonColor.ButtonColorOnFocusArr[i] = ButtonColorOnFocus[i];
-        }
-    }
-
+    /// <summary>
+    /// Handles the Cylinder Clicked message from the ClickHandler.
+    /// </summary>
     public void CylinderClicked()
     {
         CylinderClicked(null);
     }
 
+    /// <summary>
+    /// Handles the Cylinder Clicked message from the ClickHandler.
+    /// </summary>
+    /// <param name="eventData"></param>
     public void CylinderClicked(InputClickedEventData eventData)
     {
-        start = LeftPivot.position;
-        end = RightPivot.position;
-        sliderVector = end - start;
+        _start = LeftPivot.position;
+        _end = RightPivot.position;
+        _sliderVector = _end - _start;
 
-        if (Cursor)
-        {
-            movementDistance = Vector3.Project(Cursor.transform.position - start, sliderVector.normalized);
-            newPosition = start + movementDistance;
+        if (!_cursor) return;
 
-            newPositionVector = movementDistance;
+        _movementDistance = Vector3.Project(_cursor.transform.position - _start, _sliderVector.normalized);
+        _newPosition = _start + _movementDistance;
 
-            var clickedValue = newPositionVector.magnitude/sliderVector.magnitude;
+        _newPositionVector = _movementDistance;
 
-            angleMinBound = AngleDir(transform.forward, newPositionVector, transform.up);
-            angleMaxBound = AngleDir(transform.forward, end - newPosition, transform.up);
+        var clickedValue = _newPositionVector.magnitude/_sliderVector.magnitude;
 
-            if (angleMinBound != -1f && angleMaxBound != -1f && clickedValue >= 0 && clickedValue <= 1)
-            {
-                button.transform.position = newPosition;
-                CurrentPercentage = clickedValue;
-            }
-        }
+        _angleMinBound = AngleDir(transform.forward, _newPositionVector, transform.up);
+        _angleMaxBound = AngleDir(transform.forward, _end - _newPosition, transform.up);
+
+        if (_angleMinBound == -1f || _angleMaxBound == -1f || !(clickedValue >= 0) || !(clickedValue <= 1)) return;
+
+        _button.transform.position = _newPosition;
+        CurrentPercentage = clickedValue;
     }
 
+    /// <summary>
+    /// Button was grabbed
+    /// </summary>
+    /// <param name="eventData"></param>
     public void ManipulationStarted(ManipulationEventData eventData)
     {
-        if (isSliderManipulationTriggered) return;
+        if (_isSliderManipulationTriggered) return;
 
-        button.GetComponent<Renderer>().material.color = ButtonColorOnFocus;
+        _button.GetComponent<Renderer>().material.color = _buttonColorOnFocus;
 
-        InputManager.Instance.PushModalInputHandler(button);
+        InputManager.Instance.PushModalInputHandler(_button);
 
-        prevPosition = button.transform.position;
+        _prevPosition = _button.transform.position;
 
         ShowLabels();
 
-        isSliderManipulationTriggered = true;
+        _isSliderManipulationTriggered = true;
     }
 
+    /// <summary>
+    /// Button is being moved
+    /// </summary>
+    /// <param name="eventData"></param>
     public void ManipulationUpdated(ManipulationEventData eventData)
     {
-        start = LeftPivot.position;
-        end = RightPivot.position;
-        sliderVector = end - start;
+        _start = LeftPivot.position;
+        _end = RightPivot.position;
+        _sliderVector = _end - _start;
 
-        if (!isSliderManipulationTriggered) return;
+        if (!_isSliderManipulationTriggered) return;
 
-        button.GetComponent<Renderer>().material.color = ButtonColorOnFocus;
+        _button.GetComponent<Renderer>().material.color = _buttonColorOnFocus;
 
-        movementDistance = Vector3.Project(eventData.CumulativeDelta, sliderVector.normalized);
-        newPosition = prevPosition + movementDistance;
+        _movementDistance = Vector3.Project(eventData.CumulativeDelta, _sliderVector.normalized);
+        _newPosition = _prevPosition + _movementDistance;
 
-        newPositionVector = newPosition - start;
+        _newPositionVector = _newPosition - _start;
 
-        angleMinBound = AngleDir(transform.forward, newPositionVector, transform.up);
-        angleMaxBound = AngleDir(transform.forward, end - newPosition, transform.up);
+        _angleMinBound = AngleDir(transform.forward, _newPositionVector, transform.up);
+        _angleMaxBound = AngleDir(transform.forward, _end - _newPosition, transform.up);
 
-        if (angleMinBound != -1f && angleMaxBound != -1f)
+        if (_angleMinBound != -1f && _angleMaxBound != -1f)
         {
-            button.transform.position = newPosition;
-            CurrentPercentage = newPositionVector.magnitude/sliderVector.magnitude;
+            _button.transform.position = _newPosition;
+            CurrentPercentage = _newPositionVector.magnitude/_sliderVector.magnitude;
         }
             
         ShowLabels();
     }
 
+    /// <summary>
+    /// Button was released
+    /// </summary>
+    /// <param name="eventData"></param>
     public void ManipulationCompleted(ManipulationEventData eventData)
     {
-        if (isSliderManipulationTriggered)
-        {
-            button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
-            HideLabels();
+        if (!_isSliderManipulationTriggered) return;
 
-            InputManager.Instance.PopModalInputHandler();
+        _button.GetComponent<Renderer>().material.color = _buttonColorOffFocus;
+        HideLabels();
 
-            isSliderManipulationTriggered = false;
-        }
+        InputManager.Instance.PopModalInputHandler();
+
+        _isSliderManipulationTriggered = false;
 
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="eventData"></param>
     public void ManipulationCanceled(ManipulationEventData eventData)
     {
-        if (isSliderManipulationTriggered)
-        {
-            button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
-            HideLabels();
+        if (!_isSliderManipulationTriggered) return;
 
-            InputManager.Instance.PopModalInputHandler();
+        _button.GetComponent<Renderer>().material.color = _buttonColorOffFocus;
+        HideLabels();
 
-            isSliderManipulationTriggered = false;
-        }
+        InputManager.Instance.PopModalInputHandler();
+
+        _isSliderManipulationTriggered = false;
     }
 
+    /// <summary>
+    /// Button received focus
+    /// </summary>
     public void ButtonOnFocus()
     {
-        button.GetComponent<Renderer>().material.color = ButtonColorOnFocus;
+        _button.GetComponent<Renderer>().material.color = _buttonColorOnFocus;
         
-        button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
+        _button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();
     }
 
+    /// <summary>
+    /// Button removed from focus
+    /// </summary>
     public void ButtonOffFocus()
     {
-        if (!isSliderManipulationTriggered)
+        if (!_isSliderManipulationTriggered)
         {
-            button.GetComponent<Renderer>().material.color = ButtonColorOffFocus;
+            _button.GetComponent<Renderer>().material.color = _buttonColorOffFocus;
 
         }
     }
 
+    /// <summary>
+    /// Sets the min and max Labels.
+    /// </summary>
     public void ShowLabels()
     {
 
         LeftPivot.GetChild(0).GetComponent<TextMesh>().text = MinimumLabel;
         RightPivot.GetChild(0).GetComponent<TextMesh>().text = MaximumLabel;
  
-        button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();      
+        _button.GetComponentInChildren<TextMesh>().text = GetCurrentValueAsString();      
     }
 
-    private string GetCurrentValueAsString()
-    {
-        return DisplayInt ? CurrentInt.ToString() : CurrentFloat.ToString("N2");
-    }
-
+    /// <summary>
+    /// Hides the min and max labels
+    /// </summary>
     public void HideLabels()
     {
         LeftPivot.GetChild(0).GetComponent<TextMesh>().text = "";
         RightPivot.GetChild(0).GetComponent<TextMesh>().text = "";
     }
 
-    float AngleDir(Vector3 fwd, Vector3 targetDir, Vector3 up)
+    /// <summary>
+    /// Returns the current value as string
+    /// </summary>
+    /// <returns></returns>
+    private string GetCurrentValueAsString()
     {
-        Vector3 perp = Vector3.Cross(fwd, targetDir);
-        float dir = Vector3.Dot(perp, up);
+        return DisplayInt ? CurrentInt.ToString() : CurrentFloat.ToString("N2");
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="fwd"></param>
+    /// <param name="targetDir"></param>
+    /// <param name="up"></param>
+    /// <returns></returns>
+    private static float AngleDir(Vector3 fwd, Vector3 targetDir, Vector3 up)
+    {
+        var perp = Vector3.Cross(fwd, targetDir);
+        var dir = Vector3.Dot(perp, up);
 
         if (dir > 0f)
         {
             return 1f;
         }
-        else if (dir < 0f)
+
+        if (dir < 0f)
         {
             return -1f;
         }
-        else
-        {
-            return 0f;
-        }
+
+        return 0f;
     }
 }
 
 
-[System.Serializable]
+[Serializable]
 public class Stats
 {
     public float[] ButtonColorOffFocusArr;

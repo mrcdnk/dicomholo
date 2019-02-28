@@ -2,9 +2,7 @@
 using System.IO;
 using System;
 using System.Text;
-using GLTF.Math;
 using UnityEngine;
-using Vector2 = UnityEngine.Vector2;
 
 namespace DICOMParser
 {

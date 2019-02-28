@@ -1,6 +1,5 @@
 ﻿
 using System.Threading;
-using UnityEngine;
 
 namespace Threads
 {
@@ -9,23 +8,24 @@ namespace Threads
     /// </summary>
     public class ThreadGroupState
     {
-        private int progress;
-        private int working;
-
         /// <summary>
         /// Set to the total amount of progress to be reached when the work is done. Not synchronized.
         /// </summary>
         public int TotalProgress { get; set; }
-        public int Progress => progress;
-        public int Working => working;
+        public int Progress => _progress;
+        public int Working => _working;
 
+
+        private int _progress;
+        private int _working;
+ 
         /// <summary>
         /// Resets the state.
         /// </summary>
         public void Reset()
         {
-            progress = 0;
-            working = 0;
+            _progress = 0;
+            _working = 0;
             TotalProgress = 0;
         }
 
@@ -34,7 +34,7 @@ namespace Threads
         /// </summary>
         public void IncrementProgress()
         {
-            Interlocked.Increment(ref progress);
+            Interlocked.Increment(ref _progress);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Threads
         /// </summary>
         public void Register()
         {
-            Interlocked.Increment(ref working);
+            Interlocked.Increment(ref _working);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Threads
         /// </summary>
         public void Done()
         {
-            Interlocked.Decrement(ref working);
+            Interlocked.Decrement(ref _working);
         }
     }
 

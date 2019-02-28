@@ -1,15 +1,15 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Threads;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace DICOMViews
 {
+    /// <summary>
+    /// Main Menu Window
+    /// </summary>
     public class MainMenu : MonoBehaviour
     {
-        [SerializeField]
-        private Dropdown _selection = null;
+        public const string FolderHint = "Select Folder";
 
         public ProgressHandler ProgressHandler;
         public RawImage PreviewImage;
@@ -17,7 +17,8 @@ namespace DICOMViews
         public Button LoadVolumeButton;
         public Button Load2DButton;
 
-        public const string FolderHint = "Select Folder";
+        [SerializeField]
+        private Dropdown _selection = null;
 
         /// <summary>
         /// Sets the preview Image shown in the main menu.

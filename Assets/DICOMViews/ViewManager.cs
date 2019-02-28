@@ -13,12 +13,6 @@ namespace DICOMViews
     /// </summary>
     public class ViewManager : MonoBehaviour
     {
-        private ImageStack _stack;
-        private SegmentCache _segmentCache;
-        private GlobalWorkIndicator _workIndicator;
-
-        private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
-
         public MainMenu MainMenu;
         public WindowSettingsPanel WindowSettingsPanel;
         public Slice2DView Slice2DView;
@@ -31,6 +25,12 @@ namespace DICOMViews
         public GameObject Volume;
         public RayMarching RayMarching;
 
+        private ImageStack _stack;
+        private SegmentCache _segmentCache;
+        private GlobalWorkIndicator _workIndicator;
+
+        private readonly List<Tuple<ThreadGroupState, string, Action>> _currentWorkloads = new List<Tuple<ThreadGroupState, string, Action>>(5);
+
         // Use this for initialization
         private void Start ()
         {
@@ -41,8 +41,9 @@ namespace DICOMViews
 
             var names = new List<string>();
 
-            foreach (var fold in folders)
+            for (var index = 0; index < folders.Count; index++)
             {
+                var fold = folders[index];
                 names.Add(fold.Split('\\')[1]);
             }
 
@@ -129,11 +130,12 @@ namespace DICOMViews
             _workIndicator.StartedWork();
 
             MainMenu.DisableDropDown();
-
             WindowSettingsPanel.DisableButtons();
             MainMenu.DisableButtons();
+
             WindowSettingsPanel.gameObject.SetActive(false);
             SegmentConfiguration.transform.gameObject.SetActive(false);
+
             AddWorkload(_stack.StartParsingFiles(Path.Combine(Application.streamingAssetsPath, MainMenu.GetSelectedFolder())),"Loading Files", OnFilesParsed);
         }
 
@@ -144,10 +146,15 @@ namespace DICOMViews
         {
             WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidthPresets, _stack.WindowCenterPresets);
             WindowSettingsPanel.gameObject.SetActive(true);
+
             _segmentCache.InitializeSize(_stack.Width, _stack.Height, _stack.Slices);
+
             SegmentConfiguration.Initialize(_segmentCache, _stack.MinPixelIntensity, _stack.MaxPixelIntensity);
+
             Slice2DView.Initialize(_stack);
+
             _workIndicator.FinishedWork();
+
             PreProcessData();
         }
 
@@ -157,6 +164,7 @@ namespace DICOMViews
         public void PreProcessData()
         {
             _workIndicator.StartedWork();
+
             AddWorkload(_stack.StartPreprocessData(), "Preprocessing Data", OnPreProcessDone);
         }
 
@@ -173,6 +181,7 @@ namespace DICOMViews
             _segmentCache.InitializeTextures();
 
             _workIndicator.FinishedWork();
+
             SegmentConfiguration.transform.gameObject.SetActive(true);
         }
 
@@ -182,8 +191,11 @@ namespace DICOMViews
         public void CreateVolume()
         {
             _workIndicator.StartedWork();
+
             MainMenu.DisableButtons();
+
             WindowSettingsPanel.DisableButtons();
+
             AddWorkload(_stack.StartCreatingVolume(), "Creating Volume", OnVolumeCreated);
         }
 
@@ -194,13 +206,15 @@ namespace DICOMViews
         {
             VolumeRendering.SetVolume(_stack.VolumeTexture);
             StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture, SegmentConfiguration.Display3Ds, SegmentConfiguration.HideBase));
-            //RayMarching.initVolume(_stack.VolumeTexture);
+            VolumeRenderingParent.SetActive(true);
 
+            //RayMarching.initVolume(_stack.VolumeTexture);
             //Volume.SetActive(true);
+
             MainMenu.EnableButtons();
             WindowSettingsPanel.EnableButtons();
+
             _workIndicator.FinishedWork();
-            VolumeRenderingParent.SetActive(true);
         }
 
         /// <summary>
@@ -209,9 +223,13 @@ namespace DICOMViews
         public void CreateTextures()
         {
             _workIndicator.StartedWork();
+
             MainMenu.DisableButtons();
+
             WindowSettingsPanel.DisableButtons();
+
             Slice2DView.gameObject.SetActive(true);
+
             AddWorkload(_stack.StartCreatingTextures(), "Creating Textures", OnTexturesCreated);
         }
 
@@ -221,8 +239,10 @@ namespace DICOMViews
         private void OnTexturesCreated()
         {
             _workIndicator.FinishedWork();
+
             MainMenu.EnableButtons();
             WindowSettingsPanel.EnableButtons();
+
             StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));
         }
 
@@ -299,6 +319,7 @@ namespace DICOMViews
                 MainMenu.ProgressHandler.TaskDescription = description;
                 MainMenu.ProgressHandler.Value = 0;
             }
+
             MainMenu.ProgressHandler.Max += threadGroupState.TotalProgress;
         }
 
@@ -310,7 +331,9 @@ namespace DICOMViews
         {
             var tuple = _currentWorkloads[index];
             tuple.Item3.Invoke();
+
             _currentWorkloads.RemoveAt(index);
+
             _workIndicator.FinishedWork();
         }
 

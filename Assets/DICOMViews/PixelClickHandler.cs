@@ -1,7 +1,6 @@
-﻿using System;
+﻿using DICOMViews.Events;
 using HoloToolkit.Unity.InputModule;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using Cursor = HoloToolkit.Unity.InputModule.Cursor;
 
@@ -18,19 +17,15 @@ namespace DICOMViews
         public PixelClicked PixelClick = new PixelClicked();
 
         // Start is called before the first frame update
-        void Start()
+        private void Start()
         {
             _cursor = GameObject.FindGameObjectWithTag("HoloCursor").GetComponent<Cursor>();
             _mainCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
             _rectTransform = GetComponent<RectTransform>();
         }
 
-        // Update is called once per frame
-        void Update()
-        {
-        
-        }
 
+        /// <inheritdoc />
         public void OnPointerClick(PointerEventData eventData)
         {
             Vector2 position;
@@ -41,6 +36,7 @@ namespace DICOMViews
             OnPixelSelected(position);
         }
 
+        /// <inheritdoc />
         public void OnInputClicked(InputClickedEventData eventData)
         {
             if (!_cursor)
@@ -55,16 +51,20 @@ namespace DICOMViews
             OnPixelSelected(position);
         }
 
+        /// <summary>
+        /// Invokes the pixel clicked event with the correct coordinates.
+        /// </summary>
+        /// <param name="textureSpace"></param>
         private void OnPixelSelected(Vector2 textureSpace)
         {
-            Vector2 max = _rectTransform.rect.max;
-            Vector2 min = _rectTransform.rect.min;
+            var max = _rectTransform.rect.max;
+            var min = _rectTransform.rect.min;
 
-            float xRange = max.x - min.x;
-            float yRange = max.y - min.y;
+            var xRange = max.x - min.x;
+            var yRange = max.y - min.y;
 
-            var xCur = textureSpace.x - min.x;
-            var yCur = textureSpace.y - min.y;
+            float xCur = textureSpace.x - min.x;
+            float yCur = textureSpace.y - min.y;
 
             xCur = xCur / xRange;
             yCur = yCur / yRange;
@@ -72,6 +72,5 @@ namespace DICOMViews
             PixelClick.Invoke(xCur, yCur);
         }
 
-        public class PixelClicked : UnityEvent<float, float> { }
     }
 }

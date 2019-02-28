@@ -2,30 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using DICOMParser;
+using DICOMViews.Events;
 using ExtensionsMethods;
 using Segmentation;
-using Threads;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace DICOMViews
 {
-
+    /// <summary>
+    /// 2D View of the slices in the ImageStack
+    /// </summary>
     public class Slice2DView : MonoBehaviour
     {
-        private ImageStack _imageStack;
-        private PixelClickHandler _pixelClickHandler;
-
-        private int _lastClickX = -1;
-        private int _lastClickY = -1;
-
-        private bool _hasBeenClicked = false;
-
-        [SerializeField] private Color32 _segmentTransparency = new Color32(255, 255, 255, 75);
-
-        private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
-
         public TubeSlider SliceSlider;
         public Button TransButton;
         public Button FrontButton;
@@ -40,6 +29,17 @@ namespace DICOMViews
         public Color SelectionColor = Color.yellow;
         public SliceType CurrentSliceType { get; private set; } = SliceType.Transversal;
 
+        private ImageStack _imageStack;
+        private PixelClickHandler _pixelClickHandler;
+
+        private int _lastClickX = -1;
+        private int _lastClickY = -1;
+
+        private bool _hasBeenClicked = false;
+
+        [SerializeField] private Color32 _segmentTransparency = new Color32(255, 255, 255, 75);
+
+        private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
 
         // Use this for initialization
         private void Start()
@@ -66,8 +66,10 @@ namespace DICOMViews
             SliceSlider.CurrentInt = _selection.GetValue(CurrentSliceType, 0);
 
             _pixelClickHandler.PixelClick.AddListener(OnPixelClicked);
+
             try
             {
+                // key might not be present in dictionary
                 Display.texture = _imageStack.GetTexture2D(CurrentSliceType, _selection.GetValue(CurrentSliceType));
             }
             finally
@@ -132,6 +134,7 @@ namespace DICOMViews
             CurrentSliceType = type;
             SliceSlider.MaximumValue = _imageStack.GetMaxValue(CurrentSliceType);
             SliceSlider.CurrentInt = _selection[CurrentSliceType];
+
             Display.texture = _imageStack.GetTexture2D(CurrentSliceType, _selection[CurrentSliceType]);
 
             if (ClickDisplay.texture.width != Display.texture.width ||
@@ -154,6 +157,7 @@ namespace DICOMViews
             if (_selection.Count == Enum.GetNames(typeof(SliceType)).Length && Display != null && _imageStack != null)
             {
                 _selection[CurrentSliceType] = slider.CurrentInt;
+
                 Display.texture = _imageStack.GetTexture2D(CurrentSliceType, _selection[CurrentSliceType]);
                 SegmentImage.texture = SegmentCache.GetSegmentTexture(CurrentSliceType, _selection[CurrentSliceType]);
 
@@ -306,6 +310,5 @@ namespace DICOMViews
             return _selection[type];
         }
 
-        public class PointSelected : UnityEvent<int, int, int>{}
     }
 }

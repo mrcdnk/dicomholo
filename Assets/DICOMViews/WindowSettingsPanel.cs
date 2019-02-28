@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using DICOMParser;
 using DICOMViews.Events;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,11 +23,9 @@ namespace DICOMViews
         public WindowSettingsChanged SettingsChangedEvent = new WindowSettingsChanged();
 
         public double WindowWidth { get; private set; } = double.MinValue;
-
         public double WindowCenter { get; private set; } = double.MinValue;
 
-
-        private Dictionary<string, Tuple<double, double>> _presets = new Dictionary<string, Tuple<double, double>>();
+        private readonly Dictionary<string, Tuple<double, double>> _presets = new Dictionary<string, Tuple<double, double>>();
 
         // Start is called before the first frame update
         private void Start()
@@ -38,22 +35,30 @@ namespace DICOMViews
                 WindowWidth = tubeSlider.CurrentInt;
                 SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);          
             });
+
             CenterSlider.SliderChangedEvent.AddListener(delegate(TubeSlider tubeSlider)
             {
                 WindowCenter = tubeSlider.CurrentInt;
                 SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
             });
-            DefaultSettings.onValueChanged.AddListener(delegate
-            {
-                var selection = _presets[DefaultSettings.captionText.text];
-                WindowWidth = selection.Item1;
-                WindowCenter = selection.Item2;
 
-                WidthSlider.CurrentDouble = WindowWidth;
-                CenterSlider.CurrentDouble = WindowCenter;
+            DefaultSettings.onValueChanged.AddListener(OnPresetSelected);
+        }
 
-                SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
-            });
+        /// <summary>
+        /// Callback for selection of a preset from the dropdown.
+        /// </summary>
+        /// <param name="idx">index in the dropdown options</param>
+        private void OnPresetSelected(int idx)
+        {
+            var selection = _presets[DefaultSettings.captionText.text];
+            WindowWidth = selection.Item1;
+            WindowCenter = selection.Item2;
+
+            WidthSlider.CurrentDouble = WindowWidth;
+            CenterSlider.CurrentDouble = WindowCenter;
+
+            SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
         }
 
         /// <summary>
@@ -127,8 +132,8 @@ namespace DICOMViews
         /// </summary>
         public void DisableButtons()
         {
-            LoadVolume.enabled = false;
-            LoadTextures.enabled = false;
+            LoadVolume.interactable = false;
+            LoadTextures.interactable = false;
             
         }
 
@@ -137,8 +142,8 @@ namespace DICOMViews
         /// </summary>
         public void EnableButtons()
         {
-            LoadVolume.enabled = true;
-            LoadTextures.enabled = true;
+            LoadVolume.interactable = true;
+            LoadTextures.interactable = true;
         }
     }
 }

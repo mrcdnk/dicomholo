@@ -1,53 +1,41 @@
-﻿
-using DICOMParser;
+﻿using DICOMParser;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace DICOMViews
 {
-
+    /// <summary>
+    /// Incomplete OrthoSlices View, efficient implementation in Unity is not easy.
+    /// </summary>
     public class OrthoSlices : MonoBehaviour
     {
-        private ImageStack imageStack;
+        public GameObject TransImage;
 
-        public GameObject transImage;
-        private float transStep;
-        private GameObject frontImage;
-        private GameObject sagImage;
+        private ImageStack _imageStack;
+        private float _transStep;
+        private GameObject _frontImage;
+        private GameObject _sagImage;
 
-        public Slider transSlider;
+        public Slider TransSlider;
 
-        // Use this for initialization
-        void Start()
+        public void Initialize(ImageStack stack)
         {
-
+            _imageStack = stack;
+            _transStep = 1f / (stack.GetMaxValue(SliceType.Transversal));
+            TransSlider.maxValue = stack.GetMaxValue(SliceType.Transversal);
         }
 
-        // Update is called once per frame
-        void Update()
+        public void OnTransSliderChanged()
         {
+            var local = TransImage.GetComponent<Transform>().localPosition;
 
-        }
+            local.y = TransSlider.value * _transStep;
 
-        public void initialize(ImageStack stack)
-        {
-            this.imageStack = stack;
-            transStep = 1f / (stack.GetMaxValue(SliceType.Transversal));
-            transSlider.maxValue = stack.GetMaxValue(SliceType.Transversal);
-        }
-
-        public void onTransSliderChanged()
-        {
-            Vector3 local = transImage.GetComponent<Transform>().localPosition;
-
-            local.y = transSlider.value * transStep;
-
-            transImage.GetComponent<Transform>().localPosition = local;
+            TransImage.GetComponent<Transform>().localPosition = local;
             //Sprite current = transImage.GetComponent<Sprite>();
-            SpriteRenderer currentRenderer = transImage.GetComponent<SpriteRenderer>();
+            var currentRenderer = TransImage.GetComponent<SpriteRenderer>();
 
-            currentRenderer.material.mainTexture =
-                imageStack.GetTexture2D(SliceType.Transversal, (int) transSlider.value);
+            currentRenderer.material.mainTexture = _imageStack.GetTexture2D(SliceType.Transversal, (int) TransSlider.value);
             currentRenderer.material.shader = Shader.Find("Sprites/Transparent Unlit");
         }
     }

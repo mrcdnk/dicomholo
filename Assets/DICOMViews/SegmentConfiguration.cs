@@ -1,4 +1,5 @@
 ﻿using System;
+using DICOMViews.Events;
 using Segmentation;
 using UnityEngine;
 using UnityEngine.Events;
@@ -12,6 +13,14 @@ namespace DICOMViews
     /// </summary>
     public class SegmentConfiguration : MonoBehaviour
     {
+        public uint Display2Ds = 0xFFFFFFFF;
+        public uint Display3Ds = 0xFFFFFFFF;
+        public bool HideBase = false;
+
+        public SegmentVisibilityChanged OnSelectionChanged2D = new SegmentVisibilityChanged();
+        public SegmentVisibilityChanged OnSelectionChanged3D = new SegmentVisibilityChanged();
+        public HideBaseChanged OnHideBaseChanged = new HideBaseChanged();
+
         [SerializeField] private Button[] _segmentButtons;
 
         [SerializeField] private Button _clear;
@@ -35,6 +44,12 @@ namespace DICOMViews
         [SerializeField] private Toggle _display3D;
         [SerializeField] private Toggle _hideBaseData;
 
+        private int _selectedSegment = 0;
+
+        private SegmentCache _segmentCache;
+
+        private bool _dontSendToggleEvent = false;
+
         private readonly RangeSegmentation.RangeParameter[] _rangeParameters =
             new RangeSegmentation.RangeParameter[SegmentCache.MaxSegmentCount];
 
@@ -45,20 +60,6 @@ namespace DICOMViews
         private readonly RangeSegmentation _rangeSegmentation = new RangeSegmentation();
 
         private readonly SegmentationType[] _selectedType = new SegmentationType[SegmentCache.MaxSegmentCount];
-
-        private int _selectedSegment = 0;
-
-        private SegmentCache _segmentCache;
-
-        private bool _dontSendToggleEvent = false;
-
-        public uint Display2Ds = 0xFFFFFFFF;
-        public uint Display3Ds = 0xFFFFFFFF;
-        public bool HideBase = false;
-
-        public SegmentVisibilityChanged OnSelectionChanged2D = new SegmentVisibilityChanged();
-        public SegmentVisibilityChanged OnSelectionChanged3D = new SegmentVisibilityChanged();
-        public HideBaseChanged OnHideBaseChanged = new HideBaseChanged();
 
         // Start is called before the first frame update
         private void Start()
@@ -218,6 +219,10 @@ namespace DICOMViews
             ValidateCurrentParameters();
         }
 
+        /// <summary>
+        /// Listener for the threshold slider
+        /// </summary>
+        /// <param name="tubeSlider"></param>
         public void UpdateThreshold(TubeSlider tubeSlider)
         {
             if (_regionFillParameters[_selectedSegment] != null)
@@ -226,6 +231,10 @@ namespace DICOMViews
             }
         }
 
+        /// <summary>
+        /// Listener for the region min slider
+        /// </summary>
+        /// <param name="tubeSlider"></param>
         public void UpdateRegionMin(TubeSlider tubeSlider)
         {
             if (_rangeParameters[_selectedSegment] != null)
@@ -234,6 +243,10 @@ namespace DICOMViews
             }
         }
 
+        /// <summary>
+        /// Listener for the region max slider
+        /// </summary>
+        /// <param name="tubeSlider"></param>
         public void UpdateRegionMax(TubeSlider tubeSlider)
         {
             if (_rangeParameters[_selectedSegment] != null)
@@ -261,6 +274,10 @@ namespace DICOMViews
             _dontSendToggleEvent = false;
         }
 
+        /// <summary>
+        /// Listener for selection of Segmentation type
+        /// </summary>
+        /// <param name="index"></param>
         private void SelectedType(int index)
         {
             switch (_segmentationStrategyChoice.captionText.text)
@@ -281,16 +298,6 @@ namespace DICOMViews
 
             ValidateCurrentParameters();
         }
-
-        /// <summary>
-        /// Event for a change in Segment visibility
-        /// </summary>
-        public class SegmentVisibilityChanged : UnityEvent<uint>{}
-
-        /// <summary>
-        /// Event for a change in base data visibility
-        /// </summary>
-        public class HideBaseChanged : UnityEvent<bool>{}
 
         /// <summary>
         /// Possible Segmentation Types

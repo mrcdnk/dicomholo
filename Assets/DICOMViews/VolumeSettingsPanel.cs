@@ -4,6 +4,9 @@ using UnityEngine.UI;
 
 namespace DICOMViews
 {
+    /// <summary>
+    /// Panel for configuring the volume rendering object
+    /// </summary>
     public class VolumeSettingsPanel : MonoBehaviour
     {
         [SerializeField] private VolumeRendering.VolumeRendering _volumeRendering = null;
@@ -23,18 +26,30 @@ namespace DICOMViews
 
         private CullAxis _currentConfig = CullAxis.X;
 
+        /// <summary>
+        /// Changes the currently selected cull axis to the X Axis
+        /// </summary>
         public void SetCullAxisX()
         {
             _currentConfig = CullAxis.X;
             OnSelectCullAxis(_currentConfig);
         }
 
+
+        /// <summary>
+        /// Changes the currently selected cull axis to the Y Axis
+        /// </summary>
         public void SetCullAxisY()
         {
             _currentConfig = CullAxis.Y;
             OnSelectCullAxis(_currentConfig);
 
         }
+
+
+        /// <summary>
+        /// Changes the currently selected cull axis to the Z Axis
+        /// </summary>
         public void SetCullAxisZ()
         {
             _currentConfig = CullAxis.Z;
@@ -51,26 +66,45 @@ namespace DICOMViews
             _stepCountSlider.CurrentInt = _volumeRendering.StepCount;
         }
 
+        /// <summary>
+        /// Toggles the active state of this gameObject
+        /// </summary>
         public void Toggle()
         {
             gameObject.SetActive(!gameObject.activeSelf);
         }
 
+        /// <summary>
+        /// Listener for intensity slider
+        /// </summary>
+        /// <param name="tubeSlider"></param>
         public void IntensityChanged(TubeSlider tubeSlider)
         {
             _volumeRendering.Intensity = tubeSlider.CurrentFloat;
         }
 
+        /// <summary>
+        /// Listener for opacity slider
+        /// </summary>
+        /// <param name="tubeSlider"></param>
         public void OpacityChanged(TubeSlider tubeSlider)
         {
             _volumeRendering.Opacity = tubeSlider.CurrentFloat;
         }
 
+        /// <summary>
+        /// Listener for step count slider
+        /// </summary>
+        /// <param name="tubeSlider"></param>
         public void StepCountChanged(TubeSlider tubeSlider)
         {
             _volumeRendering.StepCount = tubeSlider.CurrentInt;
         }
 
+        /// <summary>
+        /// Updates the UI to represent the given axis
+        /// </summary>
+        /// <param name="axis">CullAxis to display</param>
         private void OnSelectCullAxis(CullAxis axis)
         {
             switch (axis)
@@ -103,6 +137,10 @@ namespace DICOMViews
 
         }
 
+        /// <summary>
+        /// Listener for the min slider
+        /// </summary>
+        /// <param name="tubeSlider"></param>
         public void OnMinChanged(TubeSlider tubeSlider)
         {
             switch (_currentConfig)
@@ -123,6 +161,10 @@ namespace DICOMViews
             _volumeRendering.SliceMinMaxChanged();
         }
 
+        /// <summary>
+        /// Listener for the max slider
+        /// </summary>
+        /// <param name="tubeSlider"></param>
         public void OnMaxChanged(TubeSlider tubeSlider)
         {
             switch (_currentConfig)
@@ -143,6 +185,9 @@ namespace DICOMViews
             _volumeRendering.SliceMinMaxChanged();
         }
 
+        /// <summary>
+        /// Defines an Axis that can be culled.
+        /// </summary>
         [Serializable]
         public enum CullAxis
         {

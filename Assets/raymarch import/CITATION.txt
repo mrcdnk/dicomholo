@@ -1,0 +1,5 @@
+The code in this folder has been derived from
+
+https://github.com/brianasu/unity-ray-marching/tree/volumetric-textures
+
+based on commit 675ff30866425ac1ba5bf59014289b3a73e32446.

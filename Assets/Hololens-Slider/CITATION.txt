@@ -1,0 +1,7 @@
+The slider in this folder has been derived from the github repository:
+
+https://github.com/vinothpandian/Hololens-SliderWidget
+
+based on commit c0c5ac8cd891a44392d852c8d454838f384dc8f8
+
+Mini Project for Designing Interactive Systems, RWTH

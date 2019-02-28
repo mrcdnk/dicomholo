@@ -1,0 +1,5 @@
+The Volume rendering implementation in this folder has been derived from:
+
+https://github.com/mattatz/unity-volume-rendering
+
+based on commit 30d4327aed5a677c70223d6381255aff8ca1fc51

@@ -104,6 +104,61 @@ namespace DICOMParser
         }
 
         /// <summary>
+        /// Reads or tries to read files from the given folder path.
+        /// </summary>
+        /// <param name="folderPath"></param>
+        /// <returns></returns>
+        private static List<string> GetFiles(string folderPath)
+        {
+            var fileNames = new List<string>();
+
+#if UNITY_EDITOR
+            var files = Directory.GetFiles(folderPath);
+            for (var index = 0; index < files.Length; index++)
+            {
+                var file = files[index];
+                if (UnityEngine.Windows.File.Exists(file) && (file.EndsWith(".dcm") || !file.Contains(".")))
+                {
+                    fileNames.Add(file);
+                }
+            }
+
+#elif UNITY_WSA
+            var formats = new[]{folderPath + "/CTHd" + "{0:D3}",
+                folderPath + "/CTHd" + "{0:D3}.dcm",
+                folderPath + "/{0:D6}",
+                folderPath + "/{0:D6}.dcm"
+            };
+
+            foreach (var format in formats)
+            {
+                var pos = 0;
+
+                while (UnityEngine.Windows.File.Exists(string.Format(format, pos)))
+                {
+                    fileNames.Add(string.Format(format, pos));
+                    ++pos;
+                }
+
+                if (fileNames.Count > 0)
+                {
+                    break;
+                }
+
+                pos = 1;
+
+                while (UnityEngine.Windows.File.Exists(string.Format(format, pos)))
+                {
+                    fileNames.Add(string.Format(format, pos));
+                    ++pos;
+                }
+            }
+#endif
+
+            return fileNames;
+        }
+
+        /// <summary>
         /// Unity coroutine for loading the selected folder of files.
         /// </summary>
         /// <param name="folderPath">Path of the folder containing the DICOM files</param>
@@ -115,26 +170,8 @@ namespace DICOMParser
             //string[] filePaths = Directory.GetFiles(folderPath);
 
             //filePaths = Array.FindAll(filePaths, HasNoExtension); 
-            List<string> fileNames = new List<string>();
+            var fileNames = GetFiles(folderPath);
 
-#if UNITY_EDITOR
-            foreach (var file in Directory.GetFiles(folderPath))
-            {
-                if (UnityEngine.Windows.File.Exists(file) && (file.EndsWith(".dcm") || !file.Contains(".")))
-                {
-                    fileNames.Add(file);
-                }
-            }
-
-#elif UNITY_WSA
-            var pos = 0; //startfile
-
-            while (UnityEngine.Windows.File.Exists(folderPath+ "/CTHd" + pos.ToString("D3")))
-            {
-                fileNames.Add(Path.Combine(folderPath, "CTHd" + pos.ToString("D3")));
-                ++pos;
-            }
-#endif
             _dicomFiles = new DiFile[fileNames.Count];
             threadGroupState.TotalProgress = fileNames.Count;
 
@@ -615,7 +652,7 @@ namespace DICOMParser
         /// <param name="windowWidth">Option to set custom windowWidth, Double.MinValue to not use it</param>
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="threadCount">Amount of Threads to use</param>
-        private void StartCreatingFrontTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, IReadOnlyList<DiFile> files, Color32[][] target,
+        private void StartCreatingFrontTextures(ThreadGroupState groupState, ConcurrentQueue<int> processed, int[] data, IReadOnlyList<DiFile> files, IList<Color32[]> target,
             double windowWidth, double windowCenter, int threadCount)
         {
             int spacing = Height / threadCount;

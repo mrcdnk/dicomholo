@@ -20,7 +20,7 @@ namespace DICOMParser
         private double[] _rawDoubles = new double[1];
 
         private readonly DiDictonary _diDictionary = DiDictonary.Instance;
-        private readonly string _fileName = null;
+        private readonly string _fileName = "";
 
         public DiDataElement()
         {
@@ -164,9 +164,9 @@ namespace DICOMParser
                 if (_vr == VRType.US || _vr == VRType.SS || _vr == VRType.OW || _vr == VRType.UL || _vr == VRType.SL ||
                     _vr == VRType.FL || _vr == VRType.FD)
                 {
-                    for (int i = 0; i < _values.Length / 2; i++)
+                    for (var i = 0; i < _values.Length / 2; i++)
                     {
-                        byte tmp = _values[i];
+                        var tmp = _values[i];
                         _values[i] = _values[_values.Length - 1 - i];
                         _values[_values.Length - 1 - i] = tmp;
                     }
@@ -176,12 +176,12 @@ namespace DICOMParser
             if (DiDictonary.ToTag(_groupId, _elementId) == 0x00020010)
             {
                 // check endianess and VR format
-                String ts_uid = GetValueAsString();
-                inputStream.VrFormat = DiDictonary.get_ts_uid_vr_format(ts_uid);
-                inputStream.Endianess = DiDictonary.get_ts_uid_endianess(ts_uid);
+                var tsUid = GetValueAsString();
+                inputStream.VrFormat = DiDictonary.get_ts_uid_vr_format(tsUid);
+                inputStream.Endianess = DiDictonary.get_ts_uid_endianess(tsUid);
                 if (inputStream.VrFormat == DiFile.EndianUnknown)
                 {
-                    Debug.Log("DiDataElement Unknown Transfer Syntax UID \"" + ts_uid +
+                    Debug.Log("DiDataElement Unknown Transfer Syntax UID \"" + tsUid +
                               "\". Endianess & VR format will be guessed.");
                 }
             }
@@ -224,9 +224,7 @@ namespace DICOMParser
         /// <returns>a human readable string representation</returns>
         public override string ToString()
         {
-            string str;
-
-            str = GetTagString() + " (" + _diDictionary.GetTagDescription(GetTag()) + ")  ";
+            var str = GetTagString() + " (" + _diDictionary.GetTagDescription(GetTag()) + ")  ";
             str += "VR: " + GetVrString() + "  VL: " + _vl + "  Values: " + GetValueAsString();
 
             return str;
@@ -275,7 +273,7 @@ namespace DICOMParser
         /// <returns> the double value</returns>
         private double GetValueAsDouble()
         {
-            string str = GetValueAsString();
+            var str = GetValueAsString();
 
             return double.Parse(str.Trim(), CultureInfo.InvariantCulture);
         }
@@ -295,8 +293,8 @@ namespace DICOMParser
         /// <returns></returns>
         private int GetValueAsInt()
         {
-            string str = GetValueAsString();
-            return Int32.Parse(str.Trim(), CultureInfo.InvariantCulture);
+            var str = GetValueAsString();
+            return int.Parse(str.Trim(), CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -323,7 +321,7 @@ namespace DICOMParser
         /// <returns>the string value</returns>
         public string GetValueAsString()
         {
-            string str = "";
+            var str = "";
 
             if (_vl > 255)
             {
@@ -426,9 +424,9 @@ namespace DICOMParser
         }
 
         /// <summary>
-        /// Returns the vr tag as an integer value (faster for comparing).
+        /// Returns the vr tag (faster for comparing).
         /// </summary>
-        /// <returns>the vr tag as integer - compare with public VRType constants</returns>
+        /// <returns>the vr tag - compare with public VRType constants</returns>
         public VRType GetVr()
         {
             return _vr;

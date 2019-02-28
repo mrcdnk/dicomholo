@@ -12,8 +12,6 @@ namespace DICOMParser
     /// Also stores the pixel data & important information for displaying the contained image in
     /// separate variables with special access functions.
     ///
-    ///  It is assumed that all DICOM files of a set are little_endian and of the same vr_format.
-    ///
     /// @author kif ported to C# by Marco Deneke
     /// </summary>
     public class DiFile
@@ -76,7 +74,6 @@ namespace DICOMParser
         /// <summary>
         /// Initializes the DiFile from a file. Might throw an exception (unexpected
         /// end of file, wrong data etc).
-        /// This method will be implemented in exercise 1.
         /// </summary>
         /// <param name="fileName">file_name a string containing the name of a valid dicom file</param>
         public void InitFromFile(string fileName)
@@ -139,11 +136,6 @@ namespace DICOMParser
                 {
                     // handle all but sequences
                     _dataElements[diDataElement.GetTag()] = diDataElement;
-                }
-
-                if (i == 150)
-                {
-                    break;
                 }
 
                 i++;

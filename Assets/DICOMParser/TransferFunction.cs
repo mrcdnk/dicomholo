@@ -20,7 +20,7 @@ namespace DICOMParser
 
             if (isoColor.r < 120)
             {
-                double dynAlpha = 240 * (Math.Max(isoColor.r - 15, 0)) / 255d;
+                double dynAlpha = 240 * Math.Max(isoColor.r - 15, 0) / 255d;
                 isoColor.a = (byte) dynAlpha;
             }
 

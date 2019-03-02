@@ -5,6 +5,7 @@ using DICOMParser;
 using Segmentation;
 using Threads;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace DICOMViews
 {
@@ -61,7 +62,7 @@ namespace DICOMViews
 
             WindowSettingsPanel.SettingsChangedEvent.AddListener(OnWindowSettingsChanged);
             WindowSettingsPanel.gameObject.SetActive(false);
-            Volume.SetActive(false);
+            //Volume.SetActive(false);
             VolumeRenderingParent.SetActive(false);
             Slice2DView.gameObject.SetActive(false);
             SegmentConfiguration.transform.gameObject.SetActive(false);
@@ -90,6 +91,8 @@ namespace DICOMViews
                     if (_currentWorkloads.Count > 0)
                     {
                         MainMenu.ProgressHandler.TaskDescription = _currentWorkloads[0].Item2;
+                        MainMenu.ProgressHandler.Max = _currentWorkloads[0].Item1.TotalProgress;
+                        MainMenu.ProgressHandler.Value = _currentWorkloads[0].Item1.Progress;
                         
                         continue;
                     }
@@ -147,13 +150,20 @@ namespace DICOMViews
             WindowSettingsPanel.Configure(_stack.MinPixelIntensity, _stack.MaxPixelIntensity, _stack.WindowWidthPresets, _stack.WindowCenterPresets);
             WindowSettingsPanel.gameObject.SetActive(true);
 
-            _segmentCache.InitializeSize(_stack.Width, _stack.Height, _stack.Slices);
+            try
+            {
+                _segmentCache.InitializeSize(_stack.Width, _stack.Height, _stack.Slices);
 
-            SegmentConfiguration.Initialize(_segmentCache, _stack.MinPixelIntensity, _stack.MaxPixelIntensity);
+                SegmentConfiguration.Initialize(_segmentCache, _stack.MinPixelIntensity, _stack.MaxPixelIntensity);
 
-            Slice2DView.Initialize(_stack);
+                Slice2DView.Initialize(_stack);
 
-            _workIndicator.FinishedWork();
+                _workIndicator.FinishedWork();
+            }
+            catch (Exception e)
+            {
+                GameObject.FindGameObjectWithTag("DebugText").GetComponent<Text>().text = e.ToString();
+            }
 
             PreProcessData();
         }
@@ -208,8 +218,8 @@ namespace DICOMViews
             StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture, SegmentConfiguration.Display3Ds, SegmentConfiguration.HideBase));
             VolumeRenderingParent.SetActive(true);
 
-            //RayMarching.initVolume(_stack.VolumeTexture);
-            //Volume.SetActive(true);
+            RayMarching.initVolume(_stack.VolumeTexture);
+            Volume.SetActive(true);
 
             MainMenu.EnableButtons();
             WindowSettingsPanel.EnableButtons();

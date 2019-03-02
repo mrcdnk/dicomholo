@@ -181,7 +181,7 @@ namespace DICOMParser
 
             foreach (var path in fileNames)
             {
-                DiFile diFile = new DiFile();
+                var diFile = new DiFile();
                 diFile.InitFromFile(path);
 
                 if (zeroBased && diFile.GetImageNumber() == _dicomFiles.Length)
@@ -497,7 +497,7 @@ namespace DICOMParser
                             pixels.Read(storedBytes, 0, allocated);
                             var value = BitConverter.ToInt32(storedBytes, 0);
                             var currentPix = GetPixelIntensity((int)(value & mask), currentDiFile);
-                            target[baseOffset + x * height + y] = currentPix;
+                            target[baseOffset + y * width + x] = currentPix;
                         }
                     }
 
@@ -564,11 +564,11 @@ namespace DICOMParser
                 var idxPartZ = z * width * height;
                 for (var y = 0; y < height; ++y)
                 {
-                    var idxPart = idxPartZ + y;
+                    var idxPart = idxPartZ + y * width;
                     for (var x = 0; x < width; ++x, ++idx)
                     {
                         
-                        target[idx] = TransferFunction.DYN_ALPHA(GetRGBValue(data[idxPart + x * height], dicomFiles[z], windowWidth, windowCenter));
+                        target[idx] = TransferFunction.DYN_ALPHA(GetRGBValue(data[idxPart + x], dicomFiles[z], windowWidth, windowCenter));
                     }
                 }
 
@@ -798,12 +798,12 @@ namespace DICOMParser
 
             for (var y = 0; y < height; ++y)
             {
-                var idxPart = idxPartId + y;
+                var idxPart = idxPartId + y * width;
                 for (var x = 0; x < width; ++x)
                 {
                     var index = y * width + x;
 
-                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windowWidth, windowCenter));
+                    texData[index] = pShader(GetRGBValue(data[idxPart + x], file, windowWidth, windowCenter));
                 }
             }
         }
@@ -839,14 +839,14 @@ namespace DICOMParser
         {
             for (var i = 0; i < files.Count; ++i)
             {
-                var idxPart = i * width * height + id;
+                var idxPart = i * width * height + id * width;
                 var file = files[i];
 
                 for (var x = 0; x < width; ++x)
                 {
                     var index = i * height + x;
 
-                    texData[index] = pShader(GetRGBValue(data[idxPart + x * height], file, windowWidth, windowCenter));
+                    texData[index] = pShader(GetRGBValue(data[idxPart + x], file, windowWidth, windowCenter));
                 }
             }
         }
@@ -875,21 +875,21 @@ namespace DICOMParser
         /// <param name="files">array of all DICOM files</param>
         /// <param name="texData">target texture array</param>
         /// <param name="pShader">pixel shader to be applied to every pixel</param>
-        /// <param name="windówWidth">Optional possibility to override windowWidth</param>
+        /// <param name="windowWidth">Optional possibility to override windowWidth</param>
         /// <param name="windowCenter">Optional possibility to override windowCenter</param>
         public static void FillPixelsSagittal(int id, int[] data, int width, int height, IReadOnlyList<DiFile> files, Color32[] texData,
-            Func<Color32, Color32> pShader, double windówWidth = double.MinValue, double windowCenter = double.MinValue)
+            Func<Color32, Color32> pShader, double windowWidth = double.MinValue, double windowCenter = double.MinValue)
         {
             for (var i = 0; i < files.Count; ++i)
             {
-                var idxPart = i * width * height + id * height;
+                var idxPart = i * width * height + id;
                 var file = files[i];
 
                 for (var y = 0; y < height; ++y)
                 {
                     var index = i * width + y;
 
-                    texData[index] = pShader(GetRGBValue(data[idxPart + y], file, windówWidth, windowCenter));
+                    texData[index] = pShader(GetRGBValue(data[idxPart + y*width], file, windowWidth, windowCenter));
                 }
             }
         }

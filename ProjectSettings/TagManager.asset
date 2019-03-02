@@ -9,6 +9,7 @@ TagManager:
   - RightHolder
   - LeftHolder
   - HoloCursor
+  - DebugText
   layers:
   - Default
   - TransparentFX

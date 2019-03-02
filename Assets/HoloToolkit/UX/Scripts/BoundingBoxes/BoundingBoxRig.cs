@@ -330,6 +330,7 @@ namespace HoloToolkit.Unity.UX
             if (rotateHandles == null)
             {
                 rotateHandles = new GameObject[12];
+
                 rigRotateGizmoHandles = new BoundingBoxGizmoHandle[12];
                 for (int i = 0; i < rotateHandles.Length; ++i)
                 {

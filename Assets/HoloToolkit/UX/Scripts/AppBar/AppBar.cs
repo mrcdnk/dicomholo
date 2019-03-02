@@ -230,6 +230,7 @@ namespace HoloToolkit.Unity.UX
                                 panel.Toggle();
                             }
                         }
+
                         break;
                     }
 
@@ -244,6 +245,7 @@ namespace HoloToolkit.Unity.UX
                     State = AppBarStateEnum.Manipulation;
                     // Activate BoundingBoxRig
                     boundingBox.Target.GetComponent<BoundingBoxRig>().Activate();
+
                     break;
 
                 case "Hide":
@@ -261,6 +263,7 @@ namespace HoloToolkit.Unity.UX
                     State = AppBarStateEnum.Default;
                     // Deactivate BoundingBoxRig
                     boundingBox.Target.GetComponent<BoundingBoxRig>().Deactivate();
+
                     break;
 
                 default:
@@ -345,11 +348,12 @@ namespace HoloToolkit.Unity.UX
 
             //calculate best follow position for AppBar
             Vector3 finalPosition = Vector3.zero;
-            Vector3 headPosition = Camera.main.transform.position;
-            LayerMask ignoreLayers = new LayerMask();
-            List<Vector3> boundsPoints = new List<Vector3>();
+
             if (boundingBox != null)
             {
+                Vector3 headPosition = Camera.main.transform.position;
+                LayerMask ignoreLayers = new LayerMask();
+                List<Vector3> boundsPoints = new List<Vector3>();
                 helper.UpdateNonAABoundingBoxCornerPositions(boundingBox.Target, boundsPoints, ignoreLayers);
                 int followingFaceIndex = helper.GetIndexOfForwardFace(headPosition);
                 Vector3 faceNormal = helper.GetFaceNormal(followingFaceIndex);

@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using ExtensionsMethods;
 using Threads;
 using UnityEngine;
 
@@ -40,14 +41,17 @@ namespace Segmentation
         public SegmentTextureReady TextureReady = new SegmentTextureReady();
         public SegmentChanged SegmentChanged = new SegmentChanged();
 
+        private void Awake()
+        {
+            _segments[0] = new Segment(new Color32(255, 0, 0, Segment.SegmentTransparency));
+            _segments[1] = new Segment(new Color32(0, 255, 0, Segment.SegmentTransparency));
+            _segments[2] = new Segment(new Color32(0, 0, 255, Segment.SegmentTransparency));
+        }
+
         // Start is called before the first frame update
         private void Start()
         {
             _workIndicator = FindObjectOfType<GlobalWorkIndicator>();
-
-            _segments[0] = new Segment(new Color32(255, 0, 0, Segment.SegmentTransparency));
-            _segments[1] = new Segment(new Color32(0, 255, 0, Segment.SegmentTransparency));
-            _segments[2] = new Segment(new Color32(0, 0, 255, Segment.SegmentTransparency));
 
             _imageStack = FindObjectOfType<ImageStack>();
         }
@@ -111,41 +115,40 @@ namespace Segmentation
         /// </summary>
         public void InitializeTextures()
         {
-            if (_texturesInvalid)
+            if (!_texturesInvalid) return;
+
+            _sliceSegments[SliceType.Transversal] = new Texture2D[_slices];
+            _sliceSegments[SliceType.Frontal] = new Texture2D[_height];
+            _sliceSegments[SliceType.Sagittal] = new Texture2D[_width];
+
+            foreach (var type in Enum.GetValues(typeof(SliceType)).Cast<SliceType>())
             {
-                _sliceSegments[SliceType.Transversal] = new Texture2D[_slices];
-                _sliceSegments[SliceType.Frontal] = new Texture2D[_height];
-                _sliceSegments[SliceType.Sagittal] = new Texture2D[_width];
-
-                foreach (var type in Enum.GetValues(typeof(SliceType)).Cast<SliceType>())
+                for (var index = 0; index < _sliceSegments[type].Length; index++)
                 {
-                    for (var index = 0; index < _sliceSegments[type].Length; index++)
-                    {
-                        var texture2D = _sliceSegments[type][index];
-                        Destroy(texture2D);
+                    var texture2D = _sliceSegments[type][index];
+                    Destroy(texture2D);
 
-                        switch (type)
-                        {
-                            case SliceType.Transversal:
-                                _sliceSegments[type][index] =
-                                    new Texture2D(_width, _height, TextureFormat.ARGB32, false);
-                                break;
-                            case SliceType.Sagittal:
-                                _sliceSegments[type][index] =
-                                    new Texture2D(_height, _slices, TextureFormat.ARGB32, false);
-                                break;
-                            case SliceType.Frontal:
-                                _sliceSegments[type][index] =
-                                    new Texture2D(_width, _slices, TextureFormat.ARGB32, false);
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException();
-                        }
+                    switch (type)
+                    {
+                        case SliceType.Transversal:
+                            _sliceSegments[type][index] =
+                                new Texture2D(_width, _height, TextureFormat.ARGB32, false);
+                            break;
+                        case SliceType.Sagittal:
+                            _sliceSegments[type][index] =
+                                new Texture2D(_height, _slices, TextureFormat.ARGB32, false);
+                            break;
+                        case SliceType.Frontal:
+                            _sliceSegments[type][index] =
+                                new Texture2D(_width, _slices, TextureFormat.ARGB32, false);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                 }
-
-                StartCoroutine(ClearTextures());
             }
+
+            StartCoroutine(ClearTextures());
 
         }
 
@@ -275,6 +278,12 @@ namespace Segmentation
         /// <returns></returns>
         public IEnumerator ApplyTextures(uint selector = 0xFFFFFFFF, bool clearFlag = false)
         {
+            if (!_sliceSegments.ContainsKey(SliceType.Transversal) || !_sliceSegments.ContainsKey(SliceType.Frontal) ||
+                !_sliceSegments.ContainsKey(SliceType.Sagittal))
+            {
+                yield break;
+            }
+
             _workIndicator.StartedWork();
             for (var index = 0; index < _segments.Length; index++)
             {
@@ -363,7 +372,7 @@ namespace Segmentation
         /// <returns>Texture2D containing the segment texture</returns>
         public Texture2D GetSegmentTexture(SliceType type, int index)
         {
-            return _sliceSegments[type][index];
+            return _sliceSegments.GetValue(type)?[index];
         }
 
         /// <summary>

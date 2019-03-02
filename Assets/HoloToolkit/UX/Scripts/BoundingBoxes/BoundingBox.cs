@@ -603,7 +603,7 @@ namespace HoloToolkit.Unity.UX
                     continue;
                 }
 
-                Bounds meshBounds = meshFilterObj.mesh.bounds;
+                Bounds meshBounds = meshFilterObj.sharedMesh.bounds;
                 meshBounds.GetCornerPositions(meshFilterObj.transform, ref corners);
                 boundsPoints.AddRange(corners);
             }

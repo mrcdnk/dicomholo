@@ -286,9 +286,9 @@ GameObject:
   - component: {fileID: 3292339273806303516}
   - component: {fileID: 3292339273806303517}
   - component: {fileID: 3292339273806303518}
-  - component: {fileID: 3292339273806303519}
   - component: {fileID: 3292339273806303507}
   - component: {fileID: 3292339273806303506}
+  - component: {fileID: 4271700078612346856}
   m_Layer: 0
   m_Name: RotationObject
   m_TagString: Untagged
@@ -382,32 +382,6 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 0.09791438, y: 0.097914375, z: 0.09791433}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3292339273806303519
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3292339273806303514}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4768146f072b50149a922df192dfb58f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  flattenedAxis: 0
-  scaleHandleMaterial: {fileID: 2100000, guid: 4a9072a0d8623aa44abf31f02d209a09, type: 2}
-  rotateHandleMaterial: {fileID: 2100000, guid: 4a9072a0d8623aa44abf31f02d209a09,
-    type: 2}
-  interactingMaterial: {fileID: 2100000, guid: b614a09bc429623478e946d8170b15ae, type: 2}
-  scaleRate: 1
-  appBarHoverOffsetZ: 0.05
-  maxScale: 2
-  rotationType: 0
-  handMotionToRotate: 1
-  rotateAroundPivot: 0
-  boundingBoxPrefab: {fileID: 114030465538688920, guid: 865a8ded6c47efd4285f04f3aebe99e9,
-    type: 3}
-  appBarInstance: {fileID: 3292339273191154986}
 --- !u!114 &3292339273806303507
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -440,6 +414,32 @@ MonoBehaviour:
   PositionLerpSpeed: 0.2
   RotationLerpSpeed: 0.2
   IsDraggingEnabled: 1
+--- !u!114 &4271700078612346856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3292339273806303514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4768146f072b50149a922df192dfb58f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  flattenedAxis: 0
+  scaleHandleMaterial: {fileID: 2100000, guid: 4a9072a0d8623aa44abf31f02d209a09, type: 2}
+  rotateHandleMaterial: {fileID: 2100000, guid: 4a9072a0d8623aa44abf31f02d209a09,
+    type: 2}
+  interactingMaterial: {fileID: 2100000, guid: b614a09bc429623478e946d8170b15ae, type: 2}
+  scaleRate: 1
+  appBarHoverOffsetZ: 0.05
+  maxScale: 2
+  rotationType: 1
+  handMotionToRotate: 1
+  rotateAroundPivot: 0
+  boundingBoxPrefab: {fileID: 114030465538688920, guid: 865a8ded6c47efd4285f04f3aebe99e9,
+    type: 3}
+  appBarInstance: {fileID: 3292339273191154986}
 --- !u!1 &3292339274094493065
 GameObject:
   m_ObjectHideFlags: 0

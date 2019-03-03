@@ -1,19 +1,23 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using HoloToolkit.Unity.InputModule;
 using HoloToolkit.UX.Progress;
 using UnityEngine;
 
 public class GlobalWorkIndicator : MonoBehaviour
 {
-    private int semaphore = 0;
+    private int _semaphore = 0;
 
     private ProgressIndicatorOrbsRotator _progressIndicator;
+    private Animator _cursorAnimator;
 
     // Start is called before the first frame update
     void Start()
     {
-        _progressIndicator = GetComponentInChildren<ProgressIndicatorOrbsRotator>();
+        _progressIndicator = GetComponentInChildren<ProgressIndicatorOrbsRotator>(); 
         _progressIndicator.gameObject.SetActive(false);
+
+        _cursorAnimator = GameObject.FindGameObjectWithTag("HoloCursor").GetComponentInChildren<Animator>();
     }
 
     // Update is called once per frame
@@ -24,33 +28,35 @@ public class GlobalWorkIndicator : MonoBehaviour
 
     public void StartedWork()
     {
-        if (!_progressIndicator)
+        if (!_cursorAnimator)
         {
             return;
         }
 
-        semaphore++;
-        if (semaphore == 1)
+        _semaphore++;
+        if (_semaphore == 1)
         {
-            _progressIndicator.gameObject.SetActive(true);
+            //_progressIndicator.gameObject.SetActive(true);
+            _cursorAnimator.SetBool("Waiting", true);
         }
     }
 
     public void FinishedWork()
     {
-        if (!_progressIndicator)
+        if (!_cursorAnimator)
         {
             return;
         }
 
-        if (semaphore > 0)
+        if (_semaphore > 0)
         {
-            semaphore--;
+            _semaphore--;
         }
 
-        if (semaphore == 0)
+        if (_semaphore == 0)
         {
-            _progressIndicator.gameObject.SetActive(false);
+            //_progressIndicator.gameObject.SetActive(false);
+            _cursorAnimator.SetBool("Waiting", false);
         }
     }
 }

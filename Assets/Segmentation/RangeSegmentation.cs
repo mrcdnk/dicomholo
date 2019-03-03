@@ -98,11 +98,11 @@ namespace Segmentation
 
                 for (var y = 0; y < segment.Height; ++y)
                 {
-                    var idxPart = idxPartId + y;
+                    var idxPart = idxPartId + y * segment.Width;
 
                     for (var x = 0; x < segment.Width; ++x)
                     {
-                        var value = data[idxPart + x * segment.Height];
+                        var value = data[idxPart + x];
 
                         segment.Set(x, y, i, value >= rangeParameter.Lower && value <= rangeParameter.Upper);
                     }

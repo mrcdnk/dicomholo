@@ -289,11 +289,9 @@ namespace Segmentation
                 return c1;
             }
 
-            var a3 = color.a / (float)byte.MaxValue;
-
-            color.r = (byte) (((1f - a1) * a2 * c2.r + a1 * c1.r) / a3);
-            color.g = (byte) (((1f - a1) * a2 * c2.g + a1 * c1.g) / a3);
-            color.b = (byte) (((1f - a1) * a2 * c2.b + a1 * c1.b) / a3);
+            color.r = (byte) ((1f - a1) * a2 * c2.r + a1 * c1.r);
+            color.g = (byte) ((1f - a1) * a2 * c2.g + a1 * c1.g);
+            color.b = (byte) ((1f - a1) * a2 * c2.b + a1 * c1.b);
 
             return color;
         }

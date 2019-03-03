@@ -11,6 +11,9 @@ using UnityEngine;
 
 namespace Segmentation
 {
+    /// <summary>
+    /// Caches all segments and 2D Textures generated from them.
+    /// </summary>
     public class SegmentCache : MonoBehaviour
     {
         private GlobalWorkIndicator _workIndicator;

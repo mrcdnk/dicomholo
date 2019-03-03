@@ -85,24 +85,19 @@ namespace Segmentation
             RegionFillParameter regionFillParameter)
         {
             var pending = new Queue<Voxel>(20000);
-            var visited = new HashSet<Voxel>();
+            var visited = new Segment(Color.clear);
+            visited.Allocate(segment.Width, segment.Height, segment.Slices);
 
             var seedVoxel = new Voxel(regionFillParameter.X, regionFillParameter.Y, regionFillParameter.Z);
 
             pending.Enqueue(seedVoxel);
-            visited.Add(seedVoxel);
+            visited.Set(seedVoxel.X, seedVoxel.Y, seedVoxel.Z);
             segment.Set(seedVoxel.X, seedVoxel.Y, seedVoxel.Z);
 
             var intensityBase = data[GetIndex(seedVoxel, segment.Width, segment.Height)];
 
-            Debug.Log(intensityBase);
-
             var intensityLower = intensityBase - regionFillParameter.Threshold;
             var intensityUpper = intensityBase + regionFillParameter.Threshold;
-
-            Debug.Log(intensityLower);
-            Debug.Log(intensityUpper);
-
 
             long processed = 0;
 
@@ -127,10 +122,10 @@ namespace Segmentation
                 {
                     neighbor = new Voxel(currentVec.X - 1, currentVec.Y, currentVec.Z);
 
-                    if (!visited.Contains(neighbor))
+                    if (!visited.Contains(neighbor.X, neighbor.Y, neighbor.Z))
                     {
                         pending.Enqueue(neighbor);
-                        visited.Add(neighbor);
+                        visited.Set(neighbor.X, neighbor.Y, neighbor.Z);
                     }
                 }
 
@@ -138,10 +133,10 @@ namespace Segmentation
                 {
                     neighbor = new Voxel(currentVec.X + 1, currentVec.Y, currentVec.Z);
 
-                    if (!visited.Contains(neighbor))
+                    if (!visited.Contains(neighbor.X, neighbor.Y, neighbor.Z))
                     {
                         pending.Enqueue(neighbor);
-                        visited.Add(neighbor);
+                        visited.Set(neighbor.X, neighbor.Y, neighbor.Z);
                     }
                 }
 
@@ -149,10 +144,10 @@ namespace Segmentation
                 {
                     neighbor = new Voxel(currentVec.X, currentVec.Y - 1, currentVec.Z);
 
-                    if (!visited.Contains(neighbor))
+                    if (!visited.Contains(neighbor.X, neighbor.Y, neighbor.Z))
                     {
                         pending.Enqueue(neighbor);
-                        visited.Add(neighbor);
+                        visited.Set(neighbor.X, neighbor.Y, neighbor.Z);
                     }
                 }
 
@@ -160,36 +155,36 @@ namespace Segmentation
                 {
                     neighbor = new Voxel(currentVec.X, currentVec.Y + 1, currentVec.Z);
 
-                    if (!visited.Contains(neighbor))
+                    if (!visited.Contains(neighbor.X, neighbor.Y, neighbor.Z))
                     {
                         pending.Enqueue(neighbor);
-                        visited.Add(neighbor);
+                        visited.Set(neighbor.X, neighbor.Y, neighbor.Z);
                     }
                 }
                 if (currentVec.Z > 0)
                 {
                     neighbor = new Voxel(currentVec.X, currentVec.Y, currentVec.Z - 1);
 
-                    if (!visited.Contains(neighbor))
+                    if (!visited.Contains(neighbor.X, neighbor.Y, neighbor.Z))
                     {
                         pending.Enqueue(neighbor);
-                        visited.Add(neighbor);
+                        visited.Set(neighbor.X, neighbor.Y, neighbor.Z);
                     }
                 }
                 if (currentVec.Z < segment.Slices - 1)
                 {
                     neighbor = new Voxel(currentVec.X, currentVec.Y, currentVec.Z + 1);
 
-                    if (!visited.Contains(neighbor))
+                    if (!visited.Contains(neighbor.X, neighbor.Y, neighbor.Z))
                     {
                         pending.Enqueue(neighbor);
-                        visited.Add(neighbor);
+                        visited.Set(neighbor.X, neighbor.Y, neighbor.Z);
                     }
                 }
 
                 if (processed % 40000 == 0)
                 {
-                    Thread.Sleep(60);
+                    Thread.Sleep(50);
                 }
 
                 processed++;

@@ -252,17 +252,18 @@ namespace Segmentation
         }
 
         /// <summary>
-        /// Combines multiple colors to the same
+        /// Adds a 30% tint to the target color based on the given tintColor without affecting alpha or intensity.
         /// </summary>
-        /// <param name="target"></param>
-        /// <param name="colorToAdd"></param>
-        public static Color32 AddColor(Color32 target, Color32 colorToAdd)
+        /// <param name="target">color that is written to</param>
+        /// <param name="tintColor">the color to use for tinting</param>
+        public static Color32 TintVolume(Color32 target, Color32 tintColor)
         {
+            const float tintA = 0.3f;
+            const float tA = 1 - tintA;
 
-            target.r = (byte) Math.Min(255, target.r + colorToAdd.r);
-            target.g = (byte) Math.Min(255, target.g + colorToAdd.g);
-            target.b = (byte) Math.Min(255, target.b + colorToAdd.b);
-
+            target.r = (byte) (target.r * tA + tintA * tintColor.r);
+            target.g = (byte) (target.g * tA + tintA * tintColor.g);
+            target.b = (byte) (target.b * tA + tintA * tintColor.b);
 
             return target;
         }

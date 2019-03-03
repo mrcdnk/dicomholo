@@ -205,14 +205,14 @@ namespace Segmentation
         private static int GetIndex(Voxel coordinates, int width, int height)
         {
             return coordinates.Z * width * height
-                   + coordinates.X * height
-                   + coordinates.Y;
+                   + coordinates.Y * width
+                   + coordinates.X;
         }
 
         /// <summary>
         /// Container for 3D coordinates
         /// </summary>
-        private class Voxel : IEquatable<Voxel>
+        private class Voxel
         {
             public readonly int X;
             public readonly int Y;
@@ -225,40 +225,6 @@ namespace Segmentation
                 Z = z;
             }
 
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(null, obj)) return false;
-                if (ReferenceEquals(this, obj)) return true;
-                return obj.GetType() == GetType() && Equals((Voxel) obj);
-            }
-     
-            public override int GetHashCode()
-            {
-                unchecked
-                {
-                    var hashCode = X;
-                    hashCode = (hashCode * 397) ^ Y;
-                    hashCode = (hashCode * 397) ^ Z;
-                    return hashCode;
-                }
-            }
-
-            public bool Equals(Voxel other)
-            {
-                if (ReferenceEquals(null, other)) return false;
-                if (ReferenceEquals(this, other)) return true;
-                return X == other.X && Y == other.Y && Z == other.Z;
-            }
-
-            public static bool operator ==(Voxel left, Voxel right)
-            {
-                return Equals(left, right);
-            }
-
-            public static bool operator !=(Voxel left, Voxel right)
-            {
-                return !Equals(left, right);
-            }
         }
     }
 }

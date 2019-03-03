@@ -645,12 +645,12 @@ GameObject:
   m_Component:
   - component: {fileID: 545637993}
   m_Layer: 0
-  m_Name: OtherParent
+  m_Name: RayMarchAlt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &545637993
 Transform:
   m_ObjectHideFlags: 0
@@ -1090,7 +1090,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1211682603}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.581}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1103,7 +1103,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1211682603}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: acb4a81941159524dbeafbd15fab3db6, type: 3}
   m_Name: 
@@ -1136,7 +1136,7 @@ GameObject:
   - component: {fileID: 1236308928}
   - component: {fileID: 1236308932}
   - component: {fileID: 1236308930}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: WorkIndicator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1712,6 +1712,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RotatingOrbs
       objectReference: {fileID: 0}
+    - target: {fileID: 1877138048077504, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
     - target: {fileID: 4096728816918502, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1777,6 +1781,46 @@ PrefabInstance:
         type: 3}
       propertyPath: TestStop
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1485130322227930, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1801196955771238, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1634107716976086, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1404347800010822, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1732263211534098, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1918846182316446, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1181617332219464, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1231201304909340, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1689662205721340, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1398239229547404, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
+      propertyPath: m_Layer
+      value: 9
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8769cb43fa542914f8aaceee4736c815, type: 3}
@@ -2608,6 +2652,11 @@ PrefabInstance:
       propertyPath: AxisRoot
       value: 
       objectReference: {fileID: 1448827666}
+    - target: {fileID: 7647724379749409638, guid: 128bc1315d2cc404186d75bb4d54f6c2,
+        type: 3}
+      propertyPath: _rotationObject
+      value: 
+      objectReference: {fileID: 1448827665}
     - target: {fileID: 7647724379539199565, guid: 128bc1315d2cc404186d75bb4d54f6c2,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -2668,11 +2717,6 @@ PrefabInstance:
       propertyPath: m_Camera
       value: 
       objectReference: {fileID: 1952454581}
-    - target: {fileID: 7647724379749409638, guid: 128bc1315d2cc404186d75bb4d54f6c2,
-        type: 3}
-      propertyPath: _rotationObject
-      value: 
-      objectReference: {fileID: 1448827665}
     - target: {fileID: 7647724379749409637, guid: 128bc1315d2cc404186d75bb4d54f6c2,
         type: 3}
       propertyPath: m_AnchoredPosition.x

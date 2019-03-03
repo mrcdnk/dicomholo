@@ -218,8 +218,8 @@ namespace DICOMViews
             StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture, SegmentConfiguration.Display3Ds, SegmentConfiguration.HideBase));
             VolumeRenderingParent.SetActive(true);
 
-            RayMarching.initVolume(_stack.VolumeTexture);
-            Volume.SetActive(true);
+            //RayMarching.initVolume(_stack.VolumeTexture);
+            //Volume.SetActive(true);
 
             MainMenu.EnableButtons();
             WindowSettingsPanel.EnableButtons();

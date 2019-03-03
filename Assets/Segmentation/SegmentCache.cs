@@ -217,7 +217,6 @@ namespace Segmentation
         /// <returns></returns>
         public IEnumerator ApplySegments(Texture3D texture3D, uint selector = 0xFFFFFFFF, bool hideBaseData = false)
         {
-
             _workIndicator.StartedWork();
             yield return AccessVolume(texture3D);
 
@@ -247,7 +246,7 @@ namespace Segmentation
 
                             if (!_segments[shift].Contains(x, y, z)) continue;
 
-                            pixelColors[idx] = Segment.AddColor(pixelColors[idx], _segments[shift].SegmentColor);
+                            pixelColors[idx] = Segment.TintVolume(pixelColors[idx], _segments[shift].SegmentColor);
 
                             if (hideBaseData)
                             {

@@ -6,14 +6,14 @@ using UnityEngine;
 
 namespace Segmentation
 {
-    public class RegionFillSegmentation : SegmentationStrategy<RegionFillSegmentation.RegionFillParameter>
+    public class RegionGrowSegmentation : SegmentationStrategy<RegionGrowSegmentation.RegionGrowParameter>
     {
         private readonly List<Thread> _runningThreads = new List<Thread>(1); 
 
         /// <summary>
-        /// Contains all parameters for creating a region fill segmentation
+        /// Contains all parameters for creating a region grow segmentation
         /// </summary>
-        public sealed class RegionFillParameter
+        public sealed class RegionGrowParameter
         {
             public int X { get; set; }
             public int Y { get; set; }
@@ -21,7 +21,7 @@ namespace Segmentation
 
             public int Threshold { get; set; }
 
-            public RegionFillParameter(int x, int y, int z, int threshold = 0)
+            public RegionGrowParameter(int x, int y, int z, int threshold = 0)
             {
                 X = x;
                 Y = y;
@@ -38,7 +38,7 @@ namespace Segmentation
         /// <summary>
         /// Kill all remaining threads if this Object gets destroyed.
         /// </summary>
-        ~RegionFillSegmentation()
+        ~RegionGrowSegmentation()
         {
             foreach (var runningThread in _runningThreads)
             {
@@ -51,9 +51,9 @@ namespace Segmentation
         /// </summary>
         /// <param name="segment">The segment this segmentation is going to be applied to.</param>
         /// <param name="data">Base data volume</param>
-        /// <param name="parameters">Region fill parameters for the segmentation</param>
+        /// <param name="parameters">Region grow parameters for the segmentation</param>
         /// <returns>The ThreadGroupState to enable progress monitoring and callback on finish. May return null if previous work has not yet been finished.</returns>
-        public override ThreadGroupState Fit(Segment segment, int[] data, RegionFillParameter parameters)
+        public override ThreadGroupState Fit(Segment segment, int[] data, RegionGrowParameter parameters)
         {
             if (segment._currentWorkload.Working > 0)
             {
@@ -64,7 +64,7 @@ namespace Segmentation
             segment._currentWorkload.TotalProgress = 1;
             segment._currentWorkload.Register();
 
-            var t = new Thread(() => StartRegionFill(segment, data, parameters))
+            var t = new Thread(() => StartRegionGrow(segment, data, parameters))
             {
                 IsBackground = true
             };
@@ -76,19 +76,19 @@ namespace Segmentation
         }
 
         /// <summary>
-        /// Region fill implementation
+        /// Region grow implementation
         /// </summary>
         /// <param name="segment">The segment this segmentation is going to be applied to.</param>
         /// <param name="data">Base data volume</param>
-        /// <param name="regionFillParameter">Region fill parameters for the segmentation</param>
-        private void StartRegionFill(Segment segment, IReadOnlyList<int> data,
-            RegionFillParameter regionFillParameter)
+        /// <param name="regionGrowParameter">Region grow parameters for the segmentation</param>
+        private void StartRegionGrow(Segment segment, IReadOnlyList<int> data,
+            RegionGrowParameter regionGrowParameter)
         {
             var pending = new Queue<Voxel>(20000);
             var visited = new Segment(Color.clear);
             visited.Allocate(segment.Width, segment.Height, segment.Slices);
 
-            var seedVoxel = new Voxel(regionFillParameter.X, regionFillParameter.Y, regionFillParameter.Z);
+            var seedVoxel = new Voxel(regionGrowParameter.X, regionGrowParameter.Y, regionGrowParameter.Z);
 
             pending.Enqueue(seedVoxel);
             visited.Set(seedVoxel.X, seedVoxel.Y, seedVoxel.Z);
@@ -96,8 +96,8 @@ namespace Segmentation
 
             var intensityBase = data[GetIndex(seedVoxel, segment.Width, segment.Height)];
 
-            var intensityLower = intensityBase - regionFillParameter.Threshold;
-            var intensityUpper = intensityBase + regionFillParameter.Threshold;
+            var intensityLower = intensityBase - regionGrowParameter.Threshold;
+            var intensityUpper = intensityBase + regionGrowParameter.Threshold;
 
             long processed = 0;
 

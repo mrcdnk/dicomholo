@@ -34,7 +34,7 @@ namespace DICOMViews
         [SerializeField] private TubeSlider _minRange;
         [SerializeField] private TubeSlider _maxRange;
 
-        [SerializeField] private GameObject _regionFillParent;
+        [SerializeField] private GameObject _regionGrowParent;
         [SerializeField] private Text _seedXRegion;
         [SerializeField] private Text _seedYRegion;
         [SerializeField] private Text _seedZRegion;
@@ -53,10 +53,10 @@ namespace DICOMViews
         private readonly RangeSegmentation.RangeParameter[] _rangeParameters =
             new RangeSegmentation.RangeParameter[SegmentCache.MaxSegmentCount];
 
-        private readonly RegionFillSegmentation.RegionFillParameter[] _regionFillParameters =
-            new RegionFillSegmentation.RegionFillParameter[SegmentCache.MaxSegmentCount];
+        private readonly RegionGrowSegmentation.RegionGrowParameter[] _regionGrowParameters =
+            new RegionGrowSegmentation.RegionGrowParameter[SegmentCache.MaxSegmentCount];
 
-        private readonly RegionFillSegmentation _regionFillSegmentation = new RegionFillSegmentation();
+        private readonly RegionGrowSegmentation _regionGrowSegmentation = new RegionGrowSegmentation();
         private readonly RangeSegmentation _rangeSegmentation = new RangeSegmentation();
 
         private readonly SegmentationType[] _selectedType = new SegmentationType[SegmentCache.MaxSegmentCount];
@@ -64,7 +64,7 @@ namespace DICOMViews
         // Start is called before the first frame update
         private void Start()
         {
-            _regionFillParent.SetActive(false);
+            _regionGrowParent.SetActive(false);
             _rangeParent.SetActive(true);
 
             for (var i = 0; i < SegmentCache.MaxSegmentCount; i++)
@@ -108,7 +108,7 @@ namespace DICOMViews
             {
                 _selectedType[i] = SegmentationType.Range;
                 _rangeParameters[i] = new RangeSegmentation.RangeParameter(minIntensity, maxIntensity, 2);
-                _regionFillParameters[i] = new RegionFillSegmentation.RegionFillParameter(-1, -1, -1);
+                _regionGrowParameters[i] = new RegionGrowSegmentation.RegionGrowParameter(-1, -1, -1);
             }
 
             UpdateRegionSeed(-1, -1, -1);
@@ -129,9 +129,9 @@ namespace DICOMViews
                     _create.interactable = _rangeParameters[_selectedSegment] != null &&
                                            _rangeParameters[_selectedSegment].IsValid();
                     break;
-                case SegmentationType.RegionFill:
-                    _create.interactable = _regionFillParameters[_selectedSegment] != null &&
-                                           _regionFillParameters[_selectedSegment].IsValid();
+                case SegmentationType.RegionGrow:
+                    _create.interactable = _regionGrowParameters[_selectedSegment] != null &&
+                                           _regionGrowParameters[_selectedSegment].IsValid();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -150,9 +150,9 @@ namespace DICOMViews
                     _segmentCache.CreateSegment(SegmentCache.GetSelector(_selectedSegment), _rangeSegmentation,
                         _rangeParameters[_selectedSegment], false);
                     break;
-                case SegmentationType.RegionFill:
-                    _segmentCache.CreateSegment(SegmentCache.GetSelector(_selectedSegment), _regionFillSegmentation,
-                        _regionFillParameters[_selectedSegment]);
+                case SegmentationType.RegionGrow:
+                    _segmentCache.CreateSegment(SegmentCache.GetSelector(_selectedSegment), _regionGrowSegmentation,
+                        _regionGrowParameters[_selectedSegment]);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -201,16 +201,16 @@ namespace DICOMViews
         }
 
         /// <summary>
-        /// Updates the selected seed for region fill segmentation
+        /// Updates the selected seed for region grow segmentation
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <param name="z"></param>
         public void UpdateRegionSeed(int x, int y, int z)
         {
-            _regionFillParameters[_selectedSegment].X = x;
-            _regionFillParameters[_selectedSegment].Y = y;
-            _regionFillParameters[_selectedSegment].Z = z;
+            _regionGrowParameters[_selectedSegment].X = x;
+            _regionGrowParameters[_selectedSegment].Y = y;
+            _regionGrowParameters[_selectedSegment].Z = z;
 
             _seedXRegion.text = "x: " + x;
             _seedYRegion.text = "y: " + y;
@@ -225,9 +225,9 @@ namespace DICOMViews
         /// <param name="tubeSlider"></param>
         public void UpdateThreshold(TubeSlider tubeSlider)
         {
-            if (_regionFillParameters[_selectedSegment] != null)
+            if (_regionGrowParameters[_selectedSegment] != null)
             {
-                _regionFillParameters[_selectedSegment].Threshold = tubeSlider.CurrentInt;
+                _regionGrowParameters[_selectedSegment].Threshold = tubeSlider.CurrentInt;
             }
         }
 
@@ -283,14 +283,14 @@ namespace DICOMViews
             switch (_segmentationStrategyChoice.captionText.text)
             {
                 case "Range":
-                    _regionFillParent.SetActive(false);
+                    _regionGrowParent.SetActive(false);
                     _rangeParent.SetActive(true);
                     _selectedType[_selectedSegment] = SegmentationType.Range;
                     break;
-                case "Region Fill":
-                    _regionFillParent.SetActive(true);
+                case "Region Grow":
+                    _regionGrowParent.SetActive(true);
                     _rangeParent.SetActive(false);
-                    _selectedType[_selectedSegment] = SegmentationType.RegionFill;
+                    _selectedType[_selectedSegment] = SegmentationType.RegionGrow;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -305,7 +305,7 @@ namespace DICOMViews
         private enum SegmentationType
         {
             Range,
-            RegionFill
+            RegionGrow
         }
     }
 }

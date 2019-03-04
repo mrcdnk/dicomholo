@@ -73,6 +73,10 @@ namespace DICOMViews
             Slice2DView.OnPointSelected.AddListener(SegmentConfiguration.UpdateRegionSeed);
 
             MainMenu.DisableButtons();
+
+#if PRINT_USAGE
+            Debug.Log("test");
+#endif
         }
 	
         // Update is called once per frame

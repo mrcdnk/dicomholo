@@ -258,12 +258,12 @@ namespace Segmentation
         /// <param name="tintColor">the color to use for tinting</param>
         public static Color32 TintVolume(Color32 target, Color32 tintColor)
         {
-            const float tintA = 0.3f;
-            const float tA = 1 - tintA;
+            var a1 = target.a / (float)byte.MaxValue;
+            var a2 = tintColor.a / (float)byte.MaxValue;
 
-            target.r = (byte) (target.r * tA + tintA * tintColor.r);
-            target.g = (byte) (target.g * tA + tintA * tintColor.g);
-            target.b = (byte) (target.b * tA + tintA * tintColor.b);
+            target.r = (byte)((1f - a1) * a2 * tintColor.r + a1 * target.r);
+            target.g = (byte)((1f - a1) * a2 * tintColor.g + a1 * target.g);
+            target.b = (byte)((1f - a1) * a2 * tintColor.b + a1 * target.b);
 
             return target;
         }

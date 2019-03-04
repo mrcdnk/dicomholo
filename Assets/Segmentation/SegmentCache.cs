@@ -250,7 +250,7 @@ namespace Segmentation
 
                             if (hideBaseData)
                             {
-                                pixelColors[idx].a = (byte) Math.Min(pixelColors[idx].a*1.1, 255);
+                                pixelColors[idx].a = (byte) Math.Min(pixelColors[idx].a*1.05, 255);
                             }
 
                             inAny = true;

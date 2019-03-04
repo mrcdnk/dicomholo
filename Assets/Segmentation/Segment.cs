@@ -196,7 +196,7 @@ namespace Segmentation
                 {
                     var index = z * Width + y;
 
-                    Color32 color = GetColor(id, y, z);
+                    var color = GetColor(id, y, z);
 
                     if (color != Color.clear)
                     {
@@ -277,23 +277,16 @@ namespace Segmentation
         /// <returns></returns>
         private static Color32 OverlapColors(Color32 c1, Color32 c2)
         {
-            var color = new Color32();
-
             var a1 = c1.a / (float)byte.MaxValue;
             var a2 = c2.a / (float)byte.MaxValue;
 
-            color.a = (byte) ((1f - a1) * c2.a + c1.a);
+            c1.a = (byte) ((1f - a1) * c2.a + c1.a);
 
-            if (color.a == 0)
-            {
-                return c1;
-            }
+            c1.r = (byte) ((1f - a1) * a2 * c2.r + a1 * c1.r);
+            c1.g = (byte) ((1f - a1) * a2 * c2.g + a1 * c1.g);
+            c1.b = (byte) ((1f - a1) * a2 * c2.b + a1 * c1.b);
 
-            color.r = (byte) ((1f - a1) * a2 * c2.r + a1 * c1.r);
-            color.g = (byte) ((1f - a1) * a2 * c2.g + a1 * c1.g);
-            color.b = (byte) ((1f - a1) * a2 * c2.b + a1 * c1.b);
-
-            return color;
+            return c1;
         }
 
     }

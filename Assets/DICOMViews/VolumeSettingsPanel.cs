@@ -26,6 +26,22 @@ namespace DICOMViews
 
         private CullAxis _currentConfig = CullAxis.X;
 
+#if PRINT_USAGE
+        private void OnApplicationQuit()
+        {
+            Debug.Log(Time.time +
+                      $" : Ended with Settings (Intensity: {_intensitySlider.CurrentDouble:0.00}," +
+                      $" Opacity: {_opacitySlider.CurrentDouble:0.00}, " +
+                      $"StepCount: {_stepCountSlider.CurrentInt}, " +
+                      $"xMin: {_volumeRendering.sliceXMin}, " +
+                      $"xMax: {_volumeRendering.sliceXMax}, " +
+                      $"yMin: {_volumeRendering.sliceZMin}, " +
+                      $"yMax: {_volumeRendering.sliceZMax}, " +
+                      $"zMin: {_volumeRendering.sliceZMin}, " +
+                      $"zMax: {_volumeRendering.sliceZMax}) ");
+        }  
+#endif
+
         /// <summary>
         /// Changes the currently selected cull axis to the X Axis
         /// </summary>

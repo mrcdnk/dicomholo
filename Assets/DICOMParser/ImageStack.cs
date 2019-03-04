@@ -271,6 +271,11 @@ namespace DICOMParser
         /// <returns>IEnumerator for usage as a coroutine</returns>
         private IEnumerator CreateTextures(ThreadGroupState threadGroupState)
         {
+#if PRINT_USAGE
+            Debug.Log(Time.time +
+                      $" : Started Creating Textures with Window (Center {WindowCenter}, Width {WindowWidth})");
+#endif
+
             _transversalTexture2Ds = new Texture2D[_dicomFiles.Length];
             _frontalTexture2Ds = new Texture2D[Height];
             _sagittalTexture2Ds = new Texture2D[Width];
@@ -522,6 +527,11 @@ namespace DICOMParser
         /// <param name="threadCount">Amount of Threads to use</param>
         private void StartCreatingVolume(ThreadGroupState groupState, IReadOnlyList<DiFile> files, IReadOnlyList<int> data, IList<Color32> target, double windowWidth, double windowCenter, int threadCount)
         {
+#if PRINT_USAGE
+            Debug.Log(Time.time +
+                      $" : Started Creating Volume with Window (Center {WindowCenter}, Width {WindowWidth})");
+#endif
+
             var spacing = files.Count / threadCount;
 
             for (var i = 0; i < threadCount; ++i)
@@ -554,9 +564,10 @@ namespace DICOMParser
         /// <param name="windowCenter">Option to set custom windowCenter, Double.MinValue to not use it</param>
         /// <param name="start">Start index used to determine partition of images to be computed</param>
         /// <param name="end">End index used to determine upper bound of partition of images to be computed</param>
-        private static void CreateVolume(ThreadGroupState groupState, IReadOnlyList<int> data, IReadOnlyList<DiFile> dicomFiles, int width, int height,
+        private void CreateVolume(ThreadGroupState groupState, IReadOnlyList<int> data, IReadOnlyList<DiFile> dicomFiles, int width, int height,
             IList<Color32> target, double windowWidth, double windowCenter, int start, int end)
         {
+
             var idx = start*width*height;
 
             for (var z = start; z < end; ++z)

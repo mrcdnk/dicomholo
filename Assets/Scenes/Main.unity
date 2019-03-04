@@ -2453,6 +2453,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: RotationObjectParent
       objectReference: {fileID: 0}
+    - target: {fileID: 3292339273379810249, guid: b5e75492b5105264cb239616c46642a0,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3292339273379810248, guid: b5e75492b5105264cb239616c46642a0,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -2763,8 +2768,29 @@ PrefabInstance:
       propertyPath: RotationMode
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 7647724379369410316, guid: 128bc1315d2cc404186d75bb4d54f6c2,
+        type: 3}
+      propertyPath: UseRemove
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5643881803149391263, guid: 128bc1315d2cc404186d75bb4d54f6c2,
+        type: 3}
+      propertyPath: buttons.Array.data[1].ManipulationPosition
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5643881803149391263, guid: 128bc1315d2cc404186d75bb4d54f6c2,
+        type: 3}
+      propertyPath: buttons.Array.data[1].DefaultPosition
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 128bc1315d2cc404186d75bb4d54f6c2, type: 3}
+--- !u!1 &8123459522528463848 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8123459522528463848, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab,
+    type: 3}
+  m_PrefabInstance: {fileID: 8123459523230305863}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8123459523230305863
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2777,6 +2803,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: SegmentConfiguration
       objectReference: {fileID: 0}
+    - target: {fileID: 8123459522808119231, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab,
+        type: 3}
+      propertyPath: _regionGrowParent
+      value: 
+      objectReference: {fileID: 8123459522528463848}
     - target: {fileID: 8123459522808119216, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab,
         type: 3}
       propertyPath: m_LocalPosition.x

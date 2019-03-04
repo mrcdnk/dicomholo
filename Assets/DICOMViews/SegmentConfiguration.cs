@@ -61,6 +61,11 @@ namespace DICOMViews
 
         private readonly SegmentationType[] _selectedType = new SegmentationType[SegmentCache.MaxSegmentCount];
 
+#if PRINT_USAGE
+        private int _numberRangeCreations = 0;
+        private int _numberRegionCreations = 0;
+#endif
+
         // Start is called before the first frame update
         private void Start()
         {
@@ -149,10 +154,27 @@ namespace DICOMViews
                 case SegmentationType.Range:
                     _segmentCache.CreateSegment(SegmentCache.GetSelector(_selectedSegment), _rangeSegmentation,
                         _rangeParameters[_selectedSegment], false);
+
+#if PRINT_USAGE
+                    _numberRangeCreations++;
+                    Debug.Log(Time.time +
+                              $" : Started Creating Range Segment number {_numberRangeCreations} (min {_rangeParameters[_selectedSegment].Lower:N0}, max {_rangeParameters[_selectedSegment].Upper:N0})");
+#endif
+
                     break;
                 case SegmentationType.RegionGrow:
                     _segmentCache.CreateSegment(SegmentCache.GetSelector(_selectedSegment), _regionGrowSegmentation,
                         _regionGrowParameters[_selectedSegment]);
+
+#if PRINT_USAGE
+                    _numberRegionCreations++;
+                    Debug.Log(Time.time +
+                              $" : Started Creating Region Grow Segment number {_numberRegionCreations} (seedX {_regionGrowParameters[_selectedSegment].X:N0}," +
+                              $" seedY {_regionGrowParameters[_selectedSegment].Y:N0}," +
+                              $" seedZ {_regionGrowParameters[_selectedSegment].X:N0}," +
+                              $" threshold {_regionGrowParameters[_selectedSegment].Threshold:N0})");
+#endif
+
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

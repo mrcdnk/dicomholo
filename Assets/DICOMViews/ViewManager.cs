@@ -73,10 +73,6 @@ namespace DICOMViews
             Slice2DView.OnPointSelected.AddListener(SegmentConfiguration.UpdateRegionSeed);
 
             MainMenu.DisableButtons();
-
-#if PRINT_USAGE
-            Debug.Log("test");
-#endif
         }
 	
         // Update is called once per frame
@@ -294,11 +290,23 @@ namespace DICOMViews
         /// <param name="hideBase">new state of visibility</param>
         private void HideBaseChanged(bool hideBase)
         {
+#if PRINT_USAGE
+            Debug.Log(Time.time +
+                      $" : Set hide base data to {hideBase}.");
+#endif
+
             if (_stack.VolumeTexture)
             {
                 CreateVolume();
             }
         }
+
+#if PRINT_USAGE
+        private void OnApplicationQuit()
+        {
+            Debug.Log(Time.time +" : Application closed.");    
+        }
+#endif
 
         /// <summary>
         /// Visibility of a segment in 2D has changed

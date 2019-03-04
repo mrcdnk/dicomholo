@@ -16,6 +16,10 @@ namespace DICOMViews
 
         public PixelClicked PixelClick = new PixelClicked();
 
+#if UNITY_EDITOR
+        private bool _clicked = false;
+#endif
+
         // Start is called before the first frame update
         private void Start()
         {
@@ -32,6 +36,15 @@ namespace DICOMViews
 
             RectTransformUtility.ScreenPointToLocalPointInRectangle(GetComponent<RectTransform>(),
                 eventData.pressPosition, _mainCamera, out position);
+#if UNITY_EDITOR
+            if (_clicked)
+            {
+                _clicked = false;
+                return;
+            }
+
+            _clicked = true;
+#endif
 
             OnPixelSelected(position);
         }
@@ -47,6 +60,15 @@ namespace DICOMViews
             Vector2 position;
 
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_rectTransform, _mainCamera.WorldToScreenPoint(_cursor.Position), _mainCamera, out position);
+#if UNITY_EDITOR
+            if (_clicked)
+            {
+                _clicked = false;
+                return;
+            }
+
+            _clicked = true;
+#endif
 
             OnPixelSelected(position);
         }

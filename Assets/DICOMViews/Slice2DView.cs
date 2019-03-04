@@ -41,6 +41,10 @@ namespace DICOMViews
 
         private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
 
+#if PRINT_USAGE
+        private int _numberClicks = 0;
+#endif
+
         // Use this for initialization
         private void Start()
         {
@@ -205,6 +209,12 @@ namespace DICOMViews
         private void OnPixelClicked(float x, float y)
         {
             int xCoord, yCoord;
+
+#if PRINT_USAGE
+            _numberClicks++;
+            Debug.Log(Time.time +
+                      $" : Click on 2D View number {_numberClicks})");
+#endif
 
             switch (CurrentSliceType)
             {

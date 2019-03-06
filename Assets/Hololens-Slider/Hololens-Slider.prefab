@@ -230,7 +230,7 @@ Transform:
   m_GameObject: {fileID: 1298640672643642}
   m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.75, y: 0.65, z: 0.75}
+  m_LocalScale: {x: 0.75, y: 0.6, z: 0.75}
   m_Children:
   - {fileID: 4112852092093374}
   m_Father: {fileID: 4002252708272972}
@@ -730,11 +730,8 @@ MonoBehaviour:
     m_TypeName: SliderChangedEvent, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
   SliderName: Hololens-Slider
-  _minValue: 0
   MinimumLabel: 
-  _maxValue: 100
   MaximumLabel: 
-  _currentValue: 0.5
   DisplayInt: 1
   ButtonColor:
     ButtonColorOffFocusArr:
@@ -747,10 +744,13 @@ MonoBehaviour:
     - 0
     - 0
     - 0
-  ButtonColorOffFocus: {r: 0.11580883, g: 0.7179258, b: 0.95, a: 1}
-  ButtonColorOnFocus: {r: 0.11580887, g: 0.95, b: 0.2845996, a: 1}
   LeftPivot: {fileID: 4305198320474564}
   RightPivot: {fileID: 4933048356643136}
+  _buttonColorOffFocus: {r: 0, g: 0, b: 0, a: 0}
+  _buttonColorOnFocus: {r: 0, g: 0, b: 0, a: 0}
+  _minValue: 0
+  _maxValue: 100
+  _currentValue: 0.5
 --- !u!1 &1482778912446858
 GameObject:
   m_ObjectHideFlags: 0
@@ -779,7 +779,7 @@ Transform:
   m_GameObject: {fileID: 1482778912446858}
   m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: -1, y: 0, z: 0}
-  m_LocalScale: {x: 0.125, y: 0.1, z: 0.125}
+  m_LocalScale: {x: 0.125, y: 0.07, z: 0.125}
   m_Children:
   - {fileID: 4305198320474564}
   m_Father: {fileID: 4138342134008004}
@@ -867,8 +867,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1607023960933748}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
-  m_LocalScale: {x: 6, y: 13.333346, z: 6}
+  m_LocalPosition: {x: 0, y: 1.2, z: 0}
+  m_LocalScale: {x: 6, y: 13, z: 6}
   m_Children:
   - {fileID: 4899166085834194}
   m_Father: {fileID: 4694671241007114}
@@ -902,7 +902,7 @@ Transform:
   m_GameObject: {fileID: 1707370720485626}
   m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 1, y: 0, z: 0}
-  m_LocalScale: {x: 0.125, y: 0.1, z: 0.125}
+  m_LocalScale: {x: 0.125, y: 0.07, z: 0.125}
   m_Children:
   - {fileID: 4933048356643136}
   m_Father: {fileID: 4138342134008004}
@@ -990,8 +990,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1750814194156608}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: -1, z: 0}
-  m_LocalScale: {x: 6.0000143, y: 13.160235, z: 6}
+  m_LocalPosition: {x: -0, y: -1.2, z: 0}
+  m_LocalScale: {x: 6, y: 13, z: 6}
   m_Children:
   - {fileID: 4023910660444790}
   m_Father: {fileID: 4748906103834810}

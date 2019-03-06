@@ -995,6 +995,7 @@ MonoBehaviour:
   WindowSettingsPanel: {fileID: 1398949384}
   Slice2DView: {fileID: 1833758475}
   VolumeRenderingParent: {fileID: 726696985}
+  RotationObjectParent: {fileID: 1155307234}
   VolumeRendering: {fileID: 166456799}
   SegmentConfiguration: {fileID: 425062904}
   Volume: {fileID: 2014706675}
@@ -1013,6 +1014,12 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1155307234 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3292339273379810249, guid: b5e75492b5105264cb239616c46642a0,
+    type: 3}
+  m_PrefabInstance: {fileID: 3292339274507192843}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1211682603
 GameObject:
   m_ObjectHideFlags: 0

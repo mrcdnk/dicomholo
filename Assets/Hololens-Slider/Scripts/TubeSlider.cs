@@ -209,16 +209,22 @@ public class TubeSlider : MonoBehaviour
         if (!_cursor) return;
 
         _movementDistance = Vector3.Project(_cursor.transform.position - _start, _sliderVector.normalized);
+
+        if (_movementDistance.magnitude > _sliderVector.magnitude)
+        {
+            _movementDistance = _sliderVector;
+        }
+
         _newPosition = _start + _movementDistance;
 
         _newPositionVector = _movementDistance;
 
-        var clickedValue = _newPositionVector.magnitude/_sliderVector.magnitude;
+        var clickedValue = Math.Min(Math.Abs(_newPositionVector.magnitude / _sliderVector.magnitude), 1);
 
         _angleMinBound = AngleDir(transform.forward, _newPositionVector, transform.up);
         _angleMaxBound = AngleDir(transform.forward, _end - _newPosition, transform.up);
 
-        if (_angleMinBound == -1f || _angleMaxBound == -1f || !(clickedValue >= 0) || !(clickedValue <= 1)) return;
+        if (_angleMinBound == -1f || _angleMaxBound == -1f) return;
 
         _button.transform.position = _newPosition;
         CurrentPercentage = clickedValue;
@@ -258,6 +264,7 @@ public class TubeSlider : MonoBehaviour
         _button.GetComponent<Renderer>().material.color = _buttonColorOnFocus;
 
         _movementDistance = Vector3.Project(eventData.CumulativeDelta, _sliderVector.normalized);
+
         _newPosition = _prevPosition + _movementDistance;
 
         _newPositionVector = _newPosition - _start;

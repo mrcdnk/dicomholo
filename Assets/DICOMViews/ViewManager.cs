@@ -19,6 +19,7 @@ namespace DICOMViews
         public Slice2DView Slice2DView;
 
         public GameObject VolumeRenderingParent;
+        public GameObject RotationObjectParent;
         public VolumeRendering.VolumeRendering VolumeRendering;
 
         public SegmentConfiguration SegmentConfiguration;
@@ -64,6 +65,7 @@ namespace DICOMViews
             WindowSettingsPanel.gameObject.SetActive(false);
             //Volume.SetActive(false);
             VolumeRenderingParent.SetActive(false);
+            RotationObjectParent.SetActive(false);
             Slice2DView.gameObject.SetActive(false);
             SegmentConfiguration.transform.gameObject.SetActive(false);
             SegmentConfiguration.OnSelectionChanged2D.AddListener(SelectionChanged2D);
@@ -217,6 +219,7 @@ namespace DICOMViews
             VolumeRendering.SetVolume(_stack.VolumeTexture);
             StartCoroutine(_segmentCache.ApplySegments(_stack.VolumeTexture, SegmentConfiguration.Display3Ds, SegmentConfiguration.HideBase));
             VolumeRenderingParent.SetActive(true);
+            RotationObjectParent.SetActive(true);
 
             //RayMarching.initVolume(_stack.VolumeTexture);
             //Volume.SetActive(true);

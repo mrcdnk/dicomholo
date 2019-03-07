@@ -5,6 +5,7 @@
 [Bb]uilds/
 Assets/AssetStoreTools*
 Assets/Editor/*
+Assets/Editor.meta
 Assets/StreamingAssets/*
 
 # Visual Studio cache directory

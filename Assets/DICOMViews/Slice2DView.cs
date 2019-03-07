@@ -213,7 +213,7 @@ namespace DICOMViews
 #if PRINT_USAGE
             _numberClicks++;
             Debug.Log(Time.time +
-                      $" : Click on 2D View number {_numberClicks})");
+                      $" : Click on 2D View number {_numberClicks}");
 #endif
 
             switch (CurrentSliceType)

@@ -167,6 +167,9 @@ namespace DICOMViews
                 GameObject.FindGameObjectWithTag("DebugText").GetComponent<Text>().text = e.ToString();
             }
 
+            _segmentCache.InitializeTextures();
+            SegmentConfiguration.transform.gameObject.SetActive(true);
+
             PreProcessData();
         }
 
@@ -189,12 +192,25 @@ namespace DICOMViews
 
             MainMenu.EnableButtons();
             MainMenu.EnableDropDown();
+            var preview = MainMenu.PreviewImage.texture as Texture2D;
 
-            _segmentCache.InitializeTextures();
+            if (!preview)
+            {
+                // Could be avoided if single preloaded texture would be stored in imagestack to save memory
+                preview = new Texture2D(_stack.Width, _stack.Height, TextureFormat.ARGB32, false);
+                MainMenu.PreviewImage.texture = preview;
+            }
+
+            var pixels = preview.GetPixels32();
+
+            ImageStack.FillPixelsTransversal(_stack.Slices/2, _stack.GetData(), _stack.Width, _stack.Height, _stack.DicomFiles, pixels);
+
+            preview.SetPixels32(pixels);
+            preview.Apply();
+
+            MainMenu.PreviewImage.texture = preview;
 
             _workIndicator.FinishedWork();
-
-            SegmentConfiguration.transform.gameObject.SetActive(true);
         }
 
         /// <summary>
@@ -266,10 +282,8 @@ namespace DICOMViews
         /// <param name="index">index of the texture</param>
         public void TextureUpdated(SliceType type, int index)
         {
-            if (type == SliceType.Transversal && index == 50)
-            {
-                MainMenu.SetPreviewImage(_stack.GetTexture2D(type, index));
-            }
+
+
         }
 
         /// <summary>

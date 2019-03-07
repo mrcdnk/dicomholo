@@ -61,7 +61,7 @@ namespace DICOMViews
 
             Slice2DView.SegmentCache = _segmentCache;
 
-            WindowSettingsPanel.SettingsChangedEvent.AddListener(OnWindowSettingsChanged);
+            WindowSettingsPanel.OnSettingsChangedEvent.AddListener(OnWindowSettingsChanged);
             WindowSettingsPanel.gameObject.SetActive(false);
             //Volume.SetActive(false);
             VolumeRenderingParent.SetActive(false);

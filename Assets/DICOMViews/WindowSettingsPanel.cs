@@ -20,7 +20,7 @@ namespace DICOMViews
         public Button LoadTextures;
         public Button LoadVolume;
 
-        public WindowSettingsChanged SettingsChangedEvent = new WindowSettingsChanged();
+        public WindowSettingsChanged OnSettingsChangedEvent = new WindowSettingsChanged();
 
         public double WindowWidth { get; private set; } = double.MinValue;
         public double WindowCenter { get; private set; } = double.MinValue;
@@ -33,13 +33,13 @@ namespace DICOMViews
             WidthSlider.SliderChangedEvent.AddListener(delegate(TubeSlider tubeSlider)
             {
                 WindowWidth = tubeSlider.CurrentInt;
-                SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);          
+                OnSettingsChangedEvent.Invoke(WindowWidth, WindowCenter);          
             });
 
             CenterSlider.SliderChangedEvent.AddListener(delegate(TubeSlider tubeSlider)
             {
                 WindowCenter = tubeSlider.CurrentInt;
-                SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
+                OnSettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
             });
 
             DefaultSettings.onValueChanged.AddListener(OnPresetSelected);
@@ -58,7 +58,7 @@ namespace DICOMViews
             WidthSlider.CurrentDouble = WindowWidth;
             CenterSlider.CurrentDouble = WindowCenter;
 
-            SettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
+            OnSettingsChangedEvent.Invoke(WindowWidth, WindowCenter);
         }
 
         /// <summary>

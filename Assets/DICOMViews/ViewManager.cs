@@ -194,7 +194,7 @@ namespace DICOMViews
             MainMenu.EnableDropDown();
             var preview = MainMenu.PreviewImage.texture as Texture2D;
 
-            if (!preview)
+            if (!preview || preview.width != _stack.Width || preview.height != _stack.Height)
             {
                 // Could be avoided if single preloaded texture would be stored in imagestack to save memory
                 preview = new Texture2D(_stack.Width, _stack.Height, TextureFormat.ARGB32, false);
@@ -292,7 +292,6 @@ namespace DICOMViews
         /// <param name="selector">The selector for the modified segment</param>
         private void SegmentChanged(uint selector)
         {
-            //combine selector with user selection and apply it to the cache.
             StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));
 
             if (_stack.VolumeTexture)

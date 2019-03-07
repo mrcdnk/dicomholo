@@ -1591,6 +1591,10 @@ PrefabInstance:
       propertyPath: m_Pivot.y
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 4884057203101676, guid: 77a0c2f0120a4a14f913cb53ec81c67a, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.7
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 77a0c2f0120a4a14f913cb53ec81c67a, type: 3}
 --- !u!1 &1667877332
@@ -2394,12 +2398,12 @@ PrefabInstance:
     - target: {fileID: 2179717894706293723, guid: 6e97a0bc3c3ffab46915372957c70c2b,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 308.7777
+      value: 310
       objectReference: {fileID: 0}
     - target: {fileID: 2179717894706293723, guid: 6e97a0bc3c3ffab46915372957c70c2b,
         type: 3}
       propertyPath: m_SizeDelta.y
-      value: 149.1139
+      value: 150
       objectReference: {fileID: 0}
     - target: {fileID: 2179717894706293723, guid: 6e97a0bc3c3ffab46915372957c70c2b,
         type: 3}
@@ -2446,6 +2450,26 @@ PrefabInstance:
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 1107293237}
+    - target: {fileID: 2174873472294160305, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2175043756224703875, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2174873471010727819, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2175043756417617337, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6e97a0bc3c3ffab46915372957c70c2b, type: 3}
 --- !u!1001 &3292339274507192843
@@ -2888,7 +2912,7 @@ PrefabInstance:
     - target: {fileID: 8123459522808119216, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab,
         type: 3}
       propertyPath: m_SizeDelta.y
-      value: 259.902
+      value: 260
       objectReference: {fileID: 0}
     - target: {fileID: 8123459522808119216, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab,
         type: 3}
@@ -2925,5 +2949,20 @@ PrefabInstance:
       propertyPath: m_Camera
       value: 
       objectReference: {fileID: 1952454581}
+    - target: {fileID: 8119156025963936290, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8119156024667903345, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8119156024104209605, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9b2028f906ffa5e4d8c11fddb6cd6cab, type: 3}

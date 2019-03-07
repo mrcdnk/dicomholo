@@ -1673,11 +1673,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce1d218e765b0f8419473a343d800ff5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _selection: {fileID: 6311821704563706078}
   ProgressHandler: {fileID: 6311821705402653153}
   PreviewImage: {fileID: 6311821705609180329}
   LoadVolumeButton: {fileID: 6311821705536673689}
   Load2DButton: {fileID: 6311821705635198334}
+  _selection: {fileID: 6311821704563706078}
 --- !u!1 &6311821706006618604
 GameObject:
   m_ObjectHideFlags: 0

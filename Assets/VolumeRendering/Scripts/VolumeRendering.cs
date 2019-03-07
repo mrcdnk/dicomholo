@@ -74,7 +74,7 @@ namespace VolumeRendering
 
         private void Update()
         {
-            Quaternion correct = new Quaternion(-AxisRoot.transform.localRotation.x, -AxisRoot.transform.localRotation.z, AxisRoot.transform.localRotation.y, AxisRoot.transform.localRotation.w);
+            var correct = new Quaternion(AxisRoot.transform.localRotation.x , AxisRoot.transform.localRotation.y, AxisRoot.transform.localRotation.z, -AxisRoot.transform.localRotation.w);
 
             material.SetMatrix("_AxisRotationMatrix", Matrix4x4.Rotate(correct));
         }

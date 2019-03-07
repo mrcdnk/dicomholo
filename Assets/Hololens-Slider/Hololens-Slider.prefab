@@ -746,8 +746,8 @@ MonoBehaviour:
     - 0
   LeftPivot: {fileID: 4305198320474564}
   RightPivot: {fileID: 4933048356643136}
-  _buttonColorOffFocus: {r: 0, g: 0, b: 0, a: 0}
-  _buttonColorOnFocus: {r: 0, g: 0, b: 0, a: 0}
+  _buttonColorOffFocus: {r: 0.11580883, g: 0.7179258, b: 0.95, a: 1}
+  _buttonColorOnFocus: {r: 0.3537736, g: 0.9174607, b: 1, a: 1}
   _minValue: 0
   _maxValue: 100
   _currentValue: 0.5

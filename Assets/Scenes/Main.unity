@@ -2450,6 +2450,36 @@ PrefabInstance:
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 1107293237}
+    - target: {fileID: 2281512812882380263, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: _buttonColorOnFocus.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2281512812882380263, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: _buttonColorOnFocus.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2281512812882380263, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: _buttonColorOnFocus.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2281512812882380263, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: _buttonColorOffFocus.r
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2281512812882380263, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: _buttonColorOffFocus.g
+      value: 0.63988155
+      objectReference: {fileID: 0}
+    - target: {fileID: 2281512812882380263, guid: 6e97a0bc3c3ffab46915372957c70c2b,
+        type: 3}
+      propertyPath: _buttonColorOffFocus.b
+      value: 0.8867924
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6e97a0bc3c3ffab46915372957c70c2b, type: 3}
 --- !u!1001 &3292339274507192843

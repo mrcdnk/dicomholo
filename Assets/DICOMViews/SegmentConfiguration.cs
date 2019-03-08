@@ -113,10 +113,10 @@ namespace DICOMViews
             {
                 _selectedType[i] = SegmentationType.Range;
                 _rangeParameters[i] = new RangeSegmentation.RangeParameter(minIntensity, maxIntensity, 2);
-                _regionGrowParameters[i] = new RegionGrowSegmentation.RegionGrowParameter(-1, -1, -1, (int)(_thresholdRegion.MaximumValue/3));
+                _regionGrowParameters[i] = new RegionGrowSegmentation.RegionGrowParameter(-1, -1, -1, (int)(_thresholdRegion.MaximumValue/4));
             }
 
-            _thresholdRegion.CurrentInt = (int)(_thresholdRegion.MaximumValue / 3);
+            _thresholdRegion.CurrentInt = (int)(_thresholdRegion.MaximumValue / 4);
 
             UpdateRegionSeed(-1, -1, -1);
             ValidateCurrentParameters();

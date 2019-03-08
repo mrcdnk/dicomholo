@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using DICOMParser;
+using HoloToolkit.Unity;
+using HoloToolkit.Unity.UX;
 using Segmentation;
 using Threads;
 using UnityEngine;
@@ -26,6 +29,8 @@ namespace DICOMViews
 
         public GameObject Volume;
         public RayMarching RayMarching;
+
+        public GameObject AppBar;
 
         private ImageStack _stack;
         private SegmentCache _segmentCache;
@@ -75,8 +80,9 @@ namespace DICOMViews
             Slice2DView.OnPointSelected.AddListener(SegmentConfiguration.UpdateRegionSeed);
 
             MainMenu.DisableButtons();
+
         }
-	
+
         // Update is called once per frame
         private void Update ()
         {

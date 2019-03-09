@@ -1491,7 +1491,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1988529825147506, guid: 77a0c2f0120a4a14f913cb53ec81c67a, type: 3}
       propertyPath: m_Name
-      value: Simple2DView
+      value: Slice2DView
       objectReference: {fileID: 0}
     - target: {fileID: 224136963035805600, guid: 77a0c2f0120a4a14f913cb53ec81c67a,
         type: 3}
@@ -2470,7 +2470,7 @@ PrefabInstance:
     - target: {fileID: 3292339273379810248, guid: b5e75492b5105264cb239616c46642a0,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.039
+      value: 1.775
       objectReference: {fileID: 0}
     - target: {fileID: 3292339273379810248, guid: b5e75492b5105264cb239616c46642a0,
         type: 3}
@@ -2480,7 +2480,7 @@ PrefabInstance:
     - target: {fileID: 3292339273379810248, guid: b5e75492b5105264cb239616c46642a0,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.877
+      value: 2.109
       objectReference: {fileID: 0}
     - target: {fileID: 3292339273379810248, guid: b5e75492b5105264cb239616c46642a0,
         type: 3}
@@ -2527,6 +2527,31 @@ PrefabInstance:
       propertyPath: RotationSource
       value: 
       objectReference: {fileID: 166456796}
+    - target: {fileID: 3292339274094493064, guid: b5e75492b5105264cb239616c46642a0,
+        type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3292339274094493064, guid: b5e75492b5105264cb239616c46642a0,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3292339274094493064, guid: b5e75492b5105264cb239616c46642a0,
+        type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3292339274094493070, guid: b5e75492b5105264cb239616c46642a0,
+        type: 3}
+      propertyPath: m_CharacterSize
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3292339274094493070, guid: b5e75492b5105264cb239616c46642a0,
+        type: 3}
+      propertyPath: m_FontSize
+      value: 25
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b5e75492b5105264cb239616c46642a0, type: 3}
 --- !u!1001 &6311821704752034179

@@ -26,7 +26,7 @@ namespace DICOMViews
 
         public SegmentCache SegmentCache;
         public PointSelected OnPointSelected = new PointSelected();
-        public Color SelectionColor = Color.yellow;
+        public Color SelectionColor = new Color(255, 20, 147);
         public SliceType CurrentSliceType { get; private set; } = SliceType.Transversal;
 
         private ImageStack _imageStack;
@@ -69,7 +69,7 @@ namespace DICOMViews
             SliceSlider.MaximumValue = _imageStack.GetMaxValue(CurrentSliceType);
             SliceSlider.CurrentInt = _selection.GetValue(CurrentSliceType, 0);
 
-            _pixelClickHandler.PixelClick.AddListener(OnPixelClicked);
+            _pixelClickHandler.OnPixelClick.AddListener(OnPixelClicked);
 
             try
             {
@@ -253,12 +253,11 @@ namespace DICOMViews
                 return;
             }
 
-            if (_hasBeenClicked && _lastClickX > -1 && _lastClickY > -1)
-            {
-                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
-            }
+            ResetClick();
+
 
             tex.SetPixel(x, y, SelectionColor);
+
             tex.Apply();
 
             _lastClickX = x;
@@ -273,9 +272,9 @@ namespace DICOMViews
         {  
             var tex = ClickDisplay.texture as Texture2D;
 
-            if (tex)
+            if (tex && _hasBeenClicked && _lastClickX > -1 && _lastClickY > -1)
             {
-                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);        
+                tex.SetPixel(_lastClickX, _lastClickY, Color.clear);
                 tex.Apply();
             }
 

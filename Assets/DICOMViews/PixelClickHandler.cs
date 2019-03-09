@@ -14,7 +14,7 @@ namespace DICOMViews
         private RectTransform _rectTransform;
         private Slice2DView _slice2DView;
 
-        public PixelClicked PixelClick = new PixelClicked();
+        public PixelClicked OnPixelClick = new PixelClicked();
 
 #if UNITY_EDITOR
         private bool _clicked = false;
@@ -91,7 +91,7 @@ namespace DICOMViews
             xCur = xCur / xRange;
             yCur = yCur / yRange;
 
-            PixelClick.Invoke(xCur, yCur);
+            OnPixelClick.Invoke(xCur, yCur);
         }
 
     }

@@ -2,7 +2,6 @@
 using DICOMViews.Events;
 using Segmentation;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace DICOMViews
@@ -13,8 +12,8 @@ namespace DICOMViews
     /// </summary>
     public class SegmentConfiguration : MonoBehaviour
     {
-        public uint Display2Ds = 0xFFFFFFFF;
-        public uint Display3Ds = 0xFFFFFFFF;
+        [HideInInspector] public uint Display2Ds = 0xFFFFFFFF;
+        [HideInInspector] public uint Display3Ds = 0xFFFFFFFF;
         public bool HideBase = false;
 
         public SegmentVisibilityChanged OnSelectionChanged2D = new SegmentVisibilityChanged();

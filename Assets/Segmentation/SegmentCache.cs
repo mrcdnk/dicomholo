@@ -441,17 +441,28 @@ namespace Segmentation
         /// </summary>
         /// <param name="selector">The source selector</param>
         /// <param name="index">Index of the bit.</param>
+        /// <param name="value">Value to set for the given index</param>
         /// <returns>Modified selector.</returns>
-        public static uint ToggleIndex(uint selector, int index)
+        public static uint SetIndex(uint selector, int index, bool value = true)
         {            
             var sel = GetSelector(index);
 
-            if ((sel & selector) == 0)
+            if ((sel & selector) == 0 && value)
             {
                 return selector | sel;
             }
 
-            return selector & (~sel);
+            if ((sel & selector) == 0)
+            {
+                return selector;
+            }
+
+            if (!value)
+            {
+                return selector & (~sel);
+            }
+
+            return selector;
         }
 
         /// <summary>

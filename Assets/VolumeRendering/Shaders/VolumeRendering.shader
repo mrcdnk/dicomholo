@@ -10,10 +10,6 @@
 		_SliceMax ("Slice max", Vector) = (1.0, 1.0, 1.0, -1.0)
 	}
 
-	CGINCLUDE
-
-	ENDCG
-
 	SubShader {
 		Cull Back
 		Tags{ "Queue" = "Transparent" "RenderType" = "Transparent" "IgnoreProjector" = "True" }

@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using DICOMParser;
-using HoloToolkit.Unity;
-using HoloToolkit.Unity.UX;
 using Segmentation;
 using Threads;
 using UnityEngine;
@@ -57,7 +54,6 @@ namespace DICOMViews
             MainMenu.AddDropdownOptions(names);
 
             _stack = gameObject.AddComponent<ImageStack>();
-            _stack.OnTextureUpdate.AddListener(TextureUpdated);
             _stack.OnTextureUpdate.AddListener(Slice2DView.TextureUpdated);
 
             _segmentCache = gameObject.AddComponent<SegmentCache>();
@@ -66,12 +62,15 @@ namespace DICOMViews
 
             Slice2DView.SegmentCache = _segmentCache;
 
-            WindowSettingsPanel.OnSettingsChangedEvent.AddListener(OnWindowSettingsChanged);
+            WindowSettingsPanel.OnSettingsChangedEvent.AddListener(_stack.OnWindowSettingsChanged);
             WindowSettingsPanel.gameObject.SetActive(false);
+
             //Volume.SetActive(false);
             VolumeRenderingParent.SetActive(false);
             RotationObjectParent.SetActive(false);
+
             Slice2DView.gameObject.SetActive(false);
+
             SegmentConfiguration.transform.gameObject.SetActive(false);
             SegmentConfiguration.OnSelectionChanged2D.AddListener(SelectionChanged2D);
             SegmentConfiguration.OnSelectionChanged3D.AddListener(SelectionChanged3D);
@@ -115,17 +114,6 @@ namespace DICOMViews
             }
 
             MainMenu.ProgressHandler.Value = progress;
-        }
-        
-        /// <summary>
-        /// Window Settings have been changed.
-        /// </summary>
-        /// <param name="winWidth">new window width</param>
-        /// <param name="winCenter">new window center</param>
-        private void OnWindowSettingsChanged(double winWidth, double winCenter)
-        {
-            _stack.WindowWidth = winWidth;
-            _stack.WindowCenter = winCenter;
         }
 
         /// <summary>
@@ -279,17 +267,6 @@ namespace DICOMViews
             WindowSettingsPanel.EnableButtons();
 
             StartCoroutine(_segmentCache.ApplyTextures(SegmentConfiguration.Display2Ds, true));
-        }
-
-        /// <summary>
-        /// Texture has been modified.
-        /// </summary>
-        /// <param name="type">SliceType of the texture</param>
-        /// <param name="index">index of the texture</param>
-        public void TextureUpdated(SliceType type, int index)
-        {
-
-
         }
 
         /// <summary>

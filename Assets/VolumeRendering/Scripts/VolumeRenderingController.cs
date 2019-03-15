@@ -17,24 +17,24 @@ namespace VolumeRendering
             const float threshold = 0.025f;
 
             sliderXMin.onValueChanged.AddListener((v) => {
-                volume.sliceXMin = sliderXMin.value = Mathf.Min(v, volume.sliceXMax - threshold);
+                volume.SliceXMin = sliderXMin.value = Mathf.Min(v, volume.SliceXMax - threshold);
             });
             sliderXMax.onValueChanged.AddListener((v) => {
-                volume.sliceXMax = sliderXMax.value = Mathf.Max(v, volume.sliceXMin + threshold);
+                volume.SliceXMax = sliderXMax.value = Mathf.Max(v, volume.SliceXMin + threshold);
             });
             
             sliderYMin.onValueChanged.AddListener((v) => {
-                volume.sliceYMin = sliderYMin.value = Mathf.Min(v, volume.sliceYMax - threshold);
+                volume.SliceYMin = sliderYMin.value = Mathf.Min(v, volume.SliceYMax - threshold);
             });
             sliderYMax.onValueChanged.AddListener((v) => {
-                volume.sliceYMax = sliderYMax.value = Mathf.Max(v, volume.sliceYMin + threshold);
+                volume.SliceYMax = sliderYMax.value = Mathf.Max(v, volume.SliceYMin + threshold);
             });
 
             sliderZMin.onValueChanged.AddListener((v) => {
-                volume.sliceZMin = sliderZMin.value = Mathf.Min(v, volume.sliceZMax - threshold);
+                volume.SliceZMin = sliderZMin.value = Mathf.Min(v, volume.SliceZMax - threshold);
             });
             sliderZMax.onValueChanged.AddListener((v) => {
-                volume.sliceZMax = sliderZMax.value = Mathf.Max(v, volume.sliceZMin + threshold);
+                volume.SliceZMax = sliderZMax.value = Mathf.Max(v, volume.SliceZMin + threshold);
             });
 
         }

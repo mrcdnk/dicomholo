@@ -114,7 +114,7 @@ fixed4 frag(v2f i) : SV_Target
   float3 end = ray.origin + ray.dir * tfar;
   float dist = abs(tfar - tnear); // float dist = distance(start, end);
   float step_size = dist / float(_StepCount);
-  float3 ds = normalize(end - start) * step_size;
+  float3 ds = ray.dir * step_size;
 
   float4 dst = float4(0, 0, 0, 0);
   float3 p = start;
@@ -132,7 +132,7 @@ fixed4 frag(v2f i) : SV_Target
     // blend
     dst = (1.0 - dst.a) * src + dst;
 
-	if (dst.a > _AlphaCutoff) {
+	if (dst.a >= _AlphaCutoff) {
 		break;
 	}
 

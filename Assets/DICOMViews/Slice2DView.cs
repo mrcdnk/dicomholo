@@ -37,6 +37,8 @@ namespace DICOMViews
 
         private bool _hasBeenClicked = false;
 
+        private bool _ignoreSliderChanges = false;
+
         [SerializeField] private Color32 _segmentTransparency = new Color32(255, 255, 255, 75);
 
         private readonly Dictionary<SliceType, int> _selection = new Dictionary<SliceType, int>();
@@ -59,6 +61,11 @@ namespace DICOMViews
         /// </summary>
         public void Initialize(ImageStack imageStack)
         {
+            foreach (var type in Enum.GetValues(typeof(SliceType)).Cast<SliceType>())
+            {
+                _selection[type] = 0;
+            }
+
             if (_pixelClickHandler == null)
             {
                 _pixelClickHandler = gameObject.GetComponentInChildren<PixelClickHandler>();
@@ -136,7 +143,9 @@ namespace DICOMViews
         public void Show(SliceType type)
         {
             CurrentSliceType = type;
+            _ignoreSliderChanges = true;
             SliceSlider.MaximumValue = _imageStack.GetMaxValue(CurrentSliceType);
+            _ignoreSliderChanges = false;
             SliceSlider.CurrentInt = _selection[CurrentSliceType];
 
             Display.texture = _imageStack.GetTexture2D(CurrentSliceType, _selection[CurrentSliceType]);
@@ -158,7 +167,7 @@ namespace DICOMViews
         /// <param name="slider">Slider that was changed</param>
         public void SelectionChanged(TubeSlider slider)
         {
-            if (_selection.Count == Enum.GetNames(typeof(SliceType)).Length && Display != null && _imageStack != null)
+            if (_selection.Count == Enum.GetNames(typeof(SliceType)).Length && Display != null && _imageStack != null && !_ignoreSliderChanges)
             {
                 _selection[CurrentSliceType] = slider.CurrentInt;
 

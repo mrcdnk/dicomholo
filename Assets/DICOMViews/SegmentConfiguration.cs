@@ -95,7 +95,7 @@ namespace DICOMViews
         {
             _segmentCache = cache;
 
-            _segmentCache.SegmentChanged.AddListener(delegate (uint segment)
+            _segmentCache.SegmentChanged.AddListener(delegate
             {
                 ValidateCurrentParameters();
             });
@@ -107,6 +107,8 @@ namespace DICOMViews
             _maxRange.MaximumValue = maxIntensity;
             _thresholdRegion.MinimumValue = 0;
             _thresholdRegion.MaximumValue = (maxIntensity - minIntensity) / 2f;
+
+            _segmentationStrategyChoice.value = 0;
 
             for (var i = 0; i < SegmentCache.MaxSegmentCount; i++)
             {
@@ -120,6 +122,10 @@ namespace DICOMViews
             UpdateRegionSeed(-1, -1, -1);
             ValidateCurrentParameters();
             _dontSendToggleEvent = true;
+
+            Display2Ds = 0xFFFFFFFF;
+            Display3Ds = 0xFFFFFFFF;
+
             UpdateToggles();
             _dontSendToggleEvent = false;
         }
@@ -189,7 +195,7 @@ namespace DICOMViews
         private void Toggle2D(bool b)
         {
             if(_dontSendToggleEvent) return;
-            Display2Ds = SegmentCache.ToggleIndex(Display2Ds, _selectedSegment);
+            Display2Ds = SegmentCache.SetIndex(Display2Ds, _selectedSegment, b);
             OnSelectionChanged2D.Invoke(Display2Ds);
         }
 
@@ -200,7 +206,7 @@ namespace DICOMViews
         private void Toggle3D(bool b)
         {
             if (_dontSendToggleEvent) return;
-            Display3Ds = SegmentCache.ToggleIndex(Display3Ds, _selectedSegment);
+            Display3Ds = SegmentCache.SetIndex(Display3Ds, _selectedSegment, b);
             OnSelectionChanged3D.Invoke(Display3Ds);
         }
 

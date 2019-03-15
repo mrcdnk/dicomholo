@@ -225,6 +225,17 @@ namespace DICOMParser
         }
 
         /// <summary>
+        /// Window Settings have been changed.
+        /// </summary>
+        /// <param name="windowWidth">new window width</param>
+        /// <param name="windowCenter">new window center</param>
+        public void OnWindowSettingsChanged(double windowWidth, double windowCenter)
+        {
+            WindowWidth = windowWidth;
+            WindowCenter = windowCenter;
+        }
+
+        /// <summary>
         /// Shifts every element in the given list to the left.
         /// </summary>
         /// <typeparam name="T">Type of the list</typeparam>

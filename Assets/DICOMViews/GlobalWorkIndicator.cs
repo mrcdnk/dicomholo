@@ -8,15 +8,11 @@ public class GlobalWorkIndicator : MonoBehaviour
 {
     private int _semaphore = 0;
 
-    private ProgressIndicatorOrbsRotator _progressIndicator;
     private Animator _cursorAnimator;
 
     // Start is called before the first frame update
     void Start()
     {
-        _progressIndicator = GetComponentInChildren<ProgressIndicatorOrbsRotator>(); 
-        _progressIndicator.gameObject.SetActive(false);
-
         _cursorAnimator = GameObject.FindGameObjectWithTag("HoloCursor").GetComponentInChildren<Animator>();
     }
 

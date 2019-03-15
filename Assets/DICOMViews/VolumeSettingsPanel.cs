@@ -33,12 +33,12 @@ namespace DICOMViews
                       $" : Ended with Settings (Intensity: {_intensitySlider.CurrentDouble:0.00}," +
                       $" Opacity: {_opacitySlider.CurrentDouble:0.00}, " +
                       $"StepCount: {_stepCountSlider.CurrentInt}, " +
-                      $"xMin: {_volumeRendering.sliceXMin}, " +
-                      $"xMax: {_volumeRendering.sliceXMax}, " +
-                      $"yMin: {_volumeRendering.sliceZMin}, " +
-                      $"yMax: {_volumeRendering.sliceZMax}, " +
-                      $"zMin: {_volumeRendering.sliceZMin}, " +
-                      $"zMax: {_volumeRendering.sliceZMax}) ");
+                      $"xMin: {_volumeRendering.SliceXMin}, " +
+                      $"xMax: {_volumeRendering.SliceXMax}, " +
+                      $"yMin: {_volumeRendering.SliceZMin}, " +
+                      $"yMax: {_volumeRendering.SliceZMax}, " +
+                      $"zMin: {_volumeRendering.SliceZMin}, " +
+                      $"zMax: {_volumeRendering.SliceZMax}) ");
         }  
 #endif
 
@@ -129,23 +129,23 @@ namespace DICOMViews
                     _x.interactable = false;
                     _y.interactable = true;
                     _z.interactable = true;
-                    _minSlider.CurrentFloat = _volumeRendering.sliceXMin;
-                    _maxSlider.CurrentFloat = _volumeRendering.sliceXMax;
+                    _minSlider.CurrentFloat = _volumeRendering.SliceXMin;
+                    _maxSlider.CurrentFloat = _volumeRendering.SliceXMax;
 
                     break;
                 case CullAxis.Y:
                     _x.interactable = true;
                     _y.interactable = false;
                     _z.interactable = true;
-                    _minSlider.CurrentFloat = _volumeRendering.sliceYMin;
-                    _maxSlider.CurrentFloat = _volumeRendering.sliceYMax;
+                    _minSlider.CurrentFloat = _volumeRendering.SliceYMin;
+                    _maxSlider.CurrentFloat = _volumeRendering.SliceYMax;
                     break;
                 case CullAxis.Z:
                     _x.interactable = true;
                     _y.interactable = true;
                     _z.interactable = false;
-                    _minSlider.CurrentFloat = _volumeRendering.sliceZMin;
-                    _maxSlider.CurrentFloat = _volumeRendering.sliceZMax;
+                    _minSlider.CurrentFloat = _volumeRendering.SliceZMin;
+                    _maxSlider.CurrentFloat = _volumeRendering.SliceZMax;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(axis), axis, null);
@@ -162,13 +162,13 @@ namespace DICOMViews
             switch (_currentConfig)
             {
                 case CullAxis.X:
-                    _volumeRendering.sliceXMin = (float) tubeSlider.CurrentPercentage;
+                    _volumeRendering.SliceXMin = (float) tubeSlider.CurrentPercentage;
                     break;
                 case CullAxis.Y:
-                    _volumeRendering.sliceYMin = (float) tubeSlider.CurrentPercentage;
+                    _volumeRendering.SliceYMin = (float) tubeSlider.CurrentPercentage;
                     break;
                 case CullAxis.Z:
-                    _volumeRendering.sliceZMin = (float) tubeSlider.CurrentPercentage;
+                    _volumeRendering.SliceZMin = (float) tubeSlider.CurrentPercentage;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -186,13 +186,13 @@ namespace DICOMViews
             switch (_currentConfig)
             {
                 case CullAxis.X:
-                    _volumeRendering.sliceXMax = (float) tubeSlider.CurrentPercentage;
+                    _volumeRendering.SliceXMax = (float) tubeSlider.CurrentPercentage;
                     break;
                 case CullAxis.Y:
-                    _volumeRendering.sliceYMax = (float) tubeSlider.CurrentPercentage;
+                    _volumeRendering.SliceYMax = (float) tubeSlider.CurrentPercentage;
                     break;
                 case CullAxis.Z:
-                    _volumeRendering.sliceZMax = (float) tubeSlider.CurrentPercentage;
+                    _volumeRendering.SliceZMax = (float) tubeSlider.CurrentPercentage;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

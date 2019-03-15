@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using DICOMViews.Events;
 using Segmentation;
 using UnityEngine;
@@ -116,6 +117,11 @@ namespace DICOMViews
                 _rangeParameters[i] = new RangeSegmentation.RangeParameter(minIntensity, maxIntensity, 2);
                 _regionGrowParameters[i] = new RegionGrowSegmentation.RegionGrowParameter(-1, -1, -1, (int)(_thresholdRegion.MaximumValue/4));
             }
+
+            var options = new List<string>(Enum.GetNames(typeof(SegmentationType)));
+            options.Remove(Enum.GetName(typeof(SegmentationType), SegmentationType.Unknown));
+            _segmentationStrategyChoice.ClearOptions();
+            _segmentationStrategyChoice.AddOptions(options);
 
             _thresholdRegion.CurrentInt = (int)(_thresholdRegion.MaximumValue / 4);
 
@@ -297,6 +303,25 @@ namespace DICOMViews
 
             _selectedSegment = index;
             _selectedColor.color = _segmentCache.GetSegment(_selectedSegment).SegmentColor;
+
+            _segmentationStrategyChoice.value = _segmentationStrategyChoice.options.FindIndex(data =>
+            {
+                foreach (var typeName in Enum.GetNames(typeof(SegmentationType)))
+                {
+                    if (typeName == data.text && typeName == Enum.GetName(typeof(SegmentationType), _selectedType[index]))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            _minRange.CurrentInt = _rangeParameters[index].Lower;
+            _maxRange.CurrentInt = _rangeParameters[index].Upper;
+
+            _thresholdRegion.CurrentDouble = _regionGrowParameters[index].Threshold;
+            UpdateRegionSeed(_regionGrowParameters[index].X, _regionGrowParameters[index].Y, _regionGrowParameters[index].Z);
             ValidateCurrentParameters();
             _dontSendToggleEvent = true;
             UpdateToggles();
@@ -309,14 +334,18 @@ namespace DICOMViews
         /// <param name="index"></param>
         private void SelectedType(int index)
         {
-            switch (_segmentationStrategyChoice.captionText.text)
+            SegmentationType selected;
+
+            Enum.TryParse(_segmentationStrategyChoice.captionText.text, out selected);
+
+            switch (selected)
             {
-                case "Range":
+                case SegmentationType.Range:
                     _regionGrowParent.SetActive(false);
                     _rangeParent.SetActive(true);
                     _selectedType[_selectedSegment] = SegmentationType.Range;
                     break;
-                case "Region Grow":
+                case SegmentationType.RegionGrow:
                     _regionGrowParent.SetActive(true);
                     _rangeParent.SetActive(false);
                     _selectedType[_selectedSegment] = SegmentationType.RegionGrow;
@@ -333,8 +362,9 @@ namespace DICOMViews
         /// </summary>
         private enum SegmentationType
         {
-            Range,
-            RegionGrow
+            Unknown = 0,
+            Range = 1,
+            RegionGrow = 2
         }
     }
 }

@@ -59,7 +59,7 @@ The Holographic Remoting Window inside the "Window/XR" Dropdown enables you to s
 
 | 2D Slice View      | 3D Volume Rendering      |
 |------------|-------------|
-| ![2D Slice View](Examples/View2DSeg.png ){:width="50%"} | ![3D Volume Rendering](Examples/VolumeWithSeg.png){:width="50%"} | 
+| ![2D Slice View](Examples/View2DSeg.png )| ![3D Volume Rendering](Examples/VolumeWithSeg.png) | 
 ## Troubleshooting
 
 If you get the Error: 

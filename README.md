@@ -55,6 +55,11 @@ The Holographic Remoting Window inside the "Window/XR" Dropdown enables you to s
 2. Open the generated solution in Visual Studio 2017.
 3. Select the device or emulator as build target and start the building the application.
 
+## Example Images
+
+| 2D Slice View      | 3D Volume Rendering      |
+|------------|-------------|
+| ![2D Slice View](Examples/View2DSeg.png ){:width="50%"} | ![3D Volume Rendering](Examples/VolumeWithSeg.png){:width="50%"} | 
 ## Troubleshooting
 
 If you get the Error: 
